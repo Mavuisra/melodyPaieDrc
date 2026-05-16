@@ -2164,47 +2164,80 @@
                                         <Button Command="{Binding OuvrirCentreConfigurationCommand}"
                                                 Style="{StaticResource MaterialDesignRaisedButton}"
                                                 Background="#1E3A5F"
-                                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,12" Margin="0,0,0,12">
+                                                Foreground="White"
+                                                materialDesign:ButtonAssist.CornerRadius="8"
+                                                Padding="16,14"
+                                                MinHeight="48"
+                                                Margin="0,0,0,12">
                                             <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="TuneVariant" Width="20" Height="20" Margin="0,0,10,0"/>
-                                                <TextBlock Text="Centre de configuration (paie, colonnes, champs…)" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                                <materialDesign:PackIcon Kind="TuneVariant" Width="20" Height="20" Margin="0,0,10,0" Foreground="White"/>
+                                                <TextBlock Text="Centre de configuration (paie, colonnes, champs…)"
+                                                           VerticalAlignment="Center"
+                                                           FontWeight="SemiBold"
+                                                           Foreground="White"
+                                                           TextWrapping="Wrap"/>
                                             </StackPanel>
                                         </Button>
                                         <Button Command="{Binding OuvrirGestionUtilisateursCommand}"
                                                 Visibility="{Binding EstAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                 Style="{StaticResource MaterialDesignOutlinedButton}"
-                                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
+                                                Foreground="#37474F"
+                                                BorderBrush="#90A4AE"
+                                                materialDesign:ButtonAssist.CornerRadius="8"
+                                                Padding="16,12"
+                                                MinHeight="44"
+                                                Margin="0,0,0,8">
                                             <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="AccountKey" Width="18" Height="18" Margin="0,0,10,0"/>
-                                                <TextBlock Text="Gestion des utilisateurs" VerticalAlignment="Center"/>
+                                                <materialDesign:PackIcon Kind="AccountKey" Width="18" Height="18" Margin="0,0,10,0" Foreground="#37474F"/>
+                                                <TextBlock Text="Gestion des utilisateurs" VerticalAlignment="Center" Foreground="#37474F"/>
                                             </StackPanel>
                                         </Button>
                                         <Button Command="{Binding VerifierMiseAJourCommand}"
                                                 Style="{StaticResource MaterialDesignOutlinedButton}"
-                                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
-                                            <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="Update" Width="18" Height="18" Margin="0,0,10,0"/>
+                                                Foreground="#1E3A5F"
+                                                BorderBrush="#1E3A5F"
+                                                materialDesign:ButtonAssist.CornerRadius="8"
+                                                Padding="16,12"
+                                                MinHeight="52"
+                                                Margin="0,0,0,8">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <materialDesign:PackIcon Kind="Update" Width="20" Height="20" Margin="0,0,10,0" Foreground="#1E3A5F" VerticalAlignment="Center"/>
                                                 <StackPanel VerticalAlignment="Center">
-                                                    <TextBlock Text="Vérifier les mises à jour" VerticalAlignment="Center"/>
+                                                    <TextBlock Text="Vérifier les mises à jour"
+                                                               FontWeight="SemiBold"
+                                                               Foreground="#1E3A5F"
+                                                               LineHeight="18"/>
                                                     <TextBlock Text="{Binding VersionApplication, StringFormat=Version {0}}"
-                                                               FontSize="10" Foreground="#90A4AE"/>
+                                                               FontSize="11"
+                                                               Foreground="#546E7A"
+                                                               Margin="0,2,0,0"/>
                                                 </StackPanel>
                                             </StackPanel>
                                         </Button>
                                         <Button Command="{Binding SauvegarderBaseCommand}"
                                                 Style="{StaticResource MaterialDesignOutlinedButton}"
-                                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
+                                                Foreground="#37474F"
+                                                BorderBrush="#90A4AE"
+                                                materialDesign:ButtonAssist.CornerRadius="8"
+                                                Padding="16,12"
+                                                MinHeight="44"
+                                                Margin="0,0,0,8">
                                             <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" Margin="0,0,10,0"/>
-                                                <TextBlock Text="Sauvegarder la base (backup)" VerticalAlignment="Center"/>
+                                                <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" Margin="0,0,10,0" Foreground="#37474F"/>
+                                                <TextBlock Text="Sauvegarder la base (backup)" VerticalAlignment="Center" Foreground="#37474F"/>
                                             </StackPanel>
                                         </Button>
                                         <Button Command="{Binding RestaurerBaseCommand}"
                                                 Style="{StaticResource MaterialDesignOutlinedButton}"
-                                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,10" Margin="0,0,0,12">
+                                                Foreground="#37474F"
+                                                BorderBrush="#90A4AE"
+                                                materialDesign:ButtonAssist.CornerRadius="8"
+                                                Padding="16,12"
+                                                MinHeight="44"
+                                                Margin="0,0,0,12">
                                             <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="DatabaseRefresh" Width="18" Height="18" Margin="0,0,10,0"/>
-                                                <TextBlock Text="Restaurer depuis un backup" VerticalAlignment="Center"/>
+                                                <materialDesign:PackIcon Kind="DatabaseRefresh" Width="18" Height="18" Margin="0,0,10,0" Foreground="#37474F"/>
+                                                <TextBlock Text="Restaurer depuis un backup" VerticalAlignment="Center" Foreground="#37474F"/>
                                             </StackPanel>
                                         </Button>
                                         <Border Background="#FFEBEE" CornerRadius="10" Padding="12" BorderBrush="#FFCDD2" BorderThickness="1">
