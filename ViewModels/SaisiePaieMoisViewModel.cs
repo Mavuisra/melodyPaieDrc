@@ -5,6 +5,8 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
+using MelodyPaieRDC.Services;
+using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.ViewModels;
 
@@ -58,7 +60,11 @@ public class SaisiePaieMoisViewModel : INotifyPropertyChanged
     {
         Lignes.Clear();
         var periode = _db.PeriodesPaie.FirstOrDefault(p => p.Id == _periodePaieId);
-        var employes = _db.Employes.OrderBy(e => e.Nom).ThenBy(e => e.Prenom).ToList();
+        var employes = ContexteEntrepriseService.EmployesEntrepriseCourante(_db)
+            .AsNoTracking()
+            .OrderBy(e => e.Nom)
+            .ThenBy(e => e.Prenom)
+            .ToList();
         var saisiesExistantes = _db.SaisiesPaie.Where(s => s.PeriodePaieId == _periodePaieId).ToList();
 
         foreach (var e in employes)

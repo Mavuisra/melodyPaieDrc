@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
+using MelodyPaieRDC.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.ViewModels;
@@ -65,13 +66,12 @@ public class EtablissementsDepartementsViewModel : INotifyPropertyChanged
 
     public void Charger()
     {
-        var ent = _db.Entreprises.OrderBy(e => e.Id).FirstOrDefault();
-        if (ent == null)
+        _entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(_db);
+        if (_entrepriseId <= 0)
         {
-            OnErreur?.Invoke("Aucune entreprise. Créez d'abord une entreprise (Paramètres > Informations entreprise).");
+            OnErreur?.Invoke("Aucune entreprise active. Terminez la configuration initiale ou sélectionnez une entreprise.");
             return;
         }
-        _entrepriseId = ent.Id;
         Etablissements.Clear();
         foreach (var e in _db.Etablissements.Include(x => x.Departements).Where(x => x.EntrepriseId == _entrepriseId).OrderBy(x => x.NomSite))
             Etablissements.Add(e);

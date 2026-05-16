@@ -74,7 +74,7 @@ public class EmployeViewModel
     public void ChargerDepartements()
     {
         Departements.Clear();
-        foreach (var d in _db.Departements.OrderBy(x => x.NomDepartement))
+        foreach (var d in ContexteEntrepriseService.DepartementsEntrepriseCourante(_db).OrderBy(x => x.NomDepartement))
             Departements.Add(d);
     }
 

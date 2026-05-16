@@ -38,6 +38,7 @@ public partial class MainWindow : Window
         _viewModel.OnOuvrirTauxSociaux = OuvrirTauxSociaux;
         _viewModel.OnOuvrirPeriodesPaie = OuvrirPeriodesPaie;
         _viewModel.OnOuvrirInfosEntreprise = OuvrirInfosEntreprise;
+        _viewModel.OnOuvrirAssistantConfiguration = OuvrirAssistantConfiguration;
         _viewModel.OnOuvrirConfigPrimesIndemnites = OuvrirConfigPrimesIndemnites;
         _viewModel.OnOuvrirEtablissementsDepartements = OuvrirEtablissementsDepartements;
         _viewModel.OnImporterFicheSalaireExcel = ImporterFicheSalaireExcel;
@@ -70,6 +71,7 @@ public partial class MainWindow : Window
         Loaded += (_, _) =>
         {
             _viewModel.ChargerDonnees();
+            Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
             ZktecoSynchronisationService.Reconfigurer();
             AfficherTableauDeBordEnPremier();
         };
@@ -493,6 +495,16 @@ public partial class MainWindow : Window
         var win = new PeriodesPaieWindow { Owner = this };
         win.ShowDialog();
         _viewModel.ChargerPeriodes();
+    }
+
+    private void OuvrirAssistantConfiguration()
+    {
+        var win = new AssistantConfigurationWindow { Owner = this };
+        if (win.ShowDialog() == true)
+        {
+            _viewModel.ChargerDonnees();
+            Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
+        }
     }
 
     private void OuvrirInfosEntreprise()

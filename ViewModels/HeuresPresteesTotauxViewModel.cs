@@ -299,7 +299,7 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
     {
         var idConserve = EmployeSelectionne?.Id;
         Employes.Clear();
-        foreach (var e in _db.Employes.AsNoTracking().Include(x => x.Departement).OrderBy(x => x.Matricule))
+        foreach (var e in ContexteEntrepriseService.EmployesEntrepriseCourante(_db).AsNoTracking().Include(x => x.Departement).OrderBy(x => x.Matricule))
             Employes.Add(e);
 
         if (idConserve.HasValue)
@@ -640,7 +640,7 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
         var mois = PeriodeSelectionnee.Mois;
         var annee = PeriodeSelectionnee.Annee;
 
-        var employes = _db.Employes
+        var employes = ContexteEntrepriseService.EmployesEntrepriseCourante(_db)
             .AsNoTracking()
             .Include(e => e.Departement)
             .OrderBy(e => e.Matricule)

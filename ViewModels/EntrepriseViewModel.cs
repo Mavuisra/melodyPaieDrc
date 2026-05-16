@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
+using MelodyPaieRDC.Services;
 
 namespace MelodyPaieRDC.ViewModels;
 
@@ -72,7 +73,8 @@ public class EntrepriseViewModel : INotifyPropertyChanged
 
     public void Charger()
     {
-        var ent = _db.Entreprises.FirstOrDefault();
+        var entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(_db);
+        var ent = entrepriseId > 0 ? _db.Entreprises.FirstOrDefault(e => e.Id == entrepriseId) : null;
         if (ent != null)
         {
             Id = ent.Id;

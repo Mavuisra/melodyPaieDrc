@@ -177,6 +177,14 @@
                         <Border Background="#1AFFFFFF" CornerRadius="6" Padding="8,4" Margin="0,14,0,0" HorizontalAlignment="Left">
                             <TextBlock Text="Vue d’ensemble · Temps · RH · Paie · Admin" FontSize="10" Foreground="#B0C4DE" FontWeight="Medium" TextWrapping="Wrap"/>
                         </Border>
+                        <TextBlock Text="Entreprise active" FontSize="10" Foreground="{StaticResource SidebarMutedBrush}" Margin="0,16,0,4"/>
+                        <TextBlock Text="{Binding EntrepriseCouranteLibelle}" FontSize="12" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap"/>
+                        <ComboBox ItemsSource="{Binding EntreprisesDisponibles}"
+                                  SelectedValue="{Binding EntrepriseCouranteId, Mode=TwoWay}"
+                                  SelectedValuePath="Id"
+                                  DisplayMemberPath="RaisonSociale"
+                                  Margin="0,6,0,0"
+                                  Foreground="#1E3A5F"/>
                     </StackPanel>
                 </Border>
                 <Border Grid.Row="1" Height="1" Margin="20,0" VerticalAlignment="Bottom">
@@ -486,8 +494,11 @@
                                         </Border>
                                         <StackPanel VerticalAlignment="Center">
                                             <TextBlock Text="Répertoire des employés" FontSize="15" FontWeight="SemiBold" Foreground="White"/>
-                                            <TextBlock Text="Fiches, contrats, ayants droit, prêts et primes — sélectionnez une ligne pour agir."
-                                                       FontSize="12" Foreground="#B2EBF2" TextWrapping="Wrap" MaxWidth="560" Margin="0,4,0,0"/>
+                                            <TextBlock FontSize="12" Foreground="#E0F7FA" TextWrapping="Wrap" MaxWidth="560" Margin="0,4,0,0">
+                                                <Run Text="Entreprise : "/>
+                                                <Run Text="{Binding EntrepriseCouranteLibelle, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                <Run Text=" — seuls les employés rattachés à cette entreprise sont affichés."/>
+                                            </TextBlock>
                                         </StackPanel>
                                     </StackPanel>
                                     <Border Grid.Column="1" Background="#26FFFFFF" CornerRadius="20" Padding="14,8" VerticalAlignment="Center">
@@ -1860,6 +1871,15 @@
                                             <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="10,12,10,10">
                                                 <StackPanel>
                                                     <TextBlock Text="Réglages fiscaux, sociaux et structure (entreprise, périodes, calendrier)." FontSize="12" Foreground="#78909C" Margin="0,0,0,14" TextWrapping="Wrap"/>
+                                                    <Button Command="{Binding OuvrirAssistantConfigurationCommand}"
+                                                            Style="{StaticResource MaterialDesignRaisedButton}"
+                                                            Background="#00838F" BorderBrush="#00838F"
+                                                            materialDesign:ButtonAssist.CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="CogOutline" Width="18" Height="18" Margin="0,0,10,0"/>
+                                                            <TextBlock Text="Assistant de configuration initiale" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
                                                     <Button Command="{Binding OuvrirInfosEntrepriseCommand}"
                                                             Style="{StaticResource MaterialDesignRaisedButton}"
                                                             materialDesign:ButtonAssist.CornerRadius="8" Padding="14,10" Margin="0,0,0,8">

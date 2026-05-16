@@ -375,7 +375,11 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public void ChargerEmployes()
     {
         _sourceEmployes.Clear();
-        _sourceEmployes.AddRange(_db.Employes.Include(x => x.Departement).OrderBy(x => x.Nom).ThenBy(x => x.Prenom));
+        _sourceEmployes.AddRange(
+            ContexteEntrepriseService.EmployesEntrepriseCourante(_db)
+                .Include(x => x.Departement)
+                .OrderBy(x => x.Nom)
+                .ThenBy(x => x.Prenom));
         RechercherEmployes();
         OnPropertyChanged(nameof(MessageVide));
     }

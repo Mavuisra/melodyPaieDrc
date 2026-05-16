@@ -111,6 +111,21 @@ public partial class App : Application
                 return;
             }
 
+            using (var dbCtx = new PaieDbContext())
+            {
+                ContexteEntrepriseService.InitialiserDepuisBase(dbCtx);
+                if (!ConfigurationEntrepriseService.EstConfigurationComplete(dbCtx))
+                {
+                    var configWin = new Views.AssistantConfigurationWindow();
+                    if (configWin.ShowDialog() != true)
+                    {
+                        StartupLog.Append("Fermeture : configuration initiale non terminée");
+                        Shutdown(0);
+                        return;
+                    }
+                }
+            }
+
             mainWin.Show();
             StartupLog.Append("Ouverture réussie après connexion");
         }

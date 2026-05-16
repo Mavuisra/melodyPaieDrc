@@ -83,6 +83,8 @@ public class MainViewModel : INotifyPropertyChanged
     private int _dashboardSortiesValideesAujourdhui;
     private int _dashboardPausesEnCoursAujourdhui;
     private decimal _dashboardTauxPresenceAujourdhui;
+    private string _entrepriseCouranteLibelle = "";
+    private int _entrepriseCouranteId;
 
     public MainViewModel()
     {
@@ -145,6 +147,7 @@ public class MainViewModel : INotifyPropertyChanged
         OuvrirTauxSociauxCommand = new RelayCommand(_ => OnOuvrirTauxSociaux?.Invoke());
         OuvrirPeriodesPaieCommand = new RelayCommand(_ => OnOuvrirPeriodesPaie?.Invoke());
         OuvrirInfosEntrepriseCommand = new RelayCommand(_ => OnOuvrirInfosEntreprise?.Invoke());
+        OuvrirAssistantConfigurationCommand = new RelayCommand(_ => OnOuvrirAssistantConfiguration?.Invoke());
         OuvrirConfigPrimesIndemnitesCommand = new RelayCommand(_ => OnOuvrirConfigPrimesIndemnites?.Invoke());
         OuvrirCalendrierTravailCommand = new RelayCommand(_ => OnOuvrirCalendrierTravail?.Invoke());
         OuvrirEtablissementsDepartementsCommand = new RelayCommand(_ => OnOuvrirEtablissementsDepartements?.Invoke());
@@ -209,6 +212,27 @@ public class MainViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<Employe> Employes { get; }
+    public ObservableCollection<Entreprise> EntreprisesDisponibles { get; } = new();
+
+    public string EntrepriseCouranteLibelle
+    {
+        get => _entrepriseCouranteLibelle;
+        private set { _entrepriseCouranteLibelle = value ?? ""; OnPropertyChanged(); }
+    }
+
+    public int EntrepriseCouranteId
+    {
+        get => _entrepriseCouranteId;
+        set
+        {
+            if (_entrepriseCouranteId == value) return;
+            _entrepriseCouranteId = value;
+            ContexteEntrepriseService.DefinirEntrepriseCourante(value);
+            OnPropertyChanged();
+            ChargerContexteEntreprise();
+            ChargerDonnees();
+        }
+    }
 
     public ObservableCollection<PeriodePaie> PeriodesPaie { get; }
 
@@ -378,6 +402,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand OuvrirTauxSociauxCommand { get; }
     public ICommand OuvrirPeriodesPaieCommand { get; }
     public ICommand OuvrirInfosEntrepriseCommand { get; }
+    public ICommand OuvrirAssistantConfigurationCommand { get; }
     public ICommand OuvrirConfigPrimesIndemnitesCommand { get; }
     public ICommand OuvrirCalendrierTravailCommand { get; }
     public ICommand OuvrirEtablissementsDepartementsCommand { get; }
@@ -672,9 +697,28 @@ public class MainViewModel : INotifyPropertyChanged
         set { _dernierBulletinGenere = value; OnPropertyChanged(); }
     }
 
+    public void ChargerContexteEntreprise()
+    {
+        ContexteEntrepriseService.InitialiserDepuisBase(_db);
+        _entrepriseCouranteId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(_db);
+        OnPropertyChanged(nameof(EntrepriseCouranteId));
+
+        EntreprisesDisponibles.Clear();
+        foreach (var e in _db.Entreprises.AsNoTracking().OrderBy(x => x.RaisonSociale))
+            EntreprisesDisponibles.Add(e);
+
+        EntrepriseCouranteLibelle = ContexteEntrepriseService.ObtenirRaisonSocialeCourante(_db)
+            ?? "(aucune entreprise)";
+    }
+
     public void ChargerEmployes()
     {
-        _tousEmployes = _db.Employes.AsNoTracking().Include(x => x.Departement).OrderBy(x => x.Nom).ThenBy(x => x.Prenom).ToList();
+        _tousEmployes = ContexteEntrepriseService.EmployesEntrepriseCourante(_db)
+            .AsNoTracking()
+            .Include(x => x.Departement)
+            .OrderBy(x => x.Nom)
+            .ThenBy(x => x.Prenom)
+            .ToList();
 
         var idsEmployes = _tousEmployes.Select(e => e.Id).ToList();
         Dictionary<int, Contrat> contratsParEmploye = new();
@@ -755,19 +799,29 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void ChargerStatistiques()
     {
-        NbEmployes = _db.Employes.AsNoTracking().Count();
-        var contratsActifs = _db.Contrats.AsNoTracking().Where(c => c.DateFin == null || c.DateFin >= DateTime.Today).ToList();
+        var idsEmployes = ContexteEntrepriseService.EmployesEntrepriseCourante(_db)
+            .AsNoTracking()
+            .Select(e => e.Id)
+            .ToList();
+        NbEmployes = idsEmployes.Count;
+        var contratsActifs = _db.Contrats.AsNoTracking()
+            .Where(c => idsEmployes.Contains(c.EmployeId) && (c.DateFin == null || c.DateFin >= DateTime.Today))
+            .ToList();
         TotalMasseSalariale = contratsActifs.Sum(c => c.SalaireBase);
         var aujourd = DateTime.Today;
         var bulletinsMois = _db.BulletinsPaie
             .AsNoTracking()
-            .Where(b => b.PeriodePaie != null && b.PeriodePaie.Mois == aujourd.Month && b.PeriodePaie.Annee == aujourd.Year)
+            .Where(b => idsEmployes.Contains(b.EmployeId) &&
+                        b.PeriodePaie != null &&
+                        b.PeriodePaie.Mois == aujourd.Month &&
+                        b.PeriodePaie.Annee == aujourd.Year)
             .ToList();
         TotalIprAPayer = bulletinsMois.Sum(b => b.MontantIprNet);
     }
 
     public void ChargerDonnees()
     {
+        ChargerContexteEntreprise();
         ChargerEmployes();
         ChargerPeriodes();
         ChargerStatistiques();
@@ -824,7 +878,7 @@ public class MainViewModel : INotifyPropertyChanged
         var aujourdHui = DateTime.Today;
         DashboardDateDuJour = aujourdHui.ToString("dddd dd MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR"));
 
-        var effectif = _db.Employes.AsNoTracking().Count();
+        var effectif = ContexteEntrepriseService.EmployesEntrepriseCourante(_db).AsNoTracking().Count();
         if (effectif <= 0)
         {
             DashboardPointesAujourdhui = 0;
@@ -1317,6 +1371,7 @@ public class MainViewModel : INotifyPropertyChanged
     public Action? OnOuvrirTauxSociaux { get; set; }
     public Action? OnOuvrirPeriodesPaie { get; set; }
     public Action? OnOuvrirInfosEntreprise { get; set; }
+    public Action? OnOuvrirAssistantConfiguration { get; set; }
     public Action? OnOuvrirConfigPrimesIndemnites { get; set; }
     public Action? OnOuvrirEtablissementsDepartements { get; set; }
     public Action? OnImporterFicheSalaireExcel { get; set; }
