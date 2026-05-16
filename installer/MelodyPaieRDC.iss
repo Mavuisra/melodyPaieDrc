@@ -1,18 +1,18 @@
-; =============================================================================
-; Installateur Melody Paie RDC — Inno Setup 6
+﻿; =============================================================================
+; Installateur Melody Paie RDC â€” Inno Setup 6
 ; Compiler : ISCC.exe MelodyPaieRDC.iss (ou CreerInstallateur.bat)
 ; =============================================================================
 
 #define MyAppName "Melody Paie RDC"
-#define MyAppVersion "1.0.0"
-#define MyAppVersionShort "1.0"
+#define MyAppVersion "1.0.1"
+#define MyAppVersionShort "1.0.1"
 #define MyAppPublisher "Melody Paie"
 #define MyAppExeName "MelodyPaieRDC.exe"
 #define MyAppCopyright "Melody Paie"
 #define MyAppDescription "Paie, RH et declarations CNSS / IPR pour la RDC"
 
-; --- Mot de passe technique d'installation (réservé au fournisseur Impact Entreprises) ---
-; Les clients ne doivent pas recevoir ce mot de passe : il limite la revente non autorisée de l'installateur.
+; --- Mot de passe technique d'installation (rÃ©servÃ© au fournisseur Impact Entreprises) ---
+; Les clients ne doivent pas recevoir ce mot de passe : il limite la revente non autorisÃ©e de l'installateur.
 ; Avant livraison : remplacez par un mot de passe fort et gardez-le confidentiel.
 ; Alternative : ISCC /DInstallateurMotDePasseTechnique=VotreMotSecret "MelodyPaieRDC.iss"
 #ifndef InstallateurMotDePasseTechnique
@@ -21,7 +21,7 @@
 ; Build interne sans mot de passe (NE PAS distribuer au client) : ISCC /DBypassMotDePasseInstallation
 
 [Setup]
-; Identifiant stable (ne pas changer après 1re publication : mises a jour Windows)
+; Identifiant stable (ne pas changer aprÃ¨s 1re publication : mises a jour Windows)
 AppId={{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
@@ -62,7 +62,7 @@ UninstallDisplayName={#MyAppName}
 Compression=lzma2/ultra64
 SolidCompression=yes
 PrivilegesRequired=admin
-; x64compatible : Windows x64 natif + Windows Arm64 (emulation x64) — recommande par Inno Setup 6.3+
+; x64compatible : Windows x64 natif + Windows Arm64 (emulation x64) â€” recommande par Inno Setup 6.3+
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.17763
@@ -84,11 +84,11 @@ Name: "french"; MessagesFile: "compiler:Languages\French.isl"
 
 [CustomMessages]
 ; Sous-titre page d'accueil (evite accents problematiques en code Pascal)
-french.CustomWelcomeSub=Cet assistant installe {#MyAppName} sur votre ordinateur.%n%nCette version inclut le runtime .NET (self-contained) : aucune installation separee du runtime n'est requise.%n%nIl est recommandé de fermer l'application si elle est deja ouverte.
+french.CustomWelcomeSub=Cet assistant installe {#MyAppName} sur votre ordinateur.%n%nCette version inclut le runtime .NET (self-contained) : aucune installation separee du runtime n'est requise.%n%nIl est recommandÃ© de fermer l'application si elle est deja ouverte.
 
 [Tasks]
-Name: "desktopicon"; Description: "Créer un raccourci sur le Bureau"; GroupDescription: "Raccourcis :"; Flags: unchecked
-Name: "autostart"; Description: "Lancer Melody Paie RDC après l'installation"; GroupDescription: "Après l'installation :"; Flags: checkedonce
+Name: "desktopicon"; Description: "CrÃ©er un raccourci sur le Bureau"; GroupDescription: "Raccourcis :"; Flags: unchecked
+Name: "autostart"; Description: "Lancer Melody Paie RDC aprÃ¨s l'installation"; GroupDescription: "AprÃ¨s l'installation :"; Flags: checkedonce
 
 [Files]
 Source: "..\publish\win-x64\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
@@ -99,8 +99,8 @@ Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\Icon_MelodyPaie_Installer.ico"; Tasks: desktopicon
 
 [Run]
-; WorkingDir : sans cela, Windows peut lancer l'exe avec un répertoire courant hors {app} (ex. System32),
-; ce qui casse le chargement des DLL natives / ressources à côté de l'exécutable.
+; WorkingDir : sans cela, Windows peut lancer l'exe avec un rÃ©pertoire courant hors {app} (ex. System32),
+; ce qui casse le chargement des DLL natives / ressources Ã  cÃ´tÃ© de l'exÃ©cutable.
 Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent; Tasks: autostart
 
 [Code]
@@ -178,3 +178,4 @@ begin
 
   Result := True;
 end;
+

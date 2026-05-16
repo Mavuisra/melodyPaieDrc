@@ -1,8 +1,8 @@
-{
-  "version": "1.0.0",
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.0/MelodyPaieRDC_Setup_1.0.exe",
-  "fileName": "MelodyPaieRDC_Setup_1.0.exe",
-  "publishedAt": "2026-05-16",
-  "releaseNotes": "Version 1.0.0 — Melody Paie RDC (paie, CNSS, IPR, bulletins, sync ZKTeco).",
-  "sha256": "F95745AF6EA82652E9A5DF414360B4E6CA455BBE33C955C3FA10013BEB8C47C1"
+﻿{
+    "sha256":  "",
+    "version":  "1.0.1",
+    "releaseNotes":  "Correction fenetre mises a jour",
+    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.1/MelodyPaieRDC_Setup_1.0.1.exe",
+    "publishedAt":  "2026-05-16",
+    "fileName":  "MelodyPaieRDC_Setup_1.0.1.exe"
 }
