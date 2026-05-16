@@ -27,6 +27,7 @@ public class MiseAJourViewModel : INotifyPropertyChanged
     {
         var config = UpdateConfigHelper.Charger();
         _urlManifeste = config.ManifestUrl;
+        OnPropertyChanged(nameof(UrlManifeste));
         _versionInstallee = ApplicationUpdateService.FormaterVersion(ApplicationUpdateService.ObtenirVersionInstallee());
 
         VerifierCommand = new RelayCommand(async _ => await VerifierAsync(), _ => !EstOccupe);

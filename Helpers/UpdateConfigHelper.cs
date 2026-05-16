@@ -17,13 +17,24 @@ public static class UpdateConfigHelper
     {
         try
         {
+            UpdateConfigDto dto;
             if (!File.Exists(ConfigPath))
-                return CreerDefaut();
-            var json = File.ReadAllText(ConfigPath);
-            var dto = JsonSerializer.Deserialize<UpdateConfigDto>(json);
-            if (dto == null || string.IsNullOrWhiteSpace(dto.ManifestUrl))
-                return CreerDefaut();
-            dto.ManifestUrl = dto.ManifestUrl.Trim();
+                dto = CreerDefaut();
+            else
+            {
+                var json = File.ReadAllText(ConfigPath);
+                dto = JsonSerializer.Deserialize<UpdateConfigDto>(json) ?? new UpdateConfigDto();
+                if (string.IsNullOrWhiteSpace(dto.ManifestUrl))
+                    dto.ManifestUrl = ApplicationUpdateDefaults.ManifestUrlParDefaut;
+                else
+                    dto.ManifestUrl = dto.ManifestUrl.Trim();
+            }
+
+            if (CorrigerUrlObsolete(dto))
+            {
+                try { Sauvegarder(dto); } catch { /* ignore */ }
+            }
+
             return dto;
         }
         catch
@@ -41,6 +52,20 @@ public static class UpdateConfigHelper
         File.WriteAllText(ConfigPath, json);
     }
 
+    /// <summary>Remplace example.com ou URL vide par le manifeste GitHub officiel.</summary>
+    private static bool CorrigerUrlObsolete(UpdateConfigDto dto)
+    {
+        var url = dto.ManifestUrl ?? "";
+        if (string.IsNullOrWhiteSpace(url) ||
+            url.Contains("example.com", StringComparison.OrdinalIgnoreCase) ||
+            !url.Contains("github", StringComparison.OrdinalIgnoreCase))
+        {
+            dto.ManifestUrl = ApplicationUpdateDefaults.ManifestUrlParDefaut;
+            return true;
+        }
+        return false;
+    }
+
     private static UpdateConfigDto CreerDefaut()
     {
         var dto = new UpdateConfigDto
@@ -48,14 +73,7 @@ public static class UpdateConfigHelper
             ManifestUrl = ApplicationUpdateDefaults.ManifestUrlParDefaut,
             VerifierAuDemarrage = true
         };
-        try
-        {
-            Sauvegarder(dto);
-        }
-        catch
-        {
-            // Lecture seule ou droits : on retourne quand même les valeurs par défaut en mémoire.
-        }
+        try { Sauvegarder(dto); } catch { /* ignore */ }
         return dto;
     }
 }
@@ -64,6 +82,5 @@ public class UpdateConfigDto
 {
     public string ManifestUrl { get; set; } = ApplicationUpdateDefaults.ManifestUrlParDefaut;
 
-    /// <summary>Si true, propose une mise à jour au démarrage lorsqu'une version plus récente est disponible.</summary>
     public bool VerifierAuDemarrage { get; set; } = true;
 }

@@ -39,15 +39,20 @@ public sealed class UpdateDownloadResult
 /// </summary>
 public static class ApplicationUpdateService
 {
-    private static readonly HttpClient Http = new()
-    {
-        Timeout = TimeSpan.FromSeconds(45)
-    };
+    private static readonly HttpClient Http = CreerHttpClient();
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true
     };
+
+    private static HttpClient CreerHttpClient()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromSeconds(45) };
+        client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "MelodyPaieRDC-Updater/1.0");
+        client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/json");
+        return client;
+    }
 
     public static string DossierTelechargements =>
         Path.Combine(PaieDbContext.GetDataDirectory(), "Updates");
@@ -76,104 +81,170 @@ public static class ApplicationUpdateService
     {
         var installee = ObtenirVersionInstallee();
         var config = UpdateConfigHelper.Charger();
-        var url = config.ManifestUrl?.Trim() ?? "";
 
-        if (string.IsNullOrWhiteSpace(url))
+        var urlsManifeste = new List<string>();
+        if (!string.IsNullOrWhiteSpace(config.ManifestUrl))
+            urlsManifeste.Add(config.ManifestUrl.Trim());
+        if (!urlsManifeste.Contains(ApplicationUpdateDefaults.ManifestUrlParDefaut, StringComparer.OrdinalIgnoreCase))
+            urlsManifeste.Add(ApplicationUpdateDefaults.ManifestUrlParDefaut);
+
+        Exception? derniereErreur = null;
+        foreach (var url in urlsManifeste)
         {
-            return new UpdateCheckResult
+            try
             {
-                Kind = UpdateCheckResultKind.SkippedNoUrl,
-                Message = "Aucune URL de mises à jour configurée.",
-                VersionInstallee = installee
-            };
+                var result = await VerifierDepuisManifesteAsync(url, installee, cancellationToken).ConfigureAwait(false);
+                if (result.Kind != UpdateCheckResultKind.Error ||
+                    !result.Message.Contains("404", StringComparison.Ordinal))
+                    return result;
+                derniereErreur = new HttpRequestException(result.Message);
+            }
+            catch (Exception ex)
+            {
+                derniereErreur = ex;
+            }
         }
 
+        try
+        {
+            return await VerifierDepuisGitHubReleasesAsync(installee, cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            derniereErreur = ex;
+        }
+
+        var detail = derniereErreur?.Message ?? "réseau";
+        return new UpdateCheckResult
+        {
+            Kind = UpdateCheckResultKind.Error,
+            Message =
+                "Impossible de joindre le serveur de mises à jour (404). " +
+                "Vérifiez la connexion Internet et que le dépôt GitHub est public " +
+                $"(paramètres du dépôt {ApplicationUpdateDefaults.GitHubRepo}). Détail : {detail}",
+            VersionInstallee = installee
+        };
+    }
+
+    private static async Task<UpdateCheckResult> VerifierDepuisManifesteAsync(
+        string url,
+        Version installee,
+        CancellationToken cancellationToken)
+    {
         if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp))
         {
             return new UpdateCheckResult
             {
                 Kind = UpdateCheckResultKind.Error,
-                Message = "L'URL du manifeste de mise à jour est invalide (http ou https requis).",
+                Message = "URL du manifeste invalide (http ou https requis).",
                 VersionInstallee = installee
             };
         }
 
-        try
+        var json = await Http.GetStringAsync(uri, cancellationToken).ConfigureAwait(false);
+        var manifest = JsonSerializer.Deserialize<UpdateManifest>(json, JsonOptions);
+        return EvaluerManifeste(manifest, installee);
+    }
+
+    private static async Task<UpdateCheckResult> VerifierDepuisGitHubReleasesAsync(
+        Version installee,
+        CancellationToken cancellationToken)
+    {
+        var json = await Http.GetStringAsync(ApplicationUpdateDefaults.ReleasesLatestApiUrl, cancellationToken)
+            .ConfigureAwait(false);
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        var tag = root.GetProperty("tag_name").GetString() ?? "";
+        var versionText = tag.TrimStart('v', 'V');
+        if (!Version.TryParse(versionText, out var disponible))
+            throw new InvalidOperationException($"Tag de release invalide : {tag}");
+
+        string? downloadUrl = null;
+        string? fileName = null;
+        if (root.TryGetProperty("assets", out var assets))
         {
-            var json = await Http.GetStringAsync(uri, cancellationToken).ConfigureAwait(false);
-            var manifest = JsonSerializer.Deserialize<UpdateManifest>(json, JsonOptions);
-            if (manifest == null || string.IsNullOrWhiteSpace(manifest.Version))
+            foreach (var asset in assets.EnumerateArray())
             {
-                return new UpdateCheckResult
-                {
-                    Kind = UpdateCheckResultKind.Error,
-                    Message = "Le fichier de version est vide ou illisible.",
-                    VersionInstallee = installee
-                };
+                var name = asset.GetProperty("name").GetString() ?? "";
+                if (!name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                fileName = name;
+                break;
             }
+        }
 
-            if (!Version.TryParse(manifest.Version.Trim(), out var disponible))
-            {
-                return new UpdateCheckResult
-                {
-                    Kind = UpdateCheckResultKind.Error,
-                    Message = $"Numéro de version invalide dans le manifeste : « {manifest.Version} ».",
-                    VersionInstallee = installee
-                };
-            }
+        if (string.IsNullOrWhiteSpace(downloadUrl))
+            throw new InvalidOperationException("Aucun installateur .exe dans la dernière release GitHub.");
 
-            if (string.IsNullOrWhiteSpace(manifest.DownloadUrl))
-            {
-                return new UpdateCheckResult
-                {
-                    Kind = UpdateCheckResultKind.Error,
-                    Message = "Le manifeste ne contient pas d'URL de téléchargement (downloadUrl).",
-                    VersionInstallee = installee,
-                    VersionDisponible = disponible,
-                    Manifest = manifest
-                };
-            }
+        var notes = root.TryGetProperty("body", out var body) ? body.GetString() : null;
+        var manifest = new UpdateManifest
+        {
+            Version = versionText,
+            DownloadUrl = downloadUrl,
+            FileName = fileName,
+            ReleaseNotes = string.IsNullOrWhiteSpace(notes) ? $"Release {tag}" : notes
+        };
 
-            if (disponible <= installee)
-            {
-                return new UpdateCheckResult
-                {
-                    Kind = UpdateCheckResultKind.UpToDate,
-                    Message = $"Vous utilisez la dernière version ({FormaterVersion(installee)}).",
-                    VersionInstallee = installee,
-                    VersionDisponible = disponible,
-                    Manifest = manifest
-                };
-            }
+        return EvaluerManifeste(manifest, installee);
+    }
 
+    private static UpdateCheckResult EvaluerManifeste(UpdateManifest? manifest, Version installee)
+    {
+        if (manifest == null || string.IsNullOrWhiteSpace(manifest.Version))
+        {
             return new UpdateCheckResult
             {
-                Kind = UpdateCheckResultKind.UpdateAvailable,
-                Message = $"La version {FormaterVersion(disponible)} est disponible (installée : {FormaterVersion(installee)}).",
+                Kind = UpdateCheckResultKind.Error,
+                Message = "Le fichier de version est vide ou illisible.",
+                VersionInstallee = installee
+            };
+        }
+
+        if (!Version.TryParse(manifest.Version.Trim(), out var disponible))
+        {
+            return new UpdateCheckResult
+            {
+                Kind = UpdateCheckResultKind.Error,
+                Message = $"Numéro de version invalide : « {manifest.Version} ».",
+                VersionInstallee = installee
+            };
+        }
+
+        if (string.IsNullOrWhiteSpace(manifest.DownloadUrl))
+        {
+            return new UpdateCheckResult
+            {
+                Kind = UpdateCheckResultKind.Error,
+                Message = "URL de téléchargement manquante (downloadUrl).",
                 VersionInstallee = installee,
                 VersionDisponible = disponible,
                 Manifest = manifest
             };
         }
-        catch (TaskCanceledException)
+
+        if (disponible <= installee)
         {
             return new UpdateCheckResult
             {
-                Kind = UpdateCheckResultKind.Error,
-                Message = "Délai dépassé lors de la vérification des mises à jour.",
-                VersionInstallee = installee
+                Kind = UpdateCheckResultKind.UpToDate,
+                Message = $"Vous utilisez la dernière version ({FormaterVersion(installee)}).",
+                VersionInstallee = installee,
+                VersionDisponible = disponible,
+                Manifest = manifest
             };
         }
-        catch (Exception ex)
+
+        return new UpdateCheckResult
         {
-            return new UpdateCheckResult
-            {
-                Kind = UpdateCheckResultKind.Error,
-                Message = $"Impossible de vérifier les mises à jour : {ex.Message}",
-                VersionInstallee = installee
-            };
-        }
+            Kind = UpdateCheckResultKind.UpdateAvailable,
+            Message = $"La version {FormaterVersion(disponible)} est disponible (installée : {FormaterVersion(installee)}).",
+            VersionInstallee = installee,
+            VersionDisponible = disponible,
+            Manifest = manifest
+        };
     }
 
     public static async Task<UpdateDownloadResult> TelechargerAsync(

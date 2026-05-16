@@ -1,14 +1,16 @@
 namespace MelodyPaieRDC.Services;
 
 /// <summary>
-/// Valeurs par défaut du canal de mise à jour (à aligner avec AppUpdatesURL dans installer/MelodyPaieRDC.iss).
+/// Canal de mise à jour GitHub (dépôt Mavuisra/melodyPaieDrc).
+/// Le dépôt doit être public pour que les clients accèdent au manifeste et aux Releases sans authentification.
 /// </summary>
 public static class ApplicationUpdateDefaults
 {
-    /// <summary>
-    /// URL du manifeste JSON (version, downloadUrl, releaseNotes).
-    /// Remplacez par votre hébergement réel avant distribution.
-    /// </summary>
+    public const string GitHubRepo = "Mavuisra/melodyPaieDrc";
+
     public const string ManifestUrlParDefaut =
         "https://raw.githubusercontent.com/Mavuisra/melodyPaieDrc/main/installer/updates/version.json";
+
+    public static string ReleasesLatestApiUrl =>
+        $"https://api.github.com/repos/{GitHubRepo}/releases/latest";
 }
