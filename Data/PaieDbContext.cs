@@ -55,6 +55,22 @@ public class PaieDbContext : DbContext
     // Multi-utilisateurs / rôles
     public DbSet<Utilisateur> Utilisateurs { get; set; } = null!;
 
+    // Politique de paie extensible
+    public DbSet<PolitiquePaie> PolitiquesPaie { get; set; } = null!;
+    public DbSet<ParametrePolitiquePaie> ParametresPolitiquePaie { get; set; } = null!;
+    public DbSet<RubriqueBulletin> RubriquesBulletin { get; set; } = null!;
+
+    // Champs dynamiques (EAV)
+    public DbSet<DefinitionChampDynamique> DefinitionsChampsDynamiques { get; set; } = null!;
+    public DbSet<ValeurChampDynamique> ValeursChampsDynamiques { get; set; } = null!;
+
+    // Synchronisation offline / cloud
+    public DbSet<SyncJournal> SyncJournaux { get; set; } = null!;
+    public DbSet<SyncParametres> SyncParametres { get; set; } = null!;
+
+    // Formulaires dynamiques (métadonnées JSON + valeurs extensibles)
+    public DbSet<FormFieldValue> FormFieldValues { get; set; } = null!;
+
     /// <summary>
     /// Dossier des données (base, logos, config). Toujours dans AppData pour éviter les refus d'accès (Program Files).
     /// </summary>
@@ -168,6 +184,39 @@ public class PaieDbContext : DbContext
             .WithOne(d => d.BulletinPaie)
             .HasForeignKey(d => d.BulletinPaieId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<FormFieldValue>()
+            .HasIndex(f => new { f.FormId, f.EntityType, f.EntityId, f.FieldKey })
+            .IsUnique();
+
+        modelBuilder.Entity<PolitiquePaie>()
+            .HasMany(p => p.Parametres)
+            .WithOne(x => x.PolitiquePaie)
+            .HasForeignKey(x => x.PolitiquePaieId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<PolitiquePaie>()
+            .HasMany(p => p.Rubriques)
+            .WithOne(r => r.PolitiquePaie)
+            .HasForeignKey(r => r.PolitiquePaieId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<DefinitionChampDynamique>()
+            .HasMany(d => d.Valeurs)
+            .WithOne(v => v.DefinitionChamp)
+            .HasForeignKey(v => v.DefinitionChampId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+
+    /// <summary>
+    /// Dossier des définitions de formulaires JSON (modifiable sans recompilation).
+    /// </summary>
+    public static string GetFormsDirectory()
+    {
+        return Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "MelodyPaieRDC",
+            "Forms");
     }
 
     /// <summary>
@@ -180,8 +229,7 @@ public class PaieDbContext : DbContext
 
         if (!Entreprises.Any())
         {
-            var ent = new Entreprise();
-            LtServicesDonneesEntreprise.RemplirModeleVide(ent);
+            var ent = new Entreprise { RaisonSociale = "Mon entreprise" };
             Entreprises.Add(ent);
             SaveChanges();
 
@@ -189,11 +237,20 @@ public class PaieDbContext : DbContext
             Etablissements.Add(etab);
             SaveChanges();
 
-            foreach (var nomDept in LtServicesEffectifsSeeder.NomsDepartements)
-            {
-                Departements.Add(new Departement { EtablissementId = etab.Id, NomDepartement = nomDept });
-            }
+            Departements.Add(new Departement { EtablissementId = etab.Id, NomDepartement = "Direction générale" });
             SaveChanges();
+
+            ContexteEntrepriseService.EntrepriseCouranteId = ent.Id;
+        }
+
+        var entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(this);
+        if (entrepriseId > 0)
+        {
+            if (!PolitiquesPaie.Any(p => p.EntrepriseId == entrepriseId))
+            {
+                PolitiquesPaie.Add(DonneesPaieReferenceSeed.CreerPolitiqueParDefaut(entrepriseId));
+                SaveChanges();
+            }
         }
 
         // Premier utilisateur par défaut (admin / admin) si aucun utilisateur
@@ -222,131 +279,14 @@ public class PaieDbContext : DbContext
             SaveChanges();
         }
 
-        // Catégories professionnelles pour les contrats (Cadre, Maîtrise, Exécution)
-        if (!CategoriesProfessionnelles.Any())
+        DonneesPaieReferenceSeed.SeedCategoriesSiVide(this, null);
+        DonneesPaieReferenceSeed.SeedReferentielLegalSiVide(this, null);
+        DonneesPaieReferenceSeed.SeedPrimesCourantesSiVide(this, null);
+
+        if (entrepriseId > 0)
         {
-            // Référence SMIG mensuel (CDF) issue du barème de classification commerce.
-            CategoriesProfessionnelles.Add(new CategorieProfessionnelle { Libelle = "Cadre", SmigApplique = 2454270m });
-            CategoriesProfessionnelles.Add(new CategorieProfessionnelle { Libelle = "Maîtrise", SmigApplique = 1379820m });
-            CategoriesProfessionnelles.Add(new CategorieProfessionnelle { Libelle = "Exécution", SmigApplique = 377000m });
-            SaveChanges();
-        }
-        else
-        {
-            // Mise à niveau pour les anciennes bases où SmigApplique était resté à 0.
-            var categories = CategoriesProfessionnelles.ToList();
-            var misAJour = false;
-            foreach (var c in categories)
-            {
-                if (c.SmigApplique > 0)
-                    continue;
-
-                if (string.Equals(c.Libelle, "Cadre", StringComparison.OrdinalIgnoreCase))
-                {
-                    c.SmigApplique = 2454270m;
-                    misAJour = true;
-                }
-                else if (string.Equals(c.Libelle, "Maîtrise", StringComparison.OrdinalIgnoreCase) ||
-                         string.Equals(c.Libelle, "Maitrise", StringComparison.OrdinalIgnoreCase))
-                {
-                    c.SmigApplique = 1379820m;
-                    misAJour = true;
-                }
-                else if (string.Equals(c.Libelle, "Exécution", StringComparison.OrdinalIgnoreCase) ||
-                         string.Equals(c.Libelle, "Execution", StringComparison.OrdinalIgnoreCase))
-                {
-                    c.SmigApplique = 377000m;
-                    misAJour = true;
-                }
-            }
-
-            if (misAJour)
-                SaveChanges();
-        }
-
-        // Barème IPR : LOI DE FINANCES 2020 (tranches mensuelles en CDF), modifiable ensuite via l'écran Paramètres IPR.
-        if (!GrillesIpr.Any())
-        {
-            GrillesIpr.Add(new GrilleIPR
-            {
-                BorneInf = 0m,
-                BorneSup = 162000m,
-                Taux = 3m
-            });
-            GrillesIpr.Add(new GrilleIPR
-            {
-                BorneInf = 162001m,
-                BorneSup = 1800000m,
-                Taux = 15m
-            });
-            GrillesIpr.Add(new GrilleIPR
-            {
-                BorneInf = 1800001m,
-                BorneSup = 3600000m,
-                Taux = 30m
-            });
-            // Dernière tranche : "40 % pour le surplus" → borne supérieure = 0 pour signifier "illimitée"
-            GrillesIpr.Add(new GrilleIPR
-            {
-                BorneInf = 3600001m,
-                BorneSup = 0m,
-                Taux = 40m
-            });
-            SaveChanges();
-        }
-
-        // Paramètres généraux IPR par défaut (modifiables) – ici, pas de plafond effectif ni de réduction fixe automatique.
-        if (!ParametresIpr.Any())
-        {
-            ParametresIpr.Add(new ParametreIPR
-            {
-                TauxEffectifMaximum = 0m, // pas de plafond global appliqué par défaut
-                ReductionParEnfant = 0m   // la réduction 2% par enfant reste à modéliser si souhaitée
-            });
-            SaveChanges();
-        }
-
-        // Taux sociaux (cotisations employé / employeur) — valeurs courantes RDC, modifiables dans Paramètres.
-        if (!TauxSociaux.Any())
-        {
-            TauxSociaux.AddRange(new[]
-            {
-                new TauxSociaux { Code = "CNSS_Ouvrier", Pourcentage = 5m },
-                new TauxSociaux { Code = "CNSS_Patronal", Pourcentage = 13m },
-                new TauxSociaux { Code = "INPP", Pourcentage = 3m },
-                new TauxSociaux { Code = "ONEM", Pourcentage = 0.5m }
-            });
-            SaveChanges();
-        }
-
-        // Calendrier de travail : au besoin, on pourra pré-remplir quelques jours fériés standards (laissé vide par défaut pour laisser la main à l'utilisateur).
-
-        // Primes / indemnités de base les plus courantes en RDC
-        if (!PrimesIndemnites.Any())
-        {
-            PrimesIndemnites.AddRange(new[]
-            {
-                // Primes (A = avantage, généralement imposables et cotisables)
-                new PrimeIndemnite { Libelle = "Prime d'ancienneté", EstImposable = true, EstCotisable = true, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Prime de rendement", EstImposable = true, EstCotisable = true, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Prime d'assiduité", EstImposable = true, EstCotisable = true, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Prime de responsabilité", EstImposable = true, EstCotisable = true, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Prime de risque", EstImposable = true, EstCotisable = true, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Prime de fin d'année", EstImposable = true, EstCotisable = true, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-
-            // Indemnités (souvent avantages non imposables / non cotisables selon politique ; modifiables ensuite)
-                new PrimeIndemnite { Libelle = "Indemnité de transport", EstImposable = false, EstCotisable = false, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Indemnité de logement", EstImposable = true, EstCotisable = true, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Indemnité de déplacement", EstImposable = false, EstCotisable = false, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Indemnité de représentation", EstImposable = true, EstCotisable = true, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Prime / Indemnité panier", EstImposable = false, EstCotisable = false, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Indemnité de licenciement", EstImposable = false, EstCotisable = false, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Indemnité de congé", EstImposable = true, EstCotisable = true, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Allocations familiales", EstImposable = false, EstCotisable = false, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Congé de circonstance", EstImposable = true, EstCotisable = true, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage },
-                new PrimeIndemnite { Libelle = "Indemnité maladie", EstImposable = true, EstCotisable = true, ModeCalcul = PrimeIndemnite.ModeFixe, TypeLigne = PrimeIndemnite.TypeAvantage }
-            });
-            SaveChanges();
+            DonneesPaieReferenceSeed.SeedReferentielLegalSiVide(this, entrepriseId);
+            DonneesPaieReferenceSeed.SeedPrimesCourantesSiVide(this, entrepriseId);
         }
     }
 }

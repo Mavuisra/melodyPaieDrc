@@ -94,17 +94,17 @@ public class EntrepriseViewModel : INotifyPropertyChanged
         else
         {
             Id = 0;
-            RaisonSociale = LtServicesDonneesEntreprise.RaisonSociale;
-            Nif = LtServicesDonneesEntreprise.Nif;
-            Nrc = LtServicesDonneesEntreprise.Nrc;
-            IdNat = LtServicesDonneesEntreprise.IdNat;
-            NumCnss = LtServicesDonneesEntreprise.NumCnssEmployeur;
+            RaisonSociale = "Mon entreprise";
+            Nif = null;
+            Nrc = null;
+            IdNat = null;
+            NumCnss = null;
             NumInpp = null;
-            Adresse = LtServicesDonneesEntreprise.Adresse;
-            Telephone = LtServicesDonneesEntreprise.Telephone;
-            Email = LtServicesDonneesEntreprise.Email;
-            SiteWeb = LtServicesDonneesEntreprise.SiteWeb;
-            NumeroAffiliationCnss = LtServicesDonneesEntreprise.NumeroAffiliationCnss;
+            Adresse = null;
+            Telephone = null;
+            Email = null;
+            SiteWeb = null;
+            NumeroAffiliationCnss = null;
             Logo = null;
             CouleurPrincipale = "#1E3A5F";
             CouleurSecondaire = null;

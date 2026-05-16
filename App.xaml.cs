@@ -4,6 +4,7 @@ using System.Windows;
 using System.Windows.Threading;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Helpers;
+using MelodyPaieRDC.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Infrastructure;
@@ -81,6 +82,7 @@ public partial class App : Application
             if (!Directory.Exists(dataDir))
                 Directory.CreateDirectory(dataDir);
 
+            FormDefinitionLoader.AssurerDossierEtModelesParDefaut();
             AssurerBaseEtDonneesInitiales(dbPath);
             StartupLog.Append("Base SQLite initialisée");
 
@@ -174,13 +176,13 @@ public partial class App : Application
         SchemaSqliteApplicator.AjouterColonnesSuiviJournalierPointagesSiNecessaire(db);
         SchemaSqliteApplicator.AjouterTableParametresApplicationSiNecessaire(db);
         SchemaSqliteApplicator.AjouterColonnesParametresZktecoSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableFormFieldValuesSiNecessaire(db);
+        SchemaSqliteApplicatorExtensible.AppliquerSiNecessaire(db);
         BackfillNumeroBulletinSiNecessaire(db);
 
         try
         {
             db.SeedSiVide();
-            LtServicesEffectifsSeeder.SeedEffectifsSiVide(db);
-            AppliquerDonneesLtServicesPostSeed(db);
             return;
         }
         catch (SqliteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
@@ -207,17 +209,10 @@ public partial class App : Application
         SchemaSqliteApplicator.AjouterColonnesSuiviJournalierPointagesSiNecessaire(db);
         SchemaSqliteApplicator.AjouterTableParametresApplicationSiNecessaire(db);
         SchemaSqliteApplicator.AjouterColonnesParametresZktecoSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableFormFieldValuesSiNecessaire(db);
+        SchemaSqliteApplicatorExtensible.AppliquerSiNecessaire(db);
         BackfillNumeroBulletinSiNecessaire(db);
         db.SeedSiVide();
-        LtServicesEffectifsSeeder.SeedEffectifsSiVide(db);
-        AppliquerDonneesLtServicesPostSeed(db);
-    }
-
-    private static void AppliquerDonneesLtServicesPostSeed(PaieDbContext db)
-    {
-        LtServicesDonneesEntreprise.AppliquerSiEntrepriseEncoreGenerique(db);
-        LtServicesDonneesEntreprise.CompleterCoordonneesLtServicesSiChampsVides(db);
-        LtServicesDonneesEntreprise.SynchroniserIdentiteLtSiApplicable(db);
     }
 
     /// <summary>

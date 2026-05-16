@@ -1,0 +1,39 @@
+<Window x:Class="MelodyPaieRDC.Views.FormDefinitionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Formulaires dynamiques" Height="480" Width="640"
+        WindowStartupLocation="CenterOwner">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,12" Foreground="#546E7A">
+            <Run Text="Les écrans sont définis par des fichiers JSON dans :"/>
+            <LineBreak/>
+            <Run x:Name="FormsPathRun" FontWeight="SemiBold"/>
+            <LineBreak/>
+            <Run Text="Modifiez ou ajoutez un fichier .json puis cliquez « Recharger » — aucune recompilation nécessaire."/>
+        </TextBlock>
+
+        <DataGrid Grid.Row="1" x:Name="FormsGrid" AutoGenerateColumns="False"
+                  IsReadOnly="True" SelectionMode="Single" CanUserAddRows="False"
+                  HeadersVisibility="Column" Margin="0,0,0,12">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Identifiant" Binding="{Binding FormId}" Width="140"/>
+                <DataGridTextColumn Header="Titre" Binding="{Binding Title}" Width="*"/>
+                <DataGridTextColumn Header="Entité" Binding="{Binding EntityType}" Width="100"/>
+                <DataGridTextColumn Header="Version" Binding="{Binding Version}" Width="70"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Ouvrir dossier Forms" Click="OuvrirDossier_Click" Margin="0,0,8,0" Padding="12,6"/>
+            <Button Content="Recharger" Click="Recharger_Click" Margin="0,0,8,0" Padding="12,6"/>
+            <Button Content="Aperçu (sans entité)" Click="Apercu_Click" Margin="0,0,8,0" Padding="12,6"/>
+            <Button Content="Fermer" IsCancel="True" Padding="16,6"/>
+        </StackPanel>
+    </Grid>
+</Window>

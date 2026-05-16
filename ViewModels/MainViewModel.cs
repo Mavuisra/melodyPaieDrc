@@ -105,6 +105,9 @@ public class MainViewModel : INotifyPropertyChanged
         OuvrirPretsAvancesCommand = new RelayCommand(_ => OnOuvrirPretsAvances?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
         OuvrirPrimesIndemnitesCommand = new RelayCommand(_ => OnOuvrirPrimesIndemnites?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
         OuvrirHeuresMoisEmployeCommand = new RelayCommand(_ => OnOuvrirHeuresMoisEmploye?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
+        OuvrirChampsComplementairesEmployeCommand = new RelayCommand(_ => OnOuvrirChampsComplementairesEmploye?.Invoke(), _ => EmployeSelectionne != null);
+        OuvrirFormulairesDynamiquesCommand = new RelayCommand(_ => OnOuvrirFormulairesDynamiques?.Invoke());
+        OuvrirChampsComplementairesEntrepriseCommand = new RelayCommand(_ => OnOuvrirChampsComplementairesEntreprise?.Invoke());
         RafraichirCommand = new RelayCommand(_ => { ChargerEmployes(); ChargerStatistiques(); });
         SelectionnerMenuCommand = new RelayCommand(p =>
         {
@@ -357,6 +360,9 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand OuvrirPretsAvancesCommand { get; }
     public ICommand OuvrirPrimesIndemnitesCommand { get; }
     public ICommand OuvrirHeuresMoisEmployeCommand { get; }
+    public ICommand OuvrirChampsComplementairesEmployeCommand { get; }
+    public ICommand OuvrirFormulairesDynamiquesCommand { get; }
+    public ICommand OuvrirChampsComplementairesEntrepriseCommand { get; }
     public ICommand RafraichirCommand { get; }
     public ICommand SelectionnerMenuCommand { get; }
     public ICommand OuvrirParametresIprCommand { get; }
@@ -1303,6 +1309,9 @@ public class MainViewModel : INotifyPropertyChanged
     public Action<int>? OnOuvrirPretsAvances { get; set; }
     public Action<int>? OnOuvrirPrimesIndemnites { get; set; }
     public Action<int>? OnOuvrirHeuresMoisEmploye { get; set; }
+    public Action? OnOuvrirChampsComplementairesEmploye { get; set; }
+    public Action? OnOuvrirFormulairesDynamiques { get; set; }
+    public Action? OnOuvrirChampsComplementairesEntreprise { get; set; }
 
     public Action? OnOuvrirParametresIpr { get; set; }
     public Action? OnOuvrirTauxSociaux { get; set; }

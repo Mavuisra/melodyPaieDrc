@@ -12,6 +12,8 @@ public class JourTravailCalendrier
     [Key]
     public int Id { get; set; }
 
+    public int? EntrepriseId { get; set; }
+
     public int Annee { get; set; }
 
     public DateTime DateJour { get; set; }

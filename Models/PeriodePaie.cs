@@ -13,6 +13,8 @@ public class PeriodePaie
     [Key]
     public int Id { get; set; }
 
+    public int? EntrepriseId { get; set; }
+
     /// <summary>
     /// Mois de paie (1-12).
     /// </summary>

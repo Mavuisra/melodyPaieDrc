@@ -10,6 +10,13 @@ public class PrimeIndemnite
     [Key]
     public int Id { get; set; }
 
+    public int? EntrepriseId { get; set; }
+
+    [MaxLength(60)]
+    public string? CodeRubrique { get; set; }
+
+    public int OrdreAffichage { get; set; }
+
     [Required]
     [MaxLength(255)]
     public string Libelle { get; set; } = string.Empty;

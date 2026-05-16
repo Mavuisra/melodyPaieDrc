@@ -1,0 +1,85 @@
+{
+  "formId": "employe-extension",
+  "version": "1.0",
+  "title": "Champs complémentaires — Employé",
+  "description": "Informations RH additionnelles configurables sans recompiler l'application.",
+  "entityType": "Employe",
+  "width": 520,
+  "height": 560,
+  "sections": [
+    {
+      "id": "identite",
+      "title": "Documents et identité",
+      "fields": [
+        {
+          "key": "numero_passport",
+          "type": "text",
+          "label": "N° passeport",
+          "maxLength": 30
+        },
+        {
+          "key": "numero_carte_electeur",
+          "type": "text",
+          "label": "N° carte d'électeur",
+          "maxLength": 30
+        },
+        {
+          "key": "lieu_naissance",
+          "type": "text",
+          "label": "Lieu de naissance",
+          "maxLength": 120
+        }
+      ]
+    },
+    {
+      "id": "contact",
+      "title": "Contact d'urgence",
+      "fields": [
+        {
+          "key": "contact_urgence_nom",
+          "type": "text",
+          "label": "Nom du contact",
+          "maxLength": 100
+        },
+        {
+          "key": "contact_urgence_telephone",
+          "type": "text",
+          "label": "Téléphone du contact",
+          "pattern": "^[0-9+\\s\\-]{6,20}$"
+        },
+        {
+          "key": "contact_urgence_lien",
+          "type": "choice",
+          "label": "Lien de parenté",
+          "choices": ["Conjoint(e)", "Parent", "Enfant", "Frère/Sœur", "Ami(e)", "Autre"]
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "title": "Suivi administratif",
+      "fields": [
+        {
+          "key": "date_embauche_groupe",
+          "type": "date",
+          "label": "Date d'embauche groupe"
+        },
+        {
+          "key": "badge_actif",
+          "type": "boolean",
+          "label": "Badge d'accès actif",
+          "defaultValue": "true"
+        },
+        {
+          "key": "commentaire_rh",
+          "type": "textarea",
+          "label": "Commentaire RH",
+          "maxLength": 500
+        }
+      ]
+    }
+  ],
+  "actions": [
+    { "id": "save", "label": "Enregistrer", "isPrimary": true }
+  ]
+}

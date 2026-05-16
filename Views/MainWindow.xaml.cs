@@ -48,6 +48,9 @@ public partial class MainWindow : Window
         _viewModel.OnOuvrirCalendrierTravail = OuvrirCalendrierTravail;
         _viewModel.OnOuvrirSaisiePaieMois = OuvrirSaisiePaieMois;
         _viewModel.OnOuvrirSuiviJournalier = OuvrirSuiviJournalier;
+        _viewModel.OnOuvrirChampsComplementairesEmploye = OuvrirChampsComplementairesEmploye;
+        _viewModel.OnOuvrirFormulairesDynamiques = () => DynamicFormNavigator.OuvrirGestionnaireDefinitions(this);
+        _viewModel.OnOuvrirChampsComplementairesEntreprise = () => DynamicFormNavigator.OuvrirChampsComplementairesEntreprise(this);
         _viewModel.OnErreurCalculPaie = msg => MessageBox.Show(msg, "Calcul de paie", MessageBoxButton.OK, MessageBoxImage.Warning);
         _viewModel.OnSuccessCalculPaie = msg => MessageBox.Show(msg, "Calcul de paie", MessageBoxButton.OK, MessageBoxImage.Information);
         _viewModel.OnSuccesTauxChange = msg => MessageBox.Show(this, msg, "Taux de change", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -346,6 +349,12 @@ public partial class MainWindow : Window
         var win = new EmployeWindow(employeId) { Owner = this };
         if (win.ShowDialog() == true)
             _viewModel.ChargerEmployes();
+    }
+
+    private void OuvrirChampsComplementairesEmploye()
+    {
+        if (_viewModel.EmployeSelectionne == null) return;
+        DynamicFormNavigator.OuvrirChampsComplementairesEmploye(this, _viewModel.EmployeSelectionne);
     }
 
     private void OuvrirContrats(int employeId)

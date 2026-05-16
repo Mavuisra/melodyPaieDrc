@@ -640,4 +640,43 @@ public static class SchemaSqliteApplicator
             @"CREATE INDEX IF NOT EXISTS ""IX_SuivisJournaliers_EmployeId_Date"" ON ""SuivisJournaliers"" (""EmployeId"",""Date"")",
         };
     }
+
+    /// <summary>
+    /// Crée la table FormFieldValues pour les champs de formulaires dynamiques.
+    /// </summary>
+    public static void AjouterTableFormFieldValuesSiNecessaire(DbContext db)
+    {
+        var conn = db.Database.GetDbConnection();
+        if (conn.State != ConnectionState.Open)
+            conn.Open();
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='FormFieldValues'";
+            var name = cmd.ExecuteScalar() as string;
+            if (!string.IsNullOrEmpty(name)) return;
+        }
+
+        const string sql = @"CREATE TABLE IF NOT EXISTS ""FormFieldValues"" (
+            ""Id"" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""FormId"" TEXT NOT NULL,
+            ""EntityType"" TEXT NOT NULL,
+            ""EntityId"" INTEGER NOT NULL,
+            ""FieldKey"" TEXT NOT NULL,
+            ""Value"" TEXT,
+            ""DateModification"" TEXT NOT NULL
+        )";
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = sql;
+            cmd.ExecuteNonQuery();
+        }
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = @"CREATE UNIQUE INDEX IF NOT EXISTS ""IX_FormFieldValues_Form_Entity_Field""
+                ON ""FormFieldValues"" (""FormId"", ""EntityType"", ""EntityId"", ""FieldKey"")";
+            cmd.ExecuteNonQuery();
+        }
+    }
 }

@@ -1,0 +1,57 @@
+{
+  "formId": "entreprise-extension",
+  "version": "1.0",
+  "title": "Champs complémentaires — Entreprise",
+  "description": "Données légales et administratives supplémentaires.",
+  "entityType": "Entreprise",
+  "width": 500,
+  "height": 480,
+  "sections": [
+    {
+      "id": "legal",
+      "title": "Références légales",
+      "fields": [
+        {
+          "key": "numero_patente",
+          "type": "text",
+          "label": "N° patente",
+          "maxLength": 40
+        },
+        {
+          "key": "registre_commerce_ville",
+          "type": "text",
+          "label": "Ville du registre de commerce",
+          "maxLength": 80
+        },
+        {
+          "key": "representant_legal",
+          "type": "text",
+          "label": "Représentant légal",
+          "maxLength": 120
+        }
+      ]
+    },
+    {
+      "id": "contact",
+      "title": "Contacts additionnels",
+      "fields": [
+        {
+          "key": "email_comptabilite",
+          "type": "email",
+          "label": "E-mail comptabilité"
+        },
+        {
+          "key": "email_rh",
+          "type": "email",
+          "label": "E-mail RH"
+        },
+        {
+          "key": "telephone_comptabilite",
+          "type": "text",
+          "label": "Téléphone comptabilité",
+          "maxLength": 30
+        }
+      ]
+    }
+  ]
+}

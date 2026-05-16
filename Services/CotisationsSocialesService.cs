@@ -16,13 +16,16 @@ public class CotisationsSocialesService
         _db = db;
     }
 
-    public CotisationsResultat Calculer(decimal salaireBrut)
+    public CotisationsResultat Calculer(decimal salaireBrut, int? entrepriseId = null)
     {
         if (salaireBrut <= 0)
             return new CotisationsResultat();
 
         decimal Taux(string code)
-            => _db.TauxSociaux.FirstOrDefault(t => t.Code == code)?.Pourcentage ?? 0m;
+            => _db.TauxSociaux
+                .Where(t => t.Code == code && (t.EntrepriseId == null || t.EntrepriseId == entrepriseId))
+                .Select(t => t.Pourcentage)
+                .FirstOrDefault();
 
         var tauxCnssOuvrier = Taux("CNSS_Ouvrier");
         var tauxCnssPatronal = Taux("CNSS_Patronal");

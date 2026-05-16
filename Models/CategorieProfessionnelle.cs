@@ -12,6 +12,8 @@ public class CategorieProfessionnelle
     [Key]
     public int Id { get; set; }
 
+    public int? EntrepriseId { get; set; }
+
     [Required]
     [MaxLength(100)]
     public string Libelle { get; set; } = string.Empty;

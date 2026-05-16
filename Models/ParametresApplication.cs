@@ -14,6 +14,9 @@ public class ParametresApplication
     [Key]
     public int Id { get; set; } = SingletonId;
 
+    /// <summary>Paramètres spécifiques à une entreprise ; null = instance globale (Id=1).</summary>
+    public int? EntrepriseId { get; set; }
+
     /// <summary>Nombre de francs congolais (CDF) pour 1 dollar US — taux utilisé pour les conversions de paie.</summary>
     [Column(TypeName = "decimal(18,4)")]
     public decimal TauxCdfParUsd { get; set; }

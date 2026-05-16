@@ -89,6 +89,12 @@
   <!-- <None Update="Data\PaieRDC.db"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None> -->
 
   <ItemGroup>
+    <None Include="Forms\Defaults\**\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Copié à côté de l'exe pour raccourcis (IconFilename Inno Setup) -->
     <!-- Link = copie à la racine publish (pas sous Assets\) pour raccourcis Inno : IconFilename "{app}\Icon_MelodyPaie_Installer.ico" -->
     <None Include="Assets\Icon_MelodyPaie_Installer.ico">

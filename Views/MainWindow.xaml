@@ -583,6 +583,15 @@
                                                     <TextBlock Text="Heures du mois" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
+                                            <Button Command="{Binding OuvrirChampsComplementairesEmployeCommand}" Margin="0,4,8,4"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8"
+                                                    ToolTip="Champs RH configurables (JSON, sans recompilation)">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="FormTextbox" Width="18" Height="18" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="Champs complémentaires" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                             <Button Command="{Binding SupprimerEmployeCommand}" Margin="0,4,8,4"
                                                     Style="{StaticResource MaterialDesignOutlinedButton}"
                                                     materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8">
@@ -1857,6 +1866,22 @@
                                                         <StackPanel Orientation="Horizontal">
                                                             <materialDesign:PackIcon Kind="OfficeBuilding" Width="18" Height="18" Margin="0,0,10,0"/>
                                                             <TextBlock Text="Informations entreprise" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Command="{Binding OuvrirChampsComplementairesEntrepriseCommand}"
+                                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                            materialDesign:ButtonAssist.CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="FormTextbox" Width="18" Height="18" Margin="0,0,10,0"/>
+                                                            <TextBlock Text="Champs complémentaires entreprise" VerticalAlignment="Center"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Command="{Binding OuvrirFormulairesDynamiquesCommand}"
+                                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                            materialDesign:ButtonAssist.CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="FileCode" Width="18" Height="18" Margin="0,0,10,0"/>
+                                                            <TextBlock Text="Gérer les formulaires (JSON)" VerticalAlignment="Center"/>
                                                         </StackPanel>
                                                     </Button>
                                                     <Button Command="{Binding OuvrirParametresIprCommand}"

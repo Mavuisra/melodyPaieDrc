@@ -11,6 +11,8 @@ public class TauxSociaux
     [Key]
     public int Id { get; set; }
 
+    public int? EntrepriseId { get; set; }
+
     [Required]
     [MaxLength(50)]
     public string Code { get; set; } = string.Empty; // CNSS_Ouvrier, CNSS_Patronal, INPP, ONEM

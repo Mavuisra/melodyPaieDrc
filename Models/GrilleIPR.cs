@@ -11,6 +11,9 @@ public class GrilleIPR
     [Key]
     public int Id { get; set; }
 
+    /// <summary>Null = barème global / héritage.</summary>
+    public int? EntrepriseId { get; set; }
+
     [Column(TypeName = "decimal(18,2)")]
     public decimal BorneInf { get; set; }
 

@@ -20,13 +20,17 @@ public class CalculeIPRService
     /// <summary>
     /// Calcule l'IPR mensuelle et retourne le détail (brut, réduction famille, net).
     /// </summary>
-    public IprResultat CalculerDetailsIprMensuelle(decimal baseImposableMensuelle, int nombreEnfantsACharge)
+    public IprResultat CalculerDetailsIprMensuelle(decimal baseImposableMensuelle, int nombreEnfantsACharge, int? entrepriseId = null)
     {
         if (baseImposableMensuelle <= 0)
             return new IprResultat();
 
         // SQLite ne supporte pas ORDER BY sur decimal : chargement puis tri en mémoire
-        var tranches = _db.GrillesIpr.ToList().OrderBy(t => t.BorneInf).ToList();
+        var tranches = _db.GrillesIpr
+            .Where(g => g.EntrepriseId == null || g.EntrepriseId == entrepriseId)
+            .ToList()
+            .OrderBy(t => t.BorneInf)
+            .ToList();
 
         if (tranches.Count == 0)
         {
@@ -34,8 +38,10 @@ public class CalculeIPRService
             return new IprResultat();
         }
 
-        var param = _db.ParametresIpr.FirstOrDefault()
-                    ?? new ParametreIPR(); // valeurs par défaut (ex : plafond 30%, aucune réduction)
+        var param = _db.ParametresIpr
+                          .Where(p => p.EntrepriseId == null || p.EntrepriseId == entrepriseId)
+                          .FirstOrDefault()
+                      ?? new ParametreIPR();
 
         decimal iprBrut = 0m;
 

@@ -12,6 +12,8 @@ public class ParametreIPR
     [Key]
     public int Id { get; set; }
 
+    public int? EntrepriseId { get; set; }
+
     /// <summary>
     /// Taux effectif maximum appliqué sur la base imposable (ex : 0.30 = 30%).
     /// </summary>
