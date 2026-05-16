@@ -6,7 +6,29 @@
 2. **Inno Setup 6** : https://jrsoftware.org/isinfo.php  
    - Chemins détectés : `C:\Program Files (x86)\Inno Setup 6\ISCC.exe` ou `C:\Program Files\Inno Setup 6\ISCC.exe`
 
-## Générer l’installateur
+## Publication automatique (GitHub Release + clients)
+
+### En une commande (recommandé)
+
+```powershell
+cd chemin\vers\MelodyPaieRDC
+.\installer\PublierRelease.ps1 -Version "1.0.1" -Notes "Corrections et nouveautes"
+```
+
+1. Met à jour `MelodyPaieRDC.csproj`, `MelodyPaieRDC.iss`, `installer/updates/version.json`
+2. Commit + push sur `main`
+3. Crée le tag `v1.0.1` et le pousse
+4. **GitHub Actions** compile l’installateur, crée la Release, joint le `.exe`, calcule le SHA256 et pousse le manifeste final
+
+Suivi : https://github.com/Mavuisra/melodyPaieDrc/actions
+
+### Depuis GitHub (sans PC local)
+
+**Actions** → **Release Melody Paie RDC** → **Run workflow** → version `1.0.1` + notes.
+
+---
+
+## Générer l’installateur (local uniquement)
 
 Depuis l’explorateur, double-cliquez sur **`CreerInstallateur.bat`**, ou en ligne de commande :
 

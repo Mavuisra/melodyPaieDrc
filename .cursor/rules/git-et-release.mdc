@@ -1,0 +1,36 @@
+---
+description: Git push systematique et publication release GitHub Melody Paie RDC
+alwaysApply: true
+---
+
+# Git et releases Melody Paie RDC
+
+## Apres toute modification de code
+
+1. Verifier `git status` sur la branche `main`.
+2. Committer les fichiers pertinents (exclure `publish/`, `bin/`, `obj/`, `_temp_*`, bases `.db`).
+3. Pousser : `git push origin main`.
+
+Ne pas laisser de correctifs uniquement en local si l'utilisateur attend une livraison.
+
+## Nouvelle version livrable aux clients
+
+Utiliser le script unique :
+
+```powershell
+.\installer\PublierRelease.ps1 -Version "1.0.1" -Notes "Description des changements"
+```
+
+Le script met a jour les versions, pousse `main`, cree le tag `v1.0.1` ; **GitHub Actions** compile l'installateur, publie la Release et met a jour `installer/updates/version.json` (SHA256 + URL).
+
+Alternative manuelle GitHub : onglet **Actions** → **Release Melody Paie RDC** → **Run workflow** (champ version + notes).
+
+## Fichiers de version a aligner
+
+- `MelodyPaieRDC.csproj` → `<Version>`
+- `installer/MelodyPaieRDC.iss` → `MyAppVersion`, `MyAppVersionShort`
+- `installer/updates/version.json` → mis a jour par la CI apres build
+
+## Clients
+
+Manifeste : `https://raw.githubusercontent.com/Mavuisra/melodyPaieDrc/main/installer/updates/version.json`

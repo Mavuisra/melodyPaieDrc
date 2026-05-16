@@ -1,0 +1,138 @@
+# Compile l'installateur Windows et publie une GitHub Release + version.json
+name: Release Melody Paie RDC
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version SemVer (ex. 1.0.1)"
+        required: true
+        type: string
+      release_notes:
+        description: "Notes de version (markdown)"
+        required: false
+        type: string
+        default: "Mise a jour Melody Paie RDC."
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resoudre la version
+        id: ver
+        shell: pwsh
+        run: |
+          if ("${{ github.event_name }}" -eq "workflow_dispatch") {
+            $version = "${{ inputs.version }}".Trim()
+          } else {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          }
+          if (-not [version]::TryParse($version, [ref]$null)) {
+            throw "Version invalide: $version"
+          }
+          $v = [version]$version
+          $short = if ($v.Build -eq 0 -and $v.Revision -eq 0) { "$($v.Major).$($v.Minor)" } else { $version }
+          $tag = "v$version"
+          $setup = "MelodyPaieRDC_Setup_$short.exe"
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "short=$short" >> $env:GITHUB_OUTPUT
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "setup=$setup" >> $env:GITHUB_OUTPUT
+          Write-Host "Version=$version Tag=$tag Setup=$setup"
+
+      - name: Mettre a jour fichiers version (workflow manuel)
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: |
+          & "${{ github.workspace }}/installer/Set-Version.ps1" `
+            -Version "${{ steps.ver.outputs.version }}" `
+            -ReleaseNotes "${{ inputs.release_notes }}"
+
+      - name: Commit versions (workflow manuel)
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add MelodyPaieRDC.csproj installer/MelodyPaieRDC.iss installer/updates/version.json
+          if (git diff --cached --quiet) { exit 0 }
+          git commit -m "chore(release): prepare ${{ steps.ver.outputs.version }}"
+          git push origin HEAD:main
+          git tag -f "${{ steps.ver.outputs.tag }}"
+          git push origin "${{ steps.ver.outputs.tag }}" --force
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: dotnet publish
+        run: |
+          dotnet publish MelodyPaieRDC.csproj -p:PublishProfile=win-x64 -c Release
+
+      - name: Installer Inno Setup 6
+        run: choco install innosetup -y --no-progress
+
+      - name: Compiler installateur
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { $iscc = "$env:ProgramFiles\Inno Setup 6\ISCC.exe" }
+          & $iscc /DBypassMotDePasseInstallation "${{ github.workspace }}/installer/MelodyPaieRDC.iss"
+          $out = "${{ github.workspace }}/publish/installer/${{ steps.ver.outputs.setup }}"
+          if (-not (Test-Path $out)) { throw "Installateur introuvable: $out" }
+
+      - name: SHA256 et version.json
+        id: manifest
+        shell: pwsh
+        run: |
+          $setupPath = "${{ github.workspace }}/publish/installer/${{ steps.ver.outputs.setup }}"
+          $hash = (Get-FileHash $setupPath -Algorithm SHA256).Hash
+          $repo = "${{ github.repository }}"
+          $tag = "${{ steps.ver.outputs.tag }}"
+          $file = "${{ steps.ver.outputs.setup }}"
+          $url = "https://github.com/$repo/releases/download/$tag/$file"
+          $notes = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.release_notes }}" } else { "Release $tag" }
+          $json = @{
+            version = "${{ steps.ver.outputs.version }}"
+            downloadUrl = $url
+            fileName = $file
+            publishedAt = (Get-Date -Format "yyyy-MM-dd")
+            releaseNotes = $notes
+            sha256 = $hash
+          } | ConvertTo-Json -Depth 3
+          $path = "${{ github.workspace }}/installer/updates/version.json"
+          [IO.File]::WriteAllText($path, $json + "`n")
+          "sha256=$hash" >> $env:GITHUB_OUTPUT
+          "download_url=$url" >> $env:GITHUB_OUTPUT
+
+      - name: Creer GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Melody Paie RDC ${{ steps.ver.outputs.version }}
+          body: ${{ github.event_name == 'workflow_dispatch' && inputs.release_notes || format('Release {0}', steps.ver.outputs.version) }}
+          files: publish/installer/${{ steps.ver.outputs.setup }}
+          make_latest: true
+
+      - name: Pousser version.json sur main
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git pull origin main --rebase
+          git add installer/updates/version.json
+          git diff --cached --quiet && exit 0
+          git commit -m "chore(release): manifest ${{ steps.ver.outputs.version }}"
+          git push origin HEAD:main
