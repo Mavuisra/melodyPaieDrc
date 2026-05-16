@@ -1,0 +1,107 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <!-- Garantit la restauration des packs runtime win-x64 (publish self-contained fiable, CI / clean) -->
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <!-- Point d'entrée Program.cs : CWD = dossier exe avant WPF (pas SetDllDirectory : casse le chargement CLR) -->
+    <StartupObject>MelodyPaieRDC.Program</StartupObject>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>MelodyPaieRDC</RootNamespace>
+    <AssemblyName>MelodyPaieRDC</AssemblyName>
+    <Company>Impact Entreprises</Company>
+    <Product>Melody Paie RDC</Product>
+    <ApplicationIcon>Assets\Icon_MelodyPaie_Installer.ico</ApplicationIcon>
+    <NuGetAudit>false</NuGetAudit>
+  </PropertyGroup>
+
+  <!-- Archive : fichiers conservés hors build (voir _archive/README.md) -->
+  <ItemGroup>
+    <Compile Remove="_archive\**\*" />
+    <EmbeddedResource Remove="_archive\**\*" />
+    <Page Remove="_archive\**\*" />
+    <None Include="_archive\**\*" />
+  </ItemGroup>
+
+  <!-- Projet console .NET Framework séparé : ne pas compiler ses sources dans MelodyPaieRDC -->
+  <ItemGroup>
+    <Compile Remove="ZktecoPullWorker\**\*" />
+    <None Include="ZktecoPullWorker\**\*" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ClosedXML" Version="0.102.2" />
+    <PackageReference Include="MaterialDesignThemes" Version="5.0.0" />
+    <PackageReference Include="QuestPDF" Version="2024.3.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.10">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!--
+    ZktecoPullWorker est compilé ici sans ProjectReference : une référence de projet vers un autre exécutable
+    empêche le publish self-contained (NETSDK1150). La copie des fichiers reste dans les cibles ci-dessous.
+  -->
+  <Target Name="BuildZktecoPullWorker" BeforeTargets="BeforeBuild" Condition="'$(DesignTimeBuild)' != 'true'">
+    <MSBuild Projects="$(MSBuildProjectDirectory)\ZktecoPullWorker\ZktecoPullWorker.csproj"
+             Targets="Restore;Build"
+             Properties="Configuration=$(Configuration)" />
+  </Target>
+
+  <!-- MSBuildProjectDirectory n'a pas de \ final : sans séparateur, le chemin devient ...\MelodyPaieRDCZktecoPullWorker et la copie ne s'exécute jamais. -->
+  <!--
+    Ne jamais copier les DLL net48 du worker à la racine : elles écrasent System.Memory.dll etc. du runtime .NET 8
+    (TypeInitializationException sur System.Windows.Application). Déploiement isolé sous ZktecoPullWorker\.
+  -->
+  <Target Name="CopyZktecoPullWorker" AfterTargets="CopyFilesToOutputDirectory">
+    <PropertyGroup>
+      <_ZkWorkerBin>$(MSBuildProjectDirectory)\ZktecoPullWorker\bin\$(Configuration)\net48\</_ZkWorkerBin>
+      <_ZkWorkerDest>$(OutputPath)ZktecoPullWorker\</_ZkWorkerDest>
+    </PropertyGroup>
+    <MakeDir Directories="$(_ZkWorkerDest)" Condition="Exists('$(_ZkWorkerBin)ZktecoPullWorker.exe')" />
+    <ItemGroup>
+      <_ZkWorkerFiles Include="$(_ZkWorkerBin)*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ZkWorkerFiles)" DestinationFolder="$(_ZkWorkerDest)" SkipUnchangedFiles="true"
+          Condition="Exists('$(_ZkWorkerBin)ZktecoPullWorker.exe')" />
+  </Target>
+
+  <Target Name="CopyZktecoPullWorkerPublish" AfterTargets="Publish">
+    <PropertyGroup>
+      <_ZkWorkerBin>$(MSBuildProjectDirectory)\ZktecoPullWorker\bin\$(Configuration)\net48\</_ZkWorkerBin>
+      <_ZkWorkerPublishDest>$(PublishDir)ZktecoPullWorker\</_ZkWorkerPublishDest>
+    </PropertyGroup>
+    <MakeDir Directories="$(_ZkWorkerPublishDest)" Condition="'$(PublishDir)' != '' And Exists('$(_ZkWorkerBin)ZktecoPullWorker.exe')" />
+    <ItemGroup>
+      <_ZkWorkerPublish Include="$(_ZkWorkerBin)*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_ZkWorkerPublish)" DestinationFolder="$(_ZkWorkerPublishDest)" SkipUnchangedFiles="true"
+          Condition="'$(PublishDir)' != '' And Exists('$(_ZkWorkerBin)ZktecoPullWorker.exe')" />
+  </Target>
+
+  <!-- Ne pas copier PaieRDC.db depuis le projet : la base est créée au démarrage dans bin/.../Data/ -->
+  <!-- <None Update="Data\PaieRDC.db"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None> -->
+
+  <ItemGroup>
+    <!-- Copié à côté de l'exe pour raccourcis (IconFilename Inno Setup) -->
+    <!-- Link = copie à la racine publish (pas sous Assets\) pour raccourcis Inno : IconFilename "{app}\Icon_MelodyPaie_Installer.ico" -->
+    <None Include="Assets\Icon_MelodyPaie_Installer.ico">
+      <Link>Icon_MelodyPaie_Installer.ico</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\Icon_MelodyPaie.png" />
+    <Resource Include="Assets\Icon_MelodyPaie_Installer.png" />
+    <!-- .ico installateur : pas en Resource (sinon pas copié à côté de l'exe pour Inno IconFilename) ; voir ItemGroup None ci-dessus -->
+    <Resource Include="Assets\Splash_Screen-67874262-217e-4c76-ab25-907a642e34d5.png" />
+  </ItemGroup>
+
+</Project>

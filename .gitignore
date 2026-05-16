@@ -1,0 +1,43 @@
+# Build / publish
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+temp_build_*/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / VS Code (optionnel)
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+
+# NuGet
+*.nupkg
+**/packages/*
+!**/packages/build/
+
+# Logs et diagnostics
+*.log
+*.dmp
+
+# Base SQLite locale (créée au runtime dans bin/.../Data/)
+**/Data/PaieRDC.db
+**/Data/PaieRDC.db-shm
+**/Data/PaieRDC.db-wal
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Secrets locaux (ne jamais versionner)
+.env
+*.pfx
+appsettings.*.local.json

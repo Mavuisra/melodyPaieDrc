@@ -1,0 +1,28 @@
+══════════════════════════════════════════════════════════════
+   MELODY PAIE RDC — Prochaines étapes
+══════════════════════════════════════════════════════════════
+
+  Application réalisée par Impact Entreprises.
+  Site web : https://impact-entreprises.net/
+
+PREMIER LANCEMENT
+  Au premier démarrage, l'application crée la base de données
+  locale (SQLite) dans le dossier d'installation ou à côté des
+  données utilisateur selon la configuration du produit.
+
+CONNEXION PAR DÉFAUT (première installation)
+  Si une réinitialisation usine a été effectuée ou si c'est la
+  première base, utilisez les identifiants indiqués dans la
+  documentation fournie avec votre déploiement (souvent un compte
+  administrateur initial).
+
+SAUVEGARDES
+  Pensez à sauvegarder régulièrement vos données via le menu
+  Paramètres de l'application (export / sauvegarde de la base),
+  surtout avant une mise à jour majeure ou un changement de poste.
+
+ASSISTANCE
+  Pour toute question d'installation ou de mise à jour, contactez
+  votre administrateur ou Impact Entreprises.
+
+Bon travail avec Melody Paie RDC.

@@ -1,0 +1,43 @@
+<Window x:Class="MelodyPaieRDC.Views.UtilisateurEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Utilisateur"
+        Height="340" Width="400"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="Identifiant (login) *" Margin="0,0,0,4"/>
+        <TextBox x:Name="TxtLogin" Grid.Row="1" Padding="8,6" Margin="0,0,0,12"/>
+        <TextBlock Grid.Row="2" Text="Nom complet (optionnel)" Margin="0,0,0,4"/>
+        <TextBox x:Name="TxtNomComplet" Grid.Row="3" Padding="8,6" Margin="0,0,0,12"/>
+        <TextBlock Grid.Row="4" Text="Rôle" Margin="0,0,0,4"/>
+        <ComboBox x:Name="CmbRole" Grid.Row="5" Padding="8,6" Margin="0,0,0,12"/>
+        <TextBlock Grid.Row="6" x:Name="LblMotDePasse" Text="Mot de passe *" Margin="0,0,0,4"/>
+        <PasswordBox x:Name="TxtMotDePasse" Grid.Row="7" Padding="8,6" Margin="0,0,0,12"/>
+        <CheckBox x:Name="ChkActif" Grid.Row="8" Content="Compte actif" IsChecked="True" Margin="0,0,0,16"/>
+        <StackPanel Grid.Row="9" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Annuler" IsCancel="True" Click="Annuler_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="16,8" Margin="0,0,12,0"/>
+            <Button Content="Enregistrer" IsDefault="True" Click="Enregistrer_Click"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="16,8"/>
+        </StackPanel>
+    </Grid>
+</Window>

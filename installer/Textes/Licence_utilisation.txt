@@ -1,0 +1,33 @@
+CONDITIONS D'UTILISATION — MELODY PAIE RDC
+Version du document : 1.0
+
+1. OBJET
+   Melody Paie RDC est un logiciel de traitement de la paie et de
+   gestion des déclarations sociales et fiscales adapté au contexte
+   de la République Démocratique du Congo.
+
+2. DROITS
+   Tous droits réservés. La reproduction, la distribution ou la
+   modification non autorisée du logiciel ou de sa documentation
+   est interdite sauf accord écrit de l'éditeur ou du titulaire
+   des droits.
+
+3. UTILISATION
+   Vous vous engagez à utiliser le logiciel conformément à la loi,
+   notamment en matière de protection des données personnelles des
+   salariés et de conservation des documents de paie.
+
+4. GARANTIE
+   Le logiciel est fourni « en l'état ». L'éditeur ne saurait être
+   tenu responsable des dommages indirects liés à l'utilisation du
+   logiciel. La conformité des calculs et déclarations avec la
+   réglementation en vigueur relève de la responsabilité de
+   l'utilisateur final et de son expert-comptable ou conseiller.
+
+5. DONNÉES
+   Les données saisies restent sous la responsabilité de
+   l'organisme employeur. Prévoir des sauvegardes régulières.
+
+En cliquant sur « J'accepte », vous confirmez avoir pris connaissance
+de ces conditions et les accepter. Si vous refusez, l'installation
+ne pourra pas continuer.

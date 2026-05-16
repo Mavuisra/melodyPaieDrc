@@ -1,0 +1,88 @@
+<Window x:Class="MelodyPaieRDC.Views.FinContratWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Fin de contrat"
+        Height="320" Width="520"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock FontSize="18" FontWeight="SemiBold">
+                <Run Text="Fin de contrat – "/>
+                <Run Text="{Binding NomEmploye}" FontWeight="Bold"/>
+            </TextBlock>
+            <TextBlock Text="Calcul théorique du préavis et de l'indemnité de licenciement à partir du dernier contrat (salaire de base x mois)." 
+                       FontSize="12" Foreground="Gray" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Background="White" CornerRadius="8" Padding="16">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.12"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,12">
+                    <TextBlock Text="Contrat de référence" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock>
+                        <Run Text="Salaire de base : "/>
+                        <Run Text="{Binding SalaireDeBase, StringFormat=N2}"/>
+                        <Run Text=" "/>
+                    </TextBlock>
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,8,0">
+                    <TextBlock Text="Préavis" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock>
+                        <Run Text="Mois de base : "/>
+                        <Run Text="{Binding ContratActif.PreavisMoisBase, StringFormat=N2}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Montant préavis : "/>
+                        <Run Text="{Binding PreavisMontant, StringFormat=N2}"/>
+                    </TextBlock>
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="1" Margin="8,0,0,0">
+                    <TextBlock Text="Indemnité de licenciement" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <TextBlock>
+                        <Run Text="Mois de base : "/>
+                        <Run Text="{Binding ContratActif.IndemniteLicenciementMoisBase, StringFormat=N2}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Montant indemnité : "/>
+                        <Run Text="{Binding IndemniteLicenciementMontant, StringFormat=N2}"/>
+                    </TextBlock>
+                </StackPanel>
+
+                <TextBlock Grid.Row="2" Grid.ColumnSpan="2" Margin="0,16,0,0" FontSize="11" Foreground="Gray" TextWrapping="Wrap">
+                    Attention : ces montants sont indicatifs et doivent être validés par référence au Code du travail congolais, à la convention collective et aux accords d'entreprise applicables.
+                </TextBlock>
+            </Grid>
+        </Border>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Fermer" IsCancel="True" Width="90"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"
+                    Click="Fermer_Click"/>
+        </StackPanel>
+    </Grid>
+</Window>

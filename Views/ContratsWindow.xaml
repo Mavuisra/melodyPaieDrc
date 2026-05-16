@@ -1,0 +1,140 @@
+<Window x:Class="MelodyPaieRDC.Views.ContratsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:helpers="clr-namespace:MelodyPaieRDC.Helpers"
+        Title="Contrats"
+        Height="520" Width="700"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Window.Resources>
+        <helpers:CdiToVisibilityConverter x:Key="CdiToVisibilityConverter"/>
+    </Window.Resources>
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,12">
+            <Run Text="Contrats de travail : "/>
+            <Run Text="{Binding NomEmploye}" FontWeight="Bold"/>
+        </TextBlock>
+
+        <Border Grid.Row="1" Background="White" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.1"/>
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock Text="Nouveau contrat" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <!-- Ligne 1 : type + dates -->
+                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,8">
+                        <TextBlock Text="Type" Margin="0,0,0,2"/>
+                        <ComboBox ItemsSource="{Binding TypesContrat}" SelectedItem="{Binding NouveauContrat.TypeContrat, Mode=TwoWay}" IsEditable="False"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,8">
+                        <TextBlock Text="Date début" Margin="0,0,0,2"/>
+                        <DatePicker SelectedDate="{Binding NouveauContrat.DateDebut, Mode=TwoWay}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="4" Margin="0,0,0,8"
+                                Visibility="{Binding NouveauContrat.TypeContrat, Converter={StaticResource CdiToVisibilityConverter}}">
+                        <TextBlock Text="Date fin (obligatoire pour CDD/Stage/Journalier)" Margin="0,0,0,2"/>
+                        <DatePicker SelectedDate="{Binding NouveauContrat.DateFin, Mode=TwoWay}"/>
+                    </StackPanel>
+
+                    <!-- Ligne 2 : salaire + devise + catégorie -->
+                    <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,8">
+                        <TextBlock Text="Salaire de base" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding NouveauContrat.SalaireBase, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <TextBlock Text="≈ " Foreground="Gray" FontSize="11" VerticalAlignment="Center"/>
+                            <TextBlock Text="{Binding NouveauContrat.SalaireJour, StringFormat='Jour: {0:N2}'}" Foreground="Gray" FontSize="11" Margin="0,0,8,0"/>
+                            <TextBlock Text="{Binding NouveauContrat.SalaireHeure, StringFormat='Heure: {0:N2}'}" Foreground="Gray" FontSize="11"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,8">
+                        <TextBlock Text="Devise" Margin="0,0,0,2"/>
+                        <ComboBox ItemsSource="{Binding Devises}" SelectedItem="{Binding NouveauContrat.DeviseBase, Mode=TwoWay}" IsEditable="False"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="4" Margin="0,0,0,8">
+                        <TextBlock Text="Catégorie professionnelle" Margin="0,0,0,2"/>
+                        <ComboBox ItemsSource="{Binding Categories}" DisplayMemberPath="Libelle" SelectedValuePath="Id"
+                                  SelectedValue="{Binding NouveauContrat.CategorieProfessionnelleId, Mode=TwoWay}" IsEditable="False"/>
+                    </StackPanel>
+
+                    <!-- Ligne 3 : rémunération avancée -->
+                    <StackPanel Grid.Row="2" Grid.Column="0" Margin="0,8,0,0">
+                        <TextBlock Text="Majoration heures sup. (%)" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding NouveauContrat.TauxMajorationHeuresSup, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="2" Grid.Column="2" Margin="0,8,0,0">
+                        <TextBlock Text="Majoration nuit (%)" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding NouveauContrat.TauxMajorationNuit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="2" Grid.Column="4" Margin="0,8,0,0">
+                        <TextBlock Text="Majoration jours fériés (%)" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding NouveauContrat.TauxMajorationJourFerie, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </Grid>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <StackPanel Width="200" Margin="0,0,16,0">
+                        <TextBlock Text="Préavis (mois de salaire)" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding NouveauContrat.PreavisMoisBase, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                    <StackPanel Width="220">
+                        <TextBlock Text="Indemnité de licenciement (mois de salaire)" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding NouveauContrat.IndemniteLicenciementMoisBase, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                    </StackPanel>
+                </StackPanel>
+                <Button Content="Ajouter le contrat" Command="{Binding AjouterCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Contrats}" SelectedItem="{Binding Selectionne, Mode=TwoWay}"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  HeadersVisibility="Column" Margin="0,0,0,12" Background="White">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Type" Binding="{Binding TypeContrat}" Width="90"/>
+                <DataGridTextColumn Header="Début" Binding="{Binding DateDebut, StringFormat=dd/MM/yyyy}" Width="90"/>
+                <DataGridTextColumn Header="Fin" Binding="{Binding DateFin, StringFormat=dd/MM/yyyy}" Width="90"/>
+                <DataGridTextColumn Header="Salaire base" Binding="{Binding SalaireBase, StringFormat=N2}" Width="100"/>
+                <DataGridTextColumn Header="Jour (/26)" Binding="{Binding SalaireJour, Mode=OneWay, StringFormat=N2}" Width="90" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Heure (/8)" Binding="{Binding SalaireHeure, Mode=OneWay, StringFormat=N2}" Width="90" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Devise" Binding="{Binding DeviseBase}" Width="50"/>
+                    <DataGridTextColumn Header="Catégorie" Binding="{Binding CategorieProfessionnelle.Libelle}" Width="*"/>
+                    <DataGridTextColumn Header="HS (%)" Binding="{Binding TauxMajorationHeuresSup, StringFormat=N0}" Width="60"/>
+                    <DataGridTextColumn Header="Nuit (%)" Binding="{Binding TauxMajorationNuit, StringFormat=N0}" Width="60"/>
+                    <DataGridTextColumn Header="Férié (%)" Binding="{Binding TauxMajorationJourFerie, StringFormat=N0}" Width="60"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Fin de contrat (préavis / indemnité)" Margin="0,0,8,0"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"
+                    Click="FinContrat_Click"/>
+            <Button Content="Supprimer le contrat sélectionné" Command="{Binding SupprimerCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"/>
+        </StackPanel>
+    </Grid>
+</Window>

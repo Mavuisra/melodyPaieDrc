@@ -1,0 +1,99 @@
+<Window x:Class="MelodyPaieRDC.Views.EntrepriseWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:helpers="clr-namespace:MelodyPaieRDC.Helpers"
+        Title="Informations entreprise"
+        Height="640" Width="520"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Window.Resources>
+        <helpers:PathToImageSourceConverter x:Key="PathToImageSourceConverter"/>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="Données officielles STE LTSERVICES SARL — identité visuelle (logo, couleurs) et mentions légales sur les bulletins PDF."
+                  FontSize="14" TextWrapping="Wrap" Margin="0,0,0,16"/>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Identité visuelle -->
+                <TextBlock Text="Identité visuelle" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" VerticalAlignment="Top">
+                        <Border Width="100" Height="100" Background="#EEEEEE" CornerRadius="4" Margin="0,0,12,0">
+                            <Image Stretch="Uniform" MaxWidth="96" MaxHeight="96" Margin="4"
+                                   Source="{Binding CheminLogoComplet, Converter={StaticResource PathToImageSourceConverter}}"/>
+                        </Border>
+                        <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                            <Button Content="Choisir un logo" Command="{Binding ChoisirLogoCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    materialDesign:ButtonAssist.CornerRadius="6" Padding="8,6" Margin="0,0,6,0"/>
+                            <Button Content="Supprimer" Command="{Binding SupprimerLogoCommand}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    materialDesign:ButtonAssist.CornerRadius="6" Padding="8,6"/>
+                        </StackPanel>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1">
+                        <TextBlock Text="Couleur principale (hex, ex. #1E3A5F)" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding CouleurPrincipale, UpdateSourceTrigger=PropertyChanged}" MaxLength="20" Margin="0,0,0,10"/>
+                        <TextBlock Text="Couleur secondaire (optionnel)" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding CouleurSecondaire, UpdateSourceTrigger=PropertyChanged}" MaxLength="20" Margin="0,0,0,10"/>
+                    </StackPanel>
+                </Grid>
+
+                <TextBlock Text="Informations légales" FontWeight="SemiBold" FontSize="13" Margin="0,0,0,8"/>
+                <TextBlock Text="Raison sociale *" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding RaisonSociale, UpdateSourceTrigger=PropertyChanged}" MaxLength="255" Margin="0,0,0,10"/>
+
+                <TextBlock Text="NIF (Numéro d'identification fiscale)" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Nif, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,10"/>
+
+                <TextBlock Text="NRC (RCCM)" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Nrc, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Id. national" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding IdNat, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Numéro CNSS (employeur)" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding NumCnss, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Numéro d'affiliation CNSS (établissement)" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding NumeroAffiliationCnss, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Numéro INPP" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding NumInpp, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Coordonnées" FontWeight="SemiBold" FontSize="13" Margin="0,8,0,8"/>
+                <TextBlock Text="Téléphone" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Telephone, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,10"/>
+                <TextBlock Text="Courriel" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Email, UpdateSourceTrigger=PropertyChanged}" MaxLength="255" Margin="0,0,0,10"/>
+                <TextBlock Text="Site web" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding SiteWeb, UpdateSourceTrigger=PropertyChanged}" MaxLength="255" Margin="0,0,0,10"/>
+
+                <TextBlock Text="Adresse" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Adresse, UpdateSourceTrigger=PropertyChanged}" MaxLength="255"
+                         TextWrapping="Wrap" AcceptsReturn="True" Height="56" VerticalContentAlignment="Top" Margin="0,0,0,10"/>
+            </StackPanel>
+        </ScrollViewer>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Content="Fermer" IsCancel="True" Width="90" Margin="0,0,10,0"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"
+                    Click="Fermer_Click"/>
+            <Button Content="Enregistrer" Command="{Binding EnregistrerCommand}" Width="110"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"/>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,85 @@
+<Window x:Class="MelodyPaieRDC.Views.PeriodesPaieWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:helpers="clr-namespace:MelodyPaieRDC.Helpers"
+        Title="Périodes de paie"
+        Height="450" Width="560"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Window.Resources>
+        <helpers:StringToIntConverter x:Key="StringToIntConverter"/>
+        <helpers:StringToDecimalConverter x:Key="StringToDecimalConverter"/>
+    </Window.Resources>
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Gestion des périodes de paie" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock Text="Une période clôturée ne permet plus de générer de nouveaux bulletins. Cochez « Clôturée » dans le tableau puis enregistrez pour verrouiller la période." 
+                       FontSize="12" Foreground="Gray" Margin="0,4,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+        <Border Grid.Row="1" Background="White" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.1"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Formulaire responsive : se replie si la fenêtre est étroite / DPI élevé -->
+                <WrapPanel Grid.Row="0" VerticalAlignment="Center">
+                    <TextBlock Text="Mois" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Width="80" Margin="0,0,16,0"
+                             Text="{Binding Mois, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource StringToIntConverter}, Mode=TwoWay}"
+                             VerticalContentAlignment="Center"/>
+
+                    <TextBlock Text="Année" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Width="80" Margin="0,0,16,0"
+                             Text="{Binding Annee, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource StringToIntConverter}, Mode=TwoWay}"
+                             VerticalContentAlignment="Center"/>
+
+                    <TextBlock Text="Taux change (CDF/USD)" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <TextBox Width="120" Margin="0,0,16,0"
+                             Text="{Binding TauxChangeBudget, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource StringToDecimalConverter}, Mode=TwoWay}"
+                             VerticalContentAlignment="Center"/>
+
+                    <CheckBox Content="Période clôturée" IsChecked="{Binding Cloturee, Mode=TwoWay}" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                </WrapPanel>
+
+                <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                    <Button Content="Créer la période" Command="{Binding CreerCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            materialDesign:ButtonAssist.CornerRadius="6" Padding="14,8"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Periodes}" SelectedItem="{Binding PeriodeSelectionnee, Mode=TwoWay}"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  HeadersVisibility="Column" Margin="0,0,0,12"
+                  Background="White">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Mois" Binding="{Binding Mois}" Width="60"/>
+                <DataGridTextColumn Header="Année" Binding="{Binding Annee}" Width="60"/>
+                <DataGridTextColumn Header="Taux change" Binding="{Binding TauxChangeBudget, StringFormat=N2}" Width="*"/>
+                <DataGridCheckBoxColumn Header="Clôturée" Binding="{Binding Cloturee, UpdateSourceTrigger=PropertyChanged}" Width="90"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Supprimer la période" Command="{Binding SupprimerCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="0,0,8,0"/>
+            <Button Content="Enregistrer les modifications" Command="{Binding EnregistrerCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"/>
+        </StackPanel>
+    </Grid>
+</Window>

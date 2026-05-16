@@ -1,0 +1,85 @@
+<Window x:Class="MelodyPaieRDC.Views.PretsAvancesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:helpers="clr-namespace:MelodyPaieRDC.Helpers"
+        Title="Prêts et avances"
+        Height="500" Width="720"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Window.Resources>
+        <helpers:StringToIntConverter x:Key="StringToIntConverter"/>
+        <helpers:StringToDecimalConverter x:Key="StringToDecimalConverter"/>
+    </Window.Resources>
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+            <TextBlock FontSize="18" FontWeight="SemiBold" Margin="0,0,0,4">
+                <Run Text="Prêts et avances sur salaire – "/>
+                <Run Text="{Binding NomEmploye}" FontWeight="Bold"/>
+            </TextBlock>
+            <TextBlock Text="Les échéances sont déduites automatiquement chaque mois sur le bulletin de paie." 
+                       FontSize="12" Foreground="Gray" Margin="0,0,0,12"/>
+        </StackPanel>
+
+        <Border Grid.Row="1" Background="White" CornerRadius="8" Padding="12" Margin="0,0,0,12">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.1"/>
+            </Border.Effect>
+            <StackPanel>
+                <TextBlock Text="Nouveau prêt / avance" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="12"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,0,8">
+                        <TextBlock Text="Montant total" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding MontantTotal, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay, Converter={StaticResource StringToDecimalConverter}}" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" Margin="0,0,0,8">
+                        <TextBlock Text="Date d'octroi" Margin="0,0,0,2"/>
+                        <DatePicker SelectedDate="{Binding DateOctroi, Mode=TwoWay}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="4" Margin="0,0,0,8">
+                        <TextBlock Text="Nombre d'échéances (mois)" Margin="0,0,0,2"/>
+                        <TextBox Text="{Binding NbEcheances, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay, Converter={StaticResource StringToIntConverter}}" />
+                    </StackPanel>
+                </Grid>
+                <Button Content="Ajouter le prêt / avance" Command="{Binding AjouterCommand}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <DataGrid Grid.Row="2" ItemsSource="{Binding PretsAvances}" SelectedItem="{Binding Selectionne, Mode=TwoWay}"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  HeadersVisibility="Column" Margin="0,0,0,12" Background="White">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Montant total" Binding="{Binding MontantTotal, StringFormat=N2}" Width="100"/>
+                <DataGridTextColumn Header="Date octroi" Binding="{Binding DateOctroi, StringFormat=dd/MM/yyyy}" Width="100"/>
+                <DataGridTextColumn Header="Échéances" Binding="{Binding NbEcheances}" Width="80"/>
+                <DataGridTextColumn Header="Mensualité" Binding="{Binding MontantMensuel, StringFormat=N2}" Width="90"/>
+                <DataGridTextColumn Header="Solde restant" Binding="{Binding SoldeRestant, StringFormat=N2}" Width="100"/>
+                <DataGridTextColumn Header="Statut" Binding="{Binding Statut}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Supprimer le prêt sélectionné" Command="{Binding SupprimerCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"/>
+        </StackPanel>
+    </Grid>
+</Window>

@@ -1,0 +1,36 @@
+<Window x:Class="MelodyPaieRDC.Views.SplashScreenWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        AllowsTransparency="True"
+        Background="Transparent"
+        ShowInTaskbar="True"
+        Topmost="True"
+        Width="720"
+        Height="460"
+        WindowStartupLocation="CenterScreen">
+    <Border CornerRadius="16" Background="White" SnapsToDevicePixels="True">
+        <Grid>
+            <!-- Affiche l'image de splash en entier, sans bandeau supplémentaire -->
+            <Image Source="pack://application:,,,/MelodyPaieRDC;component/Assets/Splash_Screen-67874262-217e-4c76-ab25-907a642e34d5.png"
+                   Stretch="Uniform"/>
+
+            <!-- Légère indication de chargement, discrète en bas à droite -->
+            <Border VerticalAlignment="Bottom"
+                    HorizontalAlignment="Right"
+                    Margin="0,0,20,18"
+                    Background="#80000000"
+                    CornerRadius="10"
+                    Padding="10,6">
+                <StackPanel Orientation="Horizontal">
+                    <ProgressBar Width="140" Height="6" IsIndeterminate="True" Foreground="#FFFFFF"
+                                 BorderThickness="0" />
+                    <TextBlock Text="Chargement..." Margin="8,0,0,0" VerticalAlignment="Center"
+                               Foreground="White" FontSize="11"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
+

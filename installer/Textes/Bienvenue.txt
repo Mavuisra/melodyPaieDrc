@@ -1,0 +1,28 @@
+══════════════════════════════════════════════════════════════
+   MELODY PAIE RDC
+   Paie · Ressources humaines · Déclarations (CNSS / IPR)
+   République Démocratique du Congo
+══════════════════════════════════════════════════════════════
+
+Merci d'avoir choisi Melody Paie RDC.
+
+CET ASSISTANT VA :
+  • Installer l'application dans le dossier de votre choix
+    (par défaut : Program Files).
+  • Créer les raccourcis dans le menu Démarrer.
+  • Proposer un raccourci sur le Bureau (optionnel).
+
+VERSION PORTABLE .NET
+  Cette édition inclut le runtime .NET nécessaire : vous n'avez
+  pas besoin d'installer .NET séparément sur le poste.
+
+PRÉREQUIS
+  • Windows 10 ou Windows 11 (64 bits)
+  • Droits administrateur pour une installation sous Program Files
+
+CONSEIL
+  Fermez Melody Paie RDC si elle est déjà ouverte avant de
+  poursuivre, afin d'éviter tout conflit lors de la mise à jour
+  des fichiers.
+
+Cliquez sur « Suivant » pour continuer.

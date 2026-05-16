@@ -1,0 +1,65 @@
+<Window x:Class="MelodyPaieRDC.Views.EtablissementsDepartementsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Etablissements et départements"
+        Height="560" Width="700"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Etablissements (sites)" FontSize="16" FontWeight="SemiBold"/>
+            <TextBlock Text="Un établissement regroupe des départements. Les employés sont rattachés à un département." Opacity="0.8" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+        <DataGrid Grid.Row="2" ItemsSource="{Binding Etablissements}" SelectedItem="{Binding EtablissementSelectionne, Mode=TwoWay}"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  HeadersVisibility="Column" Margin="0,0,0,12" Background="White">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Nom du site" Binding="{Binding NomSite, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,16">
+            <Button Content="Ajouter un établissement" Command="{Binding AjouterEtablissementCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="0,0,8,0"/>
+            <Button Content="Supprimer" Command="{Binding SupprimerEtablissementCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="4" Margin="0,0,0,8">
+            <TextBlock Text="Départements de l'établissement sélectionné" FontSize="16" FontWeight="SemiBold"/>
+            <TextBlock Text="Sélectionnez un établissement ci-dessus pour gérer ses départements." Opacity="0.8" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+        <DataGrid Grid.Row="5" ItemsSource="{Binding Departements}" SelectedItem="{Binding DepartementSelectionne, Mode=TwoWay}"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  HeadersVisibility="Column" Margin="0,0,0,12" Background="White">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Nom du département" Binding="{Binding NomDepartement, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Ajouter un département" Command="{Binding AjouterDepartementCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="0,0,8,0"/>
+            <Button Content="Supprimer" Command="{Binding SupprimerDepartementCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="0,0,8,0"/>
+            <Button Content="Enregistrer les modifications" Command="{Binding EnregistrerCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"/>
+        </StackPanel>
+    </Grid>
+</Window>

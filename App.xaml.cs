@@ -1,0 +1,250 @@
+using System.IO;
+using System.Linq;
+using System.Windows;
+using System.Windows.Threading;
+using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Helpers;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using QuestPDF.Infrastructure;
+
+namespace MelodyPaieRDC;
+
+public partial class App : Application
+{
+    public App()
+    {
+        // Afficher toute exception non gérée pour éviter que l'app se ferme sans message
+        DispatcherUnhandledException += (_, args) =>
+        {
+            StartupLog.Append("DispatcherUnhandledException", args.Exception);
+            MessageBox.Show(
+                $"{args.Exception.Message}\n\n{args.Exception.StackTrace}",
+                "Erreur",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
+            args.Handled = true;
+        };
+
+        AppDomain.CurrentDomain.UnhandledException += (_, args) =>
+        {
+            if (args.ExceptionObject is Exception ex)
+            {
+                StartupLog.Append("UnhandledException (AppDomain)", ex);
+                MessageBox.Show($"{ex.Message}\n\n{ex.StackTrace}", "Erreur fatale", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        };
+    }
+
+    private void Application_Startup(object sender, StartupEventArgs e)
+    {
+        StartupLog.Append("Démarrage : Application_Startup (tfm net8-windows, self-contained attendu côté déploiement)");
+
+        // L'app ne s'arrête que lorsque la fenêtre principale (MainWindow) est fermée, pas à la fermeture du login.
+        ShutdownMode = ShutdownMode.OnMainWindowClose;
+
+        // Licence QuestPDF (gratuite pour usage communautaire / open source)
+        QuestPDF.Settings.License = LicenseType.Community;
+        QuestPDF.Settings.EnableDebugging = false;
+
+        Views.SplashScreenWindow? splash = null;
+        var splashStart = DateTime.UtcNow;
+
+        try
+        {
+            splash = new Views.SplashScreenWindow();
+            splash.Show();
+            StartupLog.Append("Splash affiché");
+
+            var dataDir = PaieDbContext.GetDataDirectory();
+            var dbPath = Path.Combine(dataDir, "PaieRDC.db");
+            StartupLog.Append($"Dossier données : {dataDir}");
+
+            // Restauration depuis une sauvegarde (argument --restore-from "chemin")
+            var args = Environment.GetCommandLineArgs();
+            for (var i = 1; i < args.Length - 1; i++)
+            {
+                if (args[i] != "--restore-from" || string.IsNullOrWhiteSpace(args[i + 1])) continue;
+                var backupPath = args[i + 1].Trim().Trim('"');
+                if (!File.Exists(backupPath))
+                {
+                    MessageBox.Show($"Fichier introuvable : {backupPath}", "Restauration", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    break;
+                }
+                if (!Directory.Exists(dataDir))
+                    Directory.CreateDirectory(dataDir);
+                File.Copy(backupPath, dbPath, overwrite: true);
+                MessageBox.Show("Base de données restaurée. L'application va s'ouvrir avec les données de la sauvegarde.", "Restauration", MessageBoxButton.OK, MessageBoxImage.Information);
+                break;
+            }
+
+            if (!Directory.Exists(dataDir))
+                Directory.CreateDirectory(dataDir);
+
+            AssurerBaseEtDonneesInitiales(dbPath);
+            StartupLog.Append("Base SQLite initialisée");
+
+            // Splash minimum sans Thread.Sleep sur le thread UI (évite « ne répond pas » / gel perçu).
+            var elapsed = DateTime.UtcNow - splashStart;
+            var minimum = TimeSpan.FromSeconds(5);
+            if (elapsed < minimum)
+                AttendreAvecPompageMessages(minimum - elapsed);
+
+            // Créer la fenêtre principale d'abord et la définir comme MainWindow pour que
+            // la fermeture de la fenêtre de login ne déclenche pas l'arrêt de l'application.
+            var mainWin = new Views.MainWindow();
+            MainWindow = mainWin;
+            StartupLog.Append("MainWindow créée (avant login)");
+
+            // Le splash a servi uniquement pendant l'initialisation (base / schéma).
+            // On le ferme avant d'afficher l'écran de login pour que la transition soit plus rapide.
+            splash?.Close();
+
+            // Connexion obligatoire (multi-utilisateurs)
+            var loginWin = new Views.LoginWindow();
+            if (loginWin.ShowDialog() != true)
+            {
+                StartupLog.Append("Fermeture : écran de connexion annulé ou identifiants non validés (comportement normal si l'utilisateur ferme la fenêtre)");
+                Shutdown(0);
+                return;
+            }
+
+            mainWin.Show();
+            StartupLog.Append("Ouverture réussie après connexion");
+        }
+        catch (Exception ex)
+        {
+            splash?.Close();
+            StartupLog.Append("Échec démarrage (voir exception)", ex);
+            var logHint = StartupLog.CheminFichier();
+            var detail = string.IsNullOrEmpty(logHint)
+                ? ex.StackTrace
+                : $"{ex.StackTrace}\n\nJournal : {logHint}";
+            MessageBox.Show($"Démarrage : {ex.Message}\n\n{detail}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
+        }
+    }
+
+    /// <summary>
+    /// Attend tout en laissant la dispatcher traiter les messages (splash animé, OS « répond »).
+    /// </summary>
+    private static void AttendreAvecPompageMessages(TimeSpan duree)
+    {
+        if (duree <= TimeSpan.Zero) return;
+        var frame = new DispatcherFrame();
+        var fin = DateTime.UtcNow + duree;
+        var timer = new DispatcherTimer(DispatcherPriority.Background, Dispatcher.CurrentDispatcher)
+        {
+            Interval = TimeSpan.FromMilliseconds(50)
+        };
+        timer.Tick += (_, _) =>
+        {
+            if (DateTime.UtcNow >= fin)
+            {
+                timer.Stop();
+                frame.Continue = false;
+            }
+        };
+        timer.Start();
+        Dispatcher.PushFrame(frame);
+    }
+
+    /// <summary>
+    /// Crée la base si besoin ; si les tables n'existent pas, applique le schéma via SQL puis seed.
+    /// </summary>
+    private static void AssurerBaseEtDonneesInitiales(string dbPath)
+    {
+        using var db = new PaieDbContext();
+        db.Database.EnsureCreated();
+        SchemaSqliteApplicator.AjouterTableUtilisateursSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesIdentiteVisuelleSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonneNumeroBulletinSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesPrimesIndemnitesSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableAffectationsPrimesIndemnitesSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableEmployesLibellesBulletinSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableSaisiesPaieSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesSaisiesPaieAcomptesSanctionsSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonneNumCnssEmployeSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonneZkUserIdEmployeSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesEmployesReferencesFicheSalaireSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonneCotisationInppBulletinSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesContratsRemunerationAvanceeSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableJoursTravailCalendrierSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableSuivisJournaliersSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesSuiviJournalierPointagesSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableParametresApplicationSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesParametresZktecoSiNecessaire(db);
+        BackfillNumeroBulletinSiNecessaire(db);
+
+        try
+        {
+            db.SeedSiVide();
+            LtServicesEffectifsSeeder.SeedEffectifsSiVide(db);
+            AppliquerDonneesLtServicesPostSeed(db);
+            return;
+        }
+        catch (SqliteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
+        {
+            // Fichier .db existant mais sans tables : on crée les tables via script SQL (sans supprimer le fichier)
+        }
+
+        SchemaSqliteApplicator.AppliquerSchema(db);
+        SchemaSqliteApplicator.AjouterColonnesIdentiteVisuelleSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableUtilisateursSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonneNumeroBulletinSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesPrimesIndemnitesSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableAffectationsPrimesIndemnitesSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableEmployesLibellesBulletinSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableSaisiesPaieSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesSaisiesPaieAcomptesSanctionsSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonneNumCnssEmployeSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonneZkUserIdEmployeSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesEmployesReferencesFicheSalaireSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonneCotisationInppBulletinSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesContratsRemunerationAvanceeSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableJoursTravailCalendrierSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableSuivisJournaliersSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesSuiviJournalierPointagesSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterTableParametresApplicationSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesParametresZktecoSiNecessaire(db);
+        BackfillNumeroBulletinSiNecessaire(db);
+        db.SeedSiVide();
+        LtServicesEffectifsSeeder.SeedEffectifsSiVide(db);
+        AppliquerDonneesLtServicesPostSeed(db);
+    }
+
+    private static void AppliquerDonneesLtServicesPostSeed(PaieDbContext db)
+    {
+        LtServicesDonneesEntreprise.AppliquerSiEntrepriseEncoreGenerique(db);
+        LtServicesDonneesEntreprise.CompleterCoordonneesLtServicesSiChampsVides(db);
+        LtServicesDonneesEntreprise.SynchroniserIdentiteLtSiApplicable(db);
+    }
+
+    /// <summary>
+    /// Attribue un numéro unique (ex. 2025-03-001) aux bulletins qui n'en ont pas encore.
+    /// </summary>
+    private static void BackfillNumeroBulletinSiNecessaire(PaieDbContext db)
+    {
+        var sansNumero = db.BulletinsPaie
+            .Include(b => b.PeriodePaie)
+            .Where(b => string.IsNullOrEmpty(b.NumeroBulletin))
+            .OrderBy(b => b.PeriodePaieId)
+            .ThenBy(b => b.Id)
+            .ToList();
+        if (sansNumero.Count == 0) return;
+
+        foreach (var groupe in sansNumero.GroupBy(b => b.PeriodePaieId))
+        {
+            var periode = groupe.First().PeriodePaie;
+            var annee = periode?.Annee ?? DateTime.Today.Year;
+            var mois = periode?.Mois ?? DateTime.Today.Month;
+            var seq = 1;
+            foreach (var b in groupe.OrderBy(x => x.Id))
+            {
+                b.NumeroBulletin = $"{annee}-{mois:D2}-{seq:D3}";
+                seq++;
+            }
+        }
+        db.SaveChanges();
+    }
+}

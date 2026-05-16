@@ -1,0 +1,32 @@
+<Window x:Class="MelodyPaieRDC.Views.ConfirmationMotDePasseWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Confirmation administrateur"
+        Height="200" Width="380"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="L'employé a déjà été payé. Pour supprimer cet ayant droit (ex. décès, enfant majeur), confirmez avec votre mot de passe administrateur." 
+                   TextWrapping="Wrap" Margin="0,0,0,12" Foreground="#37474F"/>
+        <TextBlock Grid.Row="1" Text="Mot de passe *" Margin="0,0,0,4"/>
+        <PasswordBox x:Name="TxtMotDePasse" Grid.Row="2" Padding="8,6" Margin="0,0,0,16"/>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Annuler" IsCancel="True" Click="Annuler_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="16,8" Margin="0,0,12,0"/>
+            <Button Content="Confirmer" IsDefault="True" Click="Confirmer_Click"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="16,8"/>
+        </StackPanel>
+    </Grid>
+</Window>

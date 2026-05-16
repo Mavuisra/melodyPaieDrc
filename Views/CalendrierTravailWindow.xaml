@@ -1,0 +1,102 @@
+<Window x:Class="MelodyPaieRDC.Views.CalendrierTravailWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Calendrier de travail"
+        Height="520" Width="720"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,8">
+            <TextBlock Text="Calendrier de travail" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock Text="Définissez les jours ouvrés, fériés et de repos. Le type de semaine (5 jours ou 6 jours) applique automatiquement samedi/dimanche."
+                       FontSize="12" Foreground="Gray" TextWrapping="Wrap" Margin="0,4,0,0"/>
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
+                <TextBlock Text="Année :" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                <ComboBox ItemsSource="{Binding AnneesDisponibles}" SelectedItem="{Binding Annee, Mode=TwoWay}" Width="80"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="0,0,16,0">
+                <TextBlock Text="Type de semaine :" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                <ComboBox ItemsSource="{Binding TypesSemaine}"
+                          SelectedItem="{Binding TypeSemaineSelectionne, Mode=TwoWay}"
+                          Width="100"
+                          IsEditable="False"/>
+            </StackPanel>
+            <Button Content="Appliquer week-end"
+                    Command="{Binding AppliquerTypeSemaineCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6"
+                    Padding="12,6"
+                    ToolTip="5 jours : samedi 0h et dimanche 0h / 6 jours : samedi 8h et dimanche 0h"/>
+        </StackPanel>
+
+        <DataGrid Grid.Row="2"
+                  ItemsSource="{Binding Jours}"
+                  SelectedItem="{Binding Selectionne, Mode=TwoWay}"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  HeadersVisibility="Column"
+                  Background="White"
+                  Margin="0,0,0,8">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Date" Binding="{Binding DateJour, StringFormat=d}" Width="100" IsReadOnly="True"/>
+                <DataGridTextColumn Header="Jour de semaine" Width="120" IsReadOnly="True">
+                    <DataGridTextColumn.Binding>
+                        <Binding Path="DateJour" StringFormat="dddd"/>
+                    </DataGridTextColumn.Binding>
+                </DataGridTextColumn>
+                <DataGridTextColumn Header="Type" Binding="{Binding TypeJour}" Width="80"/>
+                <DataGridTextColumn Header="Libellé" Binding="{Binding Libelle}" Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Border Grid.Row="3" Background="White" CornerRadius="8" Padding="12">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.1"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="0" Margin="0,0,8,0">
+                    <TextBlock Text="Date" Margin="0,0,0,2"/>
+                    <DatePicker SelectedDate="{Binding NouvelleDate, Mode=TwoWay}"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Margin="0,0,8,0">
+                    <TextBlock Text="Type de jour" Margin="0,0,0,2"/>
+                    <ComboBox ItemsSource="{Binding TypesJour}" SelectedItem="{Binding NouveauTypeJour, Mode=TwoWay}" IsEditable="False"/>
+                    <TextBlock Text="Libellé (facultatif)" Margin="0,8,0,2"/>
+                    <TextBox Text="{Binding NouveauLibelle, Mode=TwoWay}" />
+                </StackPanel>
+                <StackPanel Grid.Column="2" VerticalAlignment="Bottom" Orientation="Horizontal">
+                    <Button Content="Ajouter / Mettre à jour"
+                            Command="{Binding AjouterJourCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            materialDesign:ButtonAssist.CornerRadius="6"
+                            Padding="16,8"
+                            Margin="0,0,8,0"/>
+                    <Button Content="Supprimer le jour sélectionné"
+                            Command="{Binding SupprimerJourCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            materialDesign:ButtonAssist.CornerRadius="6"
+                            Padding="16,8"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

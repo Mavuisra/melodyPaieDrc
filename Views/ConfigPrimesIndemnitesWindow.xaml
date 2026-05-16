@@ -1,0 +1,63 @@
+<Window x:Class="MelodyPaieRDC.Views.ConfigPrimesIndemnitesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:sys="clr-namespace:System;assembly=mscorlib"
+        Title="Primes et indemnités (référentiel)"
+        Height="440" Width="620"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Window.Resources>
+        <x:Array x:Key="ModesCalculPrimes" Type="{x:Type sys:String}">
+            <sys:String>FIXE</sys:String>
+            <sys:String>PRORATA_JOURS</sys:String>
+        </x:Array>
+        <x:Array x:Key="TypesLignePrimes" Type="{x:Type sys:String}">
+            <sys:String>A</sys:String>
+            <sys:String>R</sys:String>
+        </x:Array>
+    </Window.Resources>
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Référentiel des primes, indemnités et retenues" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock Text="Définissez les types de primes (logement, transport, etc.) et retenues. Cochez Imposable (IPR) et/ou Cotisable (CNSS), choisissez le mode de calcul et le type (A=Avantage, R=Retenue)." Opacity="0.8" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+        <DataGrid Grid.Row="1" ItemsSource="{Binding PrimesIndemnites}" SelectedItem="{Binding Selectionne, Mode=TwoWay}"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  HeadersVisibility="Column" Margin="0,0,0,12"
+                  Background="White">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Libellé" Binding="{Binding Libelle, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                <DataGridComboBoxColumn Header="Mode calcul"
+                                        ItemsSource="{StaticResource ModesCalculPrimes}"
+                                        SelectedItemBinding="{Binding ModeCalcul, UpdateSourceTrigger=PropertyChanged}"
+                                        Width="120"/>
+                <DataGridComboBoxColumn Header="Type (A/R)"
+                                        ItemsSource="{StaticResource TypesLignePrimes}"
+                                        SelectedItemBinding="{Binding TypeLigne, UpdateSourceTrigger=PropertyChanged}"
+                                        Width="90"/>
+                <DataGridTextColumn Header="N° compte" Binding="{Binding NumeroCompte, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+                <DataGridCheckBoxColumn Header="Imposable (IPR)" Binding="{Binding EstImposable, UpdateSourceTrigger=PropertyChanged}" Width="110"/>
+                <DataGridCheckBoxColumn Header="Cotisable (CNSS)" Binding="{Binding EstCotisable, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Ajouter" Command="{Binding AjouterCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="0,0,8,0"/>
+            <Button Content="Supprimer" Command="{Binding SupprimerCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="0,0,8,0"/>
+            <Button Content="Enregistrer" Command="{Binding EnregistrerCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"/>
+        </StackPanel>
+    </Grid>
+</Window>

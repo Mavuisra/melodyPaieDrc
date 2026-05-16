@@ -1,0 +1,42 @@
+<Window x:Class="MelodyPaieRDC.Views.TauxSociauxWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Taux sociaux (CNSS, INPP, ONEM)"
+        Height="420" Width="500"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="Taux des cotisations sociales" FontSize="18" FontWeight="SemiBold"/>
+            <TextBlock Text="Codes utilisés : CNSS_Ouvrier, CNSS_Patronal, INPP, ONEM. Les pourcentages s'appliquent sur le salaire brut." Opacity="0.8" FontSize="12" Margin="0,4,0,0"/>
+        </StackPanel>
+        <DataGrid Grid.Row="1" ItemsSource="{Binding TauxSociaux}" SelectedItem="{Binding Selectionne, Mode=TwoWay}"
+                  AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                  HeadersVisibility="Column" Margin="0,0,0,12"
+                  Background="White">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Code" Binding="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Width="*"/>
+                <DataGridTextColumn Header="Pourcentage (%)" Binding="{Binding Pourcentage, UpdateSourceTrigger=PropertyChanged}" Width="120"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Ajouter un taux" Command="{Binding AjouterCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="0,0,8,0"/>
+            <Button Content="Supprimer" Command="{Binding SupprimerCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="0,0,8,0"/>
+            <Button Content="Enregistrer" Command="{Binding EnregistrerCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"/>
+        </StackPanel>
+    </Grid>
+</Window>

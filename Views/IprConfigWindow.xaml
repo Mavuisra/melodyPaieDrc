@@ -1,0 +1,113 @@
+<Window x:Class="MelodyPaieRDC.Views.IprConfigWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Paramètres IPR"
+        Height="500" Width="800"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        TextElement.FontWeight="Medium"
+        TextElement.FontSize="14"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,0,0,12">
+            <TextBlock Text="Configuration de l'IPR" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4"/>
+            <TextBlock Text="Modifiez ici les tranches d'imposition et les paramètres généraux (plafond, réduction familiale)." Opacity="0.8" FontSize="12"/>
+        </StackPanel>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Grille des tranches IPR -->
+            <Border Grid.Column="0" Background="White" CornerRadius="8" Padding="12">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.12"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Barème IPR (tranches)" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                    <DataGrid Grid.Row="1"
+                              ItemsSource="{Binding Tranches}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              IsReadOnly="False"
+                              SelectedItem="{Binding TrancheSelectionnee, Mode=TwoWay}"
+                              HeadersVisibility="Column"
+                              Margin="0,0,0,8">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Borne inférieure" Binding="{Binding BorneInf, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                            <DataGridTextColumn Header="Borne supérieure (0 = illimitée)" Binding="{Binding BorneSup, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                            <DataGridTextColumn Header="Taux (%)" Binding="{Binding Taux, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="*" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Ajouter une tranche"
+                                Command="{Binding AjouterTrancheCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                materialDesign:ButtonAssist.CornerRadius="6"
+                                Padding="12,6"
+                                Margin="0,0,8,0"/>
+                        <Button Content="Supprimer la tranche sélectionnée"
+                                Command="{Binding SupprimerTrancheCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                materialDesign:ButtonAssist.CornerRadius="6"
+                                Padding="12,6"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Paramètres généraux -->
+            <Border Grid.Column="2" Background="White" CornerRadius="8" Padding="12">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.12"/>
+                </Border.Effect>
+                <StackPanel>
+                    <TextBlock Text="Paramètres généraux" FontWeight="SemiBold" Margin="0,0,0,8"/>
+
+                    <TextBlock Text="Taux effectif maximum (ex : 0,30 = 30%)" FontSize="12" Opacity="0.8"/>
+                    <TextBox Text="{Binding Parametre.TauxEffectifMaximum, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="0,2,0,8"/>
+
+                    <TextBlock Text="Réduction par enfant à charge (montant mensuel)" FontSize="12" Opacity="0.8"/>
+                    <TextBox Text="{Binding Parametre.ReductionParEnfant, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                             Margin="0,2,0,8"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Boutons bas -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Annuler" Width="100" Margin="0,0,8,0"
+                    IsCancel="True"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6"
+                    Padding="12,6"/>
+            <Button Content="Enregistrer" Width="120"
+                    Command="{Binding EnregistrerCommand}"
+                    IsDefault="True"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6"
+                    Padding="12,6"/>
+        </StackPanel>
+    </Grid>
+</Window>
+

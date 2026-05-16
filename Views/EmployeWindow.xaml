@@ -1,0 +1,117 @@
+<Window x:Class="MelodyPaieRDC.Views.EmployeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{Binding TitreFenetre}" Height="520" Width="500"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="{Binding TitreFormulaire}" FontSize="16" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- Matricule -->
+                <TextBlock Text="Matricule *" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.Matricule, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,8"/>
+
+                <!-- ID interne Melody -->
+                <TextBlock Text="ID interne Melody" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding IdInterneText, UpdateSourceTrigger=PropertyChanged}" MaxLength="10" Margin="0,0,0,4"/>
+                <TextBlock Text="Si l'ID existe déjà, l'application inter-échange automatiquement les IDs internes des deux employés (sans changer les matricules)."
+                           FontSize="11" Foreground="#607D8B" TextWrapping="Wrap" Margin="0,0,0,8"/>
+
+                <!-- ID utilisateur terminal -->
+                <TextBlock Text="ID utilisateur terminal (ZKTeco)" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.ZkUserId, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,6"/>
+                <TextBlock Text="IDs déjà utilisés :" FontSize="11" Foreground="#607D8B"/>
+                <TextBlock Text="{Binding IdsUtilisateursExistants}" TextWrapping="Wrap" FontSize="11" Foreground="#607D8B" Margin="0,0,0,8"/>
+
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <Button Content="Lire IDs terminal ZKTeco"
+                            Command="{Binding ChargerIdsTerminalCommand}"
+                            Width="180" Margin="0,0,8,0"/>
+                    <Button Content="Attribuer ID sélectionné"
+                            Command="{Binding AttribuerIdTerminalSelectionneCommand}"
+                            Width="170"/>
+                </StackPanel>
+                <Border BorderBrush="#CFD8DC" BorderThickness="1" CornerRadius="6" Padding="4" Margin="0,0,0,8" Background="#FAFCFE">
+                    <ListBox ItemsSource="{Binding IdsTerminalDetectes}"
+                             SelectedItem="{Binding IdTerminalSelectionne, Mode=TwoWay}"
+                             Height="96">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock>
+                                    <Run Text="{Binding Id}"/>
+                                    <Run Text=" | "/>
+                                    <Run Text="{Binding Nom}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Border>
+
+                <TextBlock Text="Employés déjà enregistrés dans Melody (ID | Matricule | Nom)" FontSize="11" Foreground="#455A64" FontWeight="SemiBold" Margin="0,0,0,2"/>
+                <Border BorderBrush="#CFD8DC" BorderThickness="1" CornerRadius="6" Padding="6" Margin="0,0,0,8" Background="#FAFCFE">
+                    <ScrollViewer Height="95" VerticalScrollBarVisibility="Auto">
+                        <TextBlock Text="{Binding EmployesEnregistresResume}" TextWrapping="Wrap" FontSize="11" Foreground="#546E7A"/>
+                    </ScrollViewer>
+                </Border>
+
+                <!-- Nom -->
+                <TextBlock Text="Nom *" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.Nom, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Margin="0,0,0,8"/>
+
+                <!-- Postnom -->
+                <TextBlock Text="Postnom *" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.Postnom, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Margin="0,0,0,8"/>
+
+                <!-- Prénom -->
+                <TextBlock Text="Prénom *" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.Prenom, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Margin="0,0,0,8"/>
+
+                <!-- Sexe -->
+                <TextBlock Text="Sexe *" Margin="0,0,0,2"/>
+                <ComboBox ItemsSource="{Binding Sexes}" SelectedItem="{Binding Employe.Sexe, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" IsEditable="True"/>
+
+                <!-- État civil -->
+                <TextBlock Text="État civil *" Margin="0,0,0,2"/>
+                <ComboBox ItemsSource="{Binding EtatsCivils}" SelectedItem="{Binding Employe.EtatCivil, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8" IsEditable="True"/>
+
+                <!-- Date de naissance -->
+                <TextBlock Text="Date de naissance *" Margin="0,0,0,2"/>
+                <DatePicker SelectedDate="{Binding Employe.DateNaissance, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,8"/>
+
+                <!-- Téléphone -->
+                <TextBlock Text="Téléphone *" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.Telephone, UpdateSourceTrigger=PropertyChanged}" MaxLength="30" Margin="0,0,0,8"/>
+
+                <!-- Numéro CNSS -->
+                <TextBlock Text="Numéro CNSS *" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.NumCnss, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,8"/>
+
+                <!-- Adresse -->
+                <TextBlock Text="Adresse *" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.Adresse, UpdateSourceTrigger=PropertyChanged}" MaxLength="255"
+                         TextWrapping="Wrap" AcceptsReturn="True" Height="56" VerticalContentAlignment="Top" Margin="0,0,0,8"/>
+
+                <!-- Département -->
+                <TextBlock Text="Département *" Margin="0,0,0,2"/>
+                <ComboBox ItemsSource="{Binding Departements}"
+                          DisplayMemberPath="NomDepartement"
+                          SelectedValuePath="Id"
+                          SelectedValue="{Binding Employe.DepartementId, UpdateSourceTrigger=PropertyChanged}"
+                          Margin="0,0,0,8"/>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button Content="Annuler" Command="{Binding AnnulerCommand}" Width="90" Margin="0,0,8,0" IsCancel="True"/>
+            <Button Content="Enregistrer" Command="{Binding EnregistrerCommand}" Width="100" IsDefault="True"/>
+        </StackPanel>
+    </Grid>
+</Window>
