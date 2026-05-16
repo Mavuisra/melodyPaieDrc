@@ -49,7 +49,7 @@
         </Border>
 
         <ProgressBar Grid.Row="4"
-                     Value="{Binding Progression}"
+                     Value="{Binding Progression, Mode=OneWay}"
                      Maximum="100"
                      Height="8"
                      Margin="0,0,0,16"/>
