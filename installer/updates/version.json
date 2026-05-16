@@ -1,8 +1,8 @@
-{
-  "publishedAt": "2026-05-16",
-  "sha256": "6B9780AC7ACB41F978B80EAD07EE37B6E30962E2B8102E0EC914E481A944825D",
-  "version": "1.0.1",
-  "fileName": "MelodyPaieRDC_Setup_1.0.1.exe",
-  "releaseNotes": "Release v1.0.1",
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.1/MelodyPaieRDC_Setup_1.0.1.exe"
+﻿{
+    "sha256":  "",
+    "version":  "1.0.2",
+    "releaseNotes":  "Correction verification mises a jour GitHub (URL + API Releases)",
+    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.2/MelodyPaieRDC_Setup_1.0.2.exe",
+    "publishedAt":  "2026-05-16",
+    "fileName":  "MelodyPaieRDC_Setup_1.0.2.exe"
 }
