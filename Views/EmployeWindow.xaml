@@ -94,6 +94,27 @@
                 <TextBlock Text="Numéro CNSS *" Margin="0,0,0,2"/>
                 <TextBox Text="{Binding Employe.NumCnss, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,8"/>
 
+                <TextBlock Text="Commune / territoire d'affectation (CNSS)" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.CommuneAffectation, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Margin="0,0,0,6"/>
+                <TextBlock Text="Type travailleur CNSS (1 = Travailleur, 2 = Assimilé)" Margin="0,0,0,2"/>
+                <ComboBox SelectedValue="{Binding Employe.TypeTravailleurCnss, UpdateSourceTrigger=PropertyChanged}"
+                          SelectedValuePath="Tag" Margin="0,0,0,8">
+                    <ComboBoxItem Content="1 — Travailleur" Tag="1"/>
+                    <ComboBoxItem Content="2 — Assimilé" Tag="2"/>
+                </ComboBox>
+
+                <TextBlock Text="Coordonnées bancaires (virements)" FontWeight="SemiBold" Margin="0,4,0,6"/>
+                <TextBlock Text="Code banque" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.CodeBanque, UpdateSourceTrigger=PropertyChanged}" MaxLength="20" Margin="0,0,0,6"/>
+                <TextBlock Text="Banque" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.LibelleBanque, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" Margin="0,0,0,6"/>
+                <TextBlock Text="N° compte" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.NumeroCompteBancaire, UpdateSourceTrigger=PropertyChanged}" MaxLength="50" Margin="0,0,0,6"/>
+                <TextBlock Text="Titulaire du compte" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.TitulaireCompteBancaire, UpdateSourceTrigger=PropertyChanged}" MaxLength="150" Margin="0,0,0,6"/>
+                <TextBlock Text="Devise compte (USD / CDF)" Margin="0,0,0,2"/>
+                <TextBox Text="{Binding Employe.DeviseCompteBancaire, UpdateSourceTrigger=PropertyChanged}" MaxLength="10" Margin="0,0,0,8"/>
+
                 <!-- Adresse -->
                 <TextBlock Text="Adresse *" Margin="0,0,0,2"/>
                 <TextBox Text="{Binding Employe.Adresse, UpdateSourceTrigger=PropertyChanged}" MaxLength="255"

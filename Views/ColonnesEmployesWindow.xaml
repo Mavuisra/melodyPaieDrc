@@ -1,0 +1,29 @@
+<Window x:Class="MelodyPaieRDC.Views.ColonnesEmployesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Colonnes — liste des employés"
+        Height="480" Width="420"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,12"
+                   Text="Choisissez les colonnes visibles dans le répertoire employés (par entreprise)."/>
+        <ItemsControl Grid.Row="1" ItemsSource="{Binding Colonnes}">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <CheckBox Content="{Binding Libelle}" IsChecked="{Binding Visible}" Margin="0,6"/>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Grid.Row="2" Content="Enregistrer" Command="{Binding EnregistrerCommand}"
+                HorizontalAlignment="Right" Margin="0,16,0,0"
+                Style="{StaticResource MaterialDesignRaisedButton}" Padding="20,10"/>
+    </Grid>
+</Window>

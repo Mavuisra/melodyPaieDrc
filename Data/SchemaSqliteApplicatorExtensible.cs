@@ -13,6 +13,7 @@ public static class SchemaSqliteApplicatorExtensible
         CreerTablesExtensibles(db);
         AjouterColonnesMultiEntreprise(db);
         AjouterColonnesPrimesEtSync(db);
+        AjouterColonnesExportsPaie(db);
     }
 
     private static void CreerTablesExtensibles(DbContext db)
@@ -111,6 +112,21 @@ public static class SchemaSqliteApplicatorExtensible
         AjouterColonne(db, "PrimesIndemnites", "EntrepriseId", "INTEGER");
         AjouterColonne(db, "JoursTravailCalendrier", "EntrepriseId", "INTEGER");
         AjouterColonne(db, "ParametresApplication", "EntrepriseId", "INTEGER");
+        AjouterColonne(db, "Employes", "EntrepriseId", "INTEGER");
+        AjouterColonne(db, "ParametresApplication", "DerniereEntrepriseActiveId", "INTEGER");
+        AjouterColonne(db, "ParametresApplication", "ConfigurationUiJson", "TEXT");
+    }
+
+    private static void AjouterColonnesExportsPaie(DbContext db)
+    {
+        AjouterColonne(db, "Employes", "CodeBanque", "TEXT");
+        AjouterColonne(db, "Employes", "LibelleBanque", "TEXT");
+        AjouterColonne(db, "Employes", "AgenceBancaire", "TEXT");
+        AjouterColonne(db, "Employes", "NumeroCompteBancaire", "TEXT");
+        AjouterColonne(db, "Employes", "TitulaireCompteBancaire", "TEXT");
+        AjouterColonne(db, "Employes", "DeviseCompteBancaire", "TEXT");
+        AjouterColonne(db, "PeriodesPaie", "DateClotureUtc", "TEXT");
+        AjouterColonne(db, "PeriodesPaie", "CloturePar", "TEXT");
     }
 
     private static void AjouterColonnesPrimesEtSync(DbContext db)
@@ -119,6 +135,8 @@ public static class SchemaSqliteApplicatorExtensible
         AjouterColonne(db, "PrimesIndemnites", "OrdreAffichage", "INTEGER NOT NULL DEFAULT 0");
         AjouterColonne(db, "Employes", "UpdatedAtUtc", "TEXT");
         AjouterColonne(db, "BulletinsPaie", "UpdatedAtUtc", "TEXT");
+        AjouterColonne(db, "ParametresApplication", "ForcerAssistantProchainDemarrage", "INTEGER NOT NULL DEFAULT 0");
+        AjouterColonne(db, "ParametresApplication", "VersionParcoursDemarrage", "INTEGER NOT NULL DEFAULT 0");
     }
 
     private static void AjouterColonne(DbContext db, string table, string column, string sqlType)

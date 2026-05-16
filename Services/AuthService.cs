@@ -1,7 +1,9 @@
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.Services;
 
@@ -10,6 +12,13 @@ namespace MelodyPaieRDC.Services;
 /// </summary>
 public static class AuthService
 {
+    public const int LongueurMotDePasseMin = 8;
+
+    private static readonly string[] MotsDePasseInterdits =
+    {
+        "admin", "password", "motdepasse", "12345678", "123456789", "qwerty123"
+    };
+
     private static Utilisateur? _utilisateurCourant;
 
     /// <summary>Utilisateur connecté (null si non connecté).</summary>
@@ -42,6 +51,55 @@ public static class AuthService
     {
         var bytes = Encoding.UTF8.GetBytes(salt + motDePasse);
         return SHA256.HashData(bytes);
+    }
+
+    /// <summary>Au moins un compte administrateur actif existe en base.</summary>
+    public static bool AdministrateurActifExiste(PaieDbContext db) =>
+        db.Utilisateurs.Any(u => u.Actif && u.Role == Utilisateur.RoleAdmin);
+
+    /// <summary>Identifiants d'installation par défaut encore actifs (à remplacer).</summary>
+    public static bool UtiliseIdentifiantsParDefaut(Utilisateur u) =>
+        string.Equals(u.Login, "admin", StringComparison.OrdinalIgnoreCase)
+        && VerifierMotDePasse("admin", u.MotDePasseHash, u.Salt);
+
+    /// <summary>Vérifie en mémoire (hash non traduisible en SQL par EF).</summary>
+    public static bool UnAdministrateurActifUtiliseIdentifiantsParDefaut(PaieDbContext db)
+    {
+        var admins = db.Utilisateurs.AsNoTracking()
+            .Where(u => u.Actif && u.Role == Utilisateur.RoleAdmin)
+            .ToList();
+        return admins.Any(UtiliseIdentifiantsParDefaut);
+    }
+
+    /// <summary>Politique mot de passe : longueur, complexité minimale, pas de mots courants.</summary>
+    public static bool ValiderPolitiqueMotDePasse(string motDePasse, out string messageErreur)
+    {
+        messageErreur = "";
+        if (string.IsNullOrWhiteSpace(motDePasse))
+        {
+            messageErreur = "Le mot de passe est obligatoire.";
+            return false;
+        }
+
+        if (motDePasse.Length < LongueurMotDePasseMin)
+        {
+            messageErreur = $"Le mot de passe doit contenir au moins {LongueurMotDePasseMin} caractères.";
+            return false;
+        }
+
+        if (!motDePasse.Any(char.IsLetter) || !motDePasse.Any(char.IsDigit))
+        {
+            messageErreur = "Le mot de passe doit contenir au moins une lettre et un chiffre.";
+            return false;
+        }
+
+        if (MotsDePasseInterdits.Any(m => string.Equals(motDePasse, m, StringComparison.OrdinalIgnoreCase)))
+        {
+            messageErreur = "Ce mot de passe est trop courant. Choisissez un mot de passe plus sûr.";
+            return false;
+        }
+
+        return true;
     }
 
     /// <summary>Tente de connecter l'utilisateur. Retourne l'utilisateur si succès, null sinon.</summary>

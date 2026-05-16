@@ -25,6 +25,11 @@ public class PeriodesPaieViewModel : INotifyPropertyChanged
         CreerCommand = new RelayCommand(_ => Creer());
         SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => PeriodeSelectionnee != null);
         EnregistrerCommand = new RelayCommand(_ => Enregistrer());
+        CloturerAvecControlesCommand = new RelayCommand(_ =>
+        {
+            if (PeriodeSelectionnee != null)
+                OuvrirAssistantCloture?.Invoke(PeriodeSelectionnee.Id);
+        }, _ => PeriodeSelectionnee != null);
     }
 
     public ObservableCollection<PeriodePaie> Periodes { get; }
@@ -44,7 +49,9 @@ public class PeriodesPaieViewModel : INotifyPropertyChanged
     public ICommand CreerCommand { get; }
     public ICommand SupprimerCommand { get; }
     public ICommand EnregistrerCommand { get; }
+    public ICommand CloturerAvecControlesCommand { get; }
 
+    public Action<int>? OuvrirAssistantCloture { get; set; }
     public Action? OnFermer { get; set; }
     public Action<string>? OnSucces { get; set; }
     public Action<string>? OnErreur { get; set; }

@@ -36,7 +36,11 @@ public class EntrepriseViewModel : INotifyPropertyChanged
     }
 
     public int Id { get => _id; set { _id = value; OnPropertyChanged(); } }
-    public string RaisonSociale { get => _raisonSociale; set { _raisonSociale = value ?? string.Empty; OnPropertyChanged(); } }
+    public string RaisonSociale
+    {
+        get => _raisonSociale;
+        set { _raisonSociale = value ?? string.Empty; OnPropertyChanged(); OnPropertyChanged(nameof(SousTitreEntete)); }
+    }
     public string? Nif { get => _nif; set { _nif = value; OnPropertyChanged(); } }
     public string? Nrc { get => _nrc; set { _nrc = value; OnPropertyChanged(); } }
     public string? IdNat { get => _idNat; set { _idNat = value; OnPropertyChanged(); } }
@@ -50,6 +54,11 @@ public class EntrepriseViewModel : INotifyPropertyChanged
     public string? Logo { get => _logo; set { _logo = value; OnPropertyChanged(); OnPropertyChanged(nameof(CheminLogoComplet)); (SupprimerLogoCommand as RelayCommand)?.RaiseCanExecuteChanged(); } }
     public string? CouleurPrincipale { get => _couleurPrincipale; set { _couleurPrincipale = value; OnPropertyChanged(); } }
     public string? CouleurSecondaire { get => _couleurSecondaire; set { _couleurSecondaire = value; OnPropertyChanged(); } }
+
+    public string SousTitreEntete =>
+        string.IsNullOrWhiteSpace(RaisonSociale)
+            ? "Identité visuelle (logo, couleurs) et mentions légales sur les bulletins PDF."
+            : $"{RaisonSociale.Trim()} — identité visuelle (logo, couleurs) et mentions légales sur les bulletins PDF.";
 
     /// <summary>Chemin complet du fichier logo pour affichage (dossier Data de l'app + nom fichier).</summary>
     public string? CheminLogoComplet

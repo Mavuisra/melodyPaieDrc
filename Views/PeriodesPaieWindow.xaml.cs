@@ -14,6 +14,11 @@ public partial class PeriodesPaieWindow : Window
         DataContext = vm;
         vm.OnSucces = msg => MessageBox.Show(msg, "Enregistré", MessageBoxButton.OK, MessageBoxImage.Information);
         vm.OnErreur = msg => MessageBox.Show(msg, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+        vm.OuvrirAssistantCloture = id =>
+        {
+            if (new CloturePeriodeWindow(id) { Owner = this }.ShowDialog() == true)
+                vm.Charger();
+        };
         Loaded += (_, _) => vm.Charger();
     }
 }

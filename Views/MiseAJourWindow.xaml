@@ -1,0 +1,89 @@
+<Window x:Class="MelodyPaieRDC.Views.MiseAJourWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Mises à jour — Melody Paie RDC"
+        Height="520" Width="560"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize"
+        Background="#F5F7FA"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
+            <materialDesign:PackIcon Kind="Update" Width="28" Height="28" Foreground="#1E3A5F" Margin="0,0,12,0" VerticalAlignment="Center"/>
+            <StackPanel VerticalAlignment="Center">
+                <TextBlock Text="Mises à jour de l'application" FontSize="18" FontWeight="SemiBold" Foreground="#1E3A5F"/>
+                <TextBlock Text="{Binding VersionInstallee, StringFormat=Version installée : {0}}" FontSize="12" Foreground="#78909C" Margin="0,4,0,0"/>
+            </StackPanel>
+        </StackPanel>
+
+        <TextBlock Grid.Row="1" Text="URL du manifeste (version.json)" FontSize="12" Foreground="#546E7A" Margin="0,0,0,6"/>
+        <TextBox Grid.Row="2"
+                 Text="{Binding UrlManifeste, UpdateSourceTrigger=PropertyChanged}"
+                 materialDesign:HintAssist.Hint="https://…/updates/version.json"
+                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                 Margin="0,0,0,12"/>
+
+        <Border Grid.Row="3" Background="White" CornerRadius="10" BorderBrush="#E4EAF2" BorderThickness="1" Padding="14" Margin="0,0,0,12">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Text="{Binding Statut}" TextWrapping="Wrap" FontSize="13" Margin="0,0,0,10"/>
+                <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                    <TextBlock Text="{Binding NotesVersion}" TextWrapping="Wrap" FontSize="12" Foreground="#607D8B"/>
+                </ScrollViewer>
+            </Grid>
+        </Border>
+
+        <ProgressBar Grid.Row="4"
+                     Value="{Binding Progression}"
+                     Maximum="100"
+                     Height="8"
+                     Margin="0,0,0,16"/>
+
+        <StackPanel Grid.Row="5" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,0,0,8">
+            <Button Content="Vérifier"
+                    Command="{Binding VerifierCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="8"
+                    Padding="16,10" Margin="0,0,8,0"/>
+            <Button Content="Télécharger"
+                    Command="{Binding TelechargerCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Background="#1E3A5F"
+                    materialDesign:ButtonAssist.CornerRadius="8"
+                    Padding="16,10" Margin="0,0,8,0"/>
+            <Button Content="Installer et quitter"
+                    Command="{Binding InstallerCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}"
+                    Background="#2E7D32"
+                    materialDesign:ButtonAssist.CornerRadius="8"
+                    Padding="16,10" Margin="0,0,8,0"/>
+            <Button Content="Fermer"
+                    Command="{Binding FermerCommand}"
+                    IsCancel="True"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="8"
+                    Padding="16,10"/>
+        </StackPanel>
+
+        <TextBlock Grid.Row="6"
+                   Text="Après installation, relancez Melody Paie RDC. La base de données locale n'est pas supprimée."
+                   FontSize="11"
+                   Foreground="#90A4AE"
+                   TextWrapping="Wrap"/>
+    </Grid>
+</Window>

@@ -432,7 +432,7 @@ public class ExportPdfService
             AddInfoCell(t, "Periode", $"{mois:D2}/{annee}");
         });
 
-        col.Item().Text("Regles LTservices : appliquees selon les parametres de service definis dans l'application (horaires, pause et tolerance).")
+        col.Item().Text("Regles de service (pointage) : horaires, pause et tolerance selon les parametres de l'entreprise.")
             .FontSize(7.5f).FontColor(Muted).Italic();
 
         col.Item().Border(1).BorderColor(BorderColor).Table(t =>

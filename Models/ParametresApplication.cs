@@ -68,4 +68,16 @@ public class ParametresApplication
     /// <summary>Heure de fin de service samedi (format HH:mm, ex. 12:30).</summary>
     [MaxLength(5)]
     public string LtHeureFinSamedi { get; set; } = "12:30";
+
+    /// <summary>Si vrai, l'assistant de configuration s'affiche au prochain démarrage (avant connexion).</summary>
+    public bool ForcerAssistantProchainDemarrage { get; set; }
+
+    /// <summary>Version du parcours Splash → Assistant → Connexion validée par l'utilisateur.</summary>
+    public int VersionParcoursDemarrage { get; set; }
+
+    /// <summary>Dernière entreprise sélectionnée dans l'interface (ligne globale Id=1).</summary>
+    public int? DerniereEntrepriseActiveId { get; set; }
+
+    /// <summary>Configuration JSON : modules visibles, colonnes employés, etc.</summary>
+    public string? ConfigurationUiJson { get; set; }
 }

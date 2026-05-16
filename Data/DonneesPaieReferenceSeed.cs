@@ -1,5 +1,6 @@
 using System.Globalization;
 using MelodyPaieRDC.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.Data;
 
@@ -10,20 +11,20 @@ public static class DonneesPaieReferenceSeed
 {
     public static void SeedReferentielLegalSiVide(PaieDbContext db, int? entrepriseId = null)
     {
-        if (!db.GrillesIpr.Any(g => g.EntrepriseId == entrepriseId))
+        if (!db.GrillesIpr.IgnoreQueryFilters().Any(g => g.EntrepriseId == entrepriseId))
         {
             foreach (var tranche in BaremeIprRdc2020())
                 db.GrillesIpr.Add(new GrilleIPR { EntrepriseId = entrepriseId, BorneInf = tranche.inf, BorneSup = tranche.sup, Taux = tranche.taux });
             db.SaveChanges();
         }
 
-        if (!db.ParametresIpr.Any(p => p.EntrepriseId == entrepriseId))
+        if (!db.ParametresIpr.IgnoreQueryFilters().Any(p => p.EntrepriseId == entrepriseId))
         {
             db.ParametresIpr.Add(new ParametreIPR { EntrepriseId = entrepriseId, TauxEffectifMaximum = 0m, ReductionParEnfant = 0m });
             db.SaveChanges();
         }
 
-        if (!db.TauxSociaux.Any(t => t.EntrepriseId == entrepriseId))
+        if (!db.TauxSociaux.IgnoreQueryFilters().Any(t => t.EntrepriseId == entrepriseId))
         {
             db.TauxSociaux.AddRange(new[]
             {
@@ -38,7 +39,7 @@ public static class DonneesPaieReferenceSeed
 
     public static void SeedCategoriesSiVide(PaieDbContext db, int? entrepriseId = null)
     {
-        if (db.CategoriesProfessionnelles.Any(c => c.EntrepriseId == entrepriseId))
+        if (db.CategoriesProfessionnelles.IgnoreQueryFilters().Any(c => c.EntrepriseId == entrepriseId))
             return;
 
         db.CategoriesProfessionnelles.Add(new CategorieProfessionnelle { EntrepriseId = entrepriseId, Libelle = "Cadre", SmigApplique = 0m });
@@ -49,7 +50,7 @@ public static class DonneesPaieReferenceSeed
 
     public static void SeedPrimesCourantesSiVide(PaieDbContext db, int? entrepriseId = null)
     {
-        if (db.PrimesIndemnites.Any(p => p.EntrepriseId == entrepriseId))
+        if (db.PrimesIndemnites.IgnoreQueryFilters().Any(p => p.EntrepriseId == entrepriseId))
             return;
 
         var ordre = 10;

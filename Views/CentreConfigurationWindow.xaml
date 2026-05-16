@@ -1,0 +1,60 @@
+<Window x:Class="MelodyPaieRDC.Views.CentreConfigurationWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Centre de configuration"
+        Height="640" Width="560"
+        WindowStartupLocation="CenterOwner"
+        Background="#F0F2F5"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
+        <StackPanel>
+            <TextBlock Text="Configuration de l'entreprise" FontSize="22" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding EntrepriseLibelle}" FontSize="14" Foreground="#546E7A" Margin="0,4,0,16"/>
+            <TextBlock TextWrapping="Wrap" Foreground="#78909C" Margin="0,0,0,20"
+                       Text="Tout se configure ici, sans recompiler l'application : règles de paie, barèmes, colonnes, champs personnalisés, structure."/>
+
+            <TextBlock Text="Paie et légal" FontWeight="SemiBold" Margin="0,0,0,8"/>
+            <Button Content="Politique de paie (jours, présence, rubriques)" Click="PolitiquePaie_Click"
+                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#1E3A5F"
+                    HorizontalContentAlignment="Left" Padding="16,12" Margin="0,0,0,6"/>
+            <Button Content="Paramètres IPR" Click="Ipr_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
+            <Button Content="Taux sociaux (CNSS, INPP, ONEM)" Click="TauxSociaux_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
+            <Button Content="Primes et indemnités" Click="Primes_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,16"/>
+
+            <TextBlock Text="Organisation et écrans" FontWeight="SemiBold" Margin="0,0,0,8"/>
+            <Button Content="Informations entreprise" Click="Entreprise_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
+            <Button Content="Établissements et départements" Click="Etablissements_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
+            <Button Content="Colonnes de la liste employés" Click="Colonnes_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
+            <Button Content="Champs personnalisés (sans code)" Click="Champs_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
+            <Button Content="Formulaires dynamiques (JSON avancé)" Click="Formulaires_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
+            <Button Content="Périodes de paie · Calendrier" Click="Periodes_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
+            <Button Content="Exports CNSS / DGI / virements / clôture" Click="ExportsPaie_Click"
+                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#00695C"
+                    HorizontalContentAlignment="Left" Padding="16,12" Margin="0,0,0,16"/>
+
+            <TextBlock Text="Assistant initial" FontWeight="SemiBold" Margin="0,0,0,8"/>
+            <Button Content="Relancer l'assistant de configuration" Click="Assistant_Click"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    HorizontalContentAlignment="Left" Padding="16,10"/>
+        </StackPanel>
+    </ScrollViewer>
+</Window>

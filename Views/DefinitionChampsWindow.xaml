@@ -1,0 +1,52 @@
+<Window x:Class="MelodyPaieRDC.Views.DefinitionChampsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="Champs personnalisés (configurables)"
+        Height="560" Width="640"
+        WindowStartupLocation="CenterOwner"
+        Background="#F5F5F5"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8"
+                   Text="Définissez des champs supplémentaires (employé, contrat…) sans modifier le code source."/>
+        <DataGrid Grid.Row="1" ItemsSource="{Binding Definitions}" SelectedItem="{Binding Selection, Mode=TwoWay}"
+                  AutoGenerateColumns="False" IsReadOnly="True" Margin="0,0,0,12">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Code" Binding="{Binding Code}" Width="100"/>
+                <DataGridTextColumn Header="Libellé" Binding="{Binding Libelle}" Width="*"/>
+                <DataGridTextColumn Header="Entité" Binding="{Binding EntiteCible}" Width="90"/>
+                <DataGridTextColumn Header="Type" Binding="{Binding TypeDonnee}" Width="80"/>
+            </DataGrid.Columns>
+        </DataGrid>
+        <UniformGrid Grid.Row="2" Columns="2" Margin="0,0,0,12">
+            <TextBox materialDesign:HintAssist.Hint="Code" Text="{Binding Code, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,6,6"/>
+            <TextBox materialDesign:HintAssist.Hint="Libellé" Text="{Binding Libelle, UpdateSourceTrigger=PropertyChanged}" Margin="6,0,0,6"/>
+            <ComboBox materialDesign:HintAssist.Hint="Entité cible" Text="{Binding EntiteCible}" Margin="0,0,6,6">
+                <ComboBoxItem Content="Employe"/>
+                <ComboBoxItem Content="Contrat"/>
+                <ComboBoxItem Content="Entreprise"/>
+            </ComboBox>
+            <ComboBox materialDesign:HintAssist.Hint="Type" SelectedValue="{Binding TypeDonnee}" Margin="6,0,0,6">
+                <ComboBoxItem Content="Texte"/>
+                <ComboBoxItem Content="Nombre"/>
+                <ComboBoxItem Content="Date"/>
+                <ComboBoxItem Content="Booleen"/>
+            </ComboBox>
+        </UniformGrid>
+        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Ajouter" Command="{Binding AjouterCommand}" Margin="0,0,8,0"
+                    Style="{StaticResource MaterialDesignOutlinedButton}" Padding="14,8"/>
+            <Button Content="Enregistrer sélection" Command="{Binding EnregistrerCommand}" Margin="0,0,8,0"
+                    Style="{StaticResource MaterialDesignOutlinedButton}" Padding="14,8"/>
+            <Button Content="Supprimer" Command="{Binding SupprimerCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}" Padding="14,8"/>
+        </StackPanel>
+    </Grid>
+</Window>

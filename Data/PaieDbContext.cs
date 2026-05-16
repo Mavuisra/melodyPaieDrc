@@ -10,14 +10,89 @@ namespace MelodyPaieRDC.Data;
 /// <summary>
 /// Contexte Entity Framework Core pour la base de données Paie RDC.
 /// </summary>
-public class PaieDbContext : DbContext
+public partial class PaieDbContext : DbContext
 {
+    /// <summary>Entreprise active pour l'isolation multi-tenant (filtres globaux EF).</summary>
+    public int TenantId { get; private set; }
+
     public PaieDbContext()
     {
+        AppliquerTenantDepuisSession();
     }
 
     public PaieDbContext(DbContextOptions<PaieDbContext> options) : base(options)
     {
+        AppliquerTenantDepuisSession();
+    }
+
+    /// <summary>Change l'entreprise courante et vide le cache EF (obligatoire au changement de tenant).</summary>
+    public void SetTenant(int entrepriseId)
+    {
+        TenantId = entrepriseId > 0 ? entrepriseId : 0;
+        if (TenantId > 0)
+            ContexteEntrepriseService.DefinirEntrepriseCourante(this, TenantId);
+        else
+            ContexteEntrepriseService.DefinirEntrepriseCourante(0);
+        ChangeTracker.Clear();
+    }
+
+    private void AppliquerTenantDepuisSession()
+    {
+        TenantId = ContexteEntrepriseService.EntrepriseCouranteId ?? 0;
+    }
+
+    public override int SaveChanges()
+    {
+        AppliquerTenantDepuisSession();
+        AppliquerEntrepriseIdSurNouvellesEntites();
+        return base.SaveChanges();
+    }
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        AppliquerTenantDepuisSession();
+        AppliquerEntrepriseIdSurNouvellesEntites();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    private void AppliquerEntrepriseIdSurNouvellesEntites()
+    {
+        if (TenantId <= 0) return;
+
+        foreach (var entry in ChangeTracker.Entries())
+        {
+            if (entry.State != EntityState.Added) continue;
+
+            switch (entry.Entity)
+            {
+                case Employe emp when emp.EntrepriseId <= 0:
+                    emp.EntrepriseId = TenantDataBackfill.ResoudreEntrepriseIdDepuisDepartement(this, emp.DepartementId);
+                    if (emp.EntrepriseId <= 0)
+                        emp.EntrepriseId = TenantId;
+                    break;
+                case PeriodePaie p when p.EntrepriseId is null or 0:
+                    p.EntrepriseId = TenantId;
+                    break;
+                case GrilleIPR g when g.EntrepriseId is null:
+                    g.EntrepriseId = TenantId;
+                    break;
+                case TauxSociaux t when t.EntrepriseId is null:
+                    t.EntrepriseId = TenantId;
+                    break;
+                case ParametreIPR p when p.EntrepriseId is null:
+                    p.EntrepriseId = TenantId;
+                    break;
+                case CategorieProfessionnelle c when c.EntrepriseId is null:
+                    c.EntrepriseId = TenantId;
+                    break;
+                case PrimeIndemnite pr when pr.EntrepriseId is null:
+                    pr.EntrepriseId = TenantId;
+                    break;
+                case JourTravailCalendrier j when j.EntrepriseId is null:
+                    j.EntrepriseId = TenantId;
+                    break;
+            }
+        }
     }
 
     // Structure organisationnelle
@@ -103,10 +178,7 @@ public class PaieDbContext : DbContext
 
         // Exemple de configuration fluide supplémentaire (optionnel, car beaucoup de choses sont déjà dans les Data Annotations)
 
-        modelBuilder.Entity<Employe>()
-            .HasIndex(e => e.Matricule)
-            .IsUnique();
-
+        // Matricule unique par entreprise (via département → établissement) : index global retiré pour le multi-tenant.
         modelBuilder.Entity<Entreprise>()
             .HasMany(e => e.Etablissements)
             .WithOne(s => s.Entreprise)
@@ -206,6 +278,8 @@ public class PaieDbContext : DbContext
             .WithOne(v => v.DefinitionChamp)
             .HasForeignKey(v => v.DefinitionChampId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        AppliquerFiltresTenant(modelBuilder);
     }
 
     /// <summary>
@@ -227,23 +301,31 @@ public class PaieDbContext : DbContext
     {
         ParametresApplicationHelper.EnsureRow(this);
 
-        if (!Entreprises.Any())
+        if (!Entreprises.IgnoreQueryFilters().Any())
         {
             var ent = new Entreprise { RaisonSociale = "Mon entreprise" };
             Entreprises.Add(ent);
             SaveChanges();
 
+            SetTenant(ent.Id);
+
             var etab = new Etablissement { EntrepriseId = ent.Id, NomSite = "Siège" };
             Etablissements.Add(etab);
             SaveChanges();
 
-            Departements.Add(new Departement { EtablissementId = etab.Id, NomDepartement = "Direction générale" });
+            var dep = new Departement { EtablissementId = etab.Id, NomDepartement = "Direction générale" };
+            Departements.Add(dep);
             SaveChanges();
-
-            ContexteEntrepriseService.EntrepriseCouranteId = ent.Id;
+            ParametresApplicationHelper.EnsureRowForEntreprise(this, ent.Id);
+        }
+        else if (TenantId <= 0)
+        {
+            var id = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(this);
+            if (id > 0)
+                SetTenant(id);
         }
 
-        var entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(this);
+        var entrepriseId = TenantId > 0 ? TenantId : ContexteEntrepriseService.ObtenirEntrepriseCouranteId(this);
         if (entrepriseId > 0)
         {
             if (!PolitiquesPaie.Any(p => p.EntrepriseId == entrepriseId))
@@ -253,38 +335,28 @@ public class PaieDbContext : DbContext
             }
         }
 
-        // Premier utilisateur par défaut (admin / admin) si aucun utilisateur
-        if (!Utilisateurs.Any())
-        {
-            var (hash, salt) = AuthService.HashMotDePasse("admin");
-            Utilisateurs.Add(new Utilisateur
-            {
-                Login = "admin",
-                MotDePasseHash = hash,
-                Salt = salt,
-                NomComplet = "Administrateur",
-                Role = Utilisateur.RoleAdmin,
-                Actif = true,
-                DateCreation = DateTime.UtcNow
-            });
-            SaveChanges();
-        }
+        // Aucun compte par défaut : le compte administrateur est créé dans l'assistant de configuration.
 
         // Toujours avoir au moins une période de paie (mois en cours) pour le calcul de paie
         if (!PeriodesPaie.Any())
         {
             var now = DateTime.Today;
             var taux = ParametresApplicationHelper.GetTauxCdfParUsd(this);
-            PeriodesPaie.Add(new PeriodePaie { Mois = now.Month, Annee = now.Year, TauxChangeBudget = taux, Cloturee = false });
+            var entrepriseIdSeed = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(this);
+            PeriodesPaie.Add(new PeriodePaie
+            {
+                Mois = now.Month,
+                Annee = now.Year,
+                TauxChangeBudget = taux,
+                Cloturee = false,
+                EntrepriseId = entrepriseIdSeed > 0 ? entrepriseIdSeed : null
+            });
             SaveChanges();
         }
 
-        DonneesPaieReferenceSeed.SeedCategoriesSiVide(this, null);
-        DonneesPaieReferenceSeed.SeedReferentielLegalSiVide(this, null);
-        DonneesPaieReferenceSeed.SeedPrimesCourantesSiVide(this, null);
-
         if (entrepriseId > 0)
         {
+            DonneesPaieReferenceSeed.SeedCategoriesSiVide(this, entrepriseId);
             DonneesPaieReferenceSeed.SeedReferentielLegalSiVide(this, entrepriseId);
             DonneesPaieReferenceSeed.SeedPrimesCourantesSiVide(this, entrepriseId);
         }

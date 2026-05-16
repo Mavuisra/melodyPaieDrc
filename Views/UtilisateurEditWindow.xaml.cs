@@ -1,5 +1,6 @@
 using System.Windows;
 using MelodyPaieRDC.Models;
+using MelodyPaieRDC.Services;
 
 namespace MelodyPaieRDC.Views;
 
@@ -54,6 +55,15 @@ public partial class UtilisateurEditWindow : Window
             TxtMotDePasse.Focus();
             return;
         }
+
+        if (!string.IsNullOrEmpty(TxtMotDePasse.Password)
+            && !AuthService.ValiderPolitiqueMotDePasse(TxtMotDePasse.Password, out var erreur))
+        {
+            MessageBox.Show(this, erreur, "Mot de passe", MessageBoxButton.OK, MessageBoxImage.Warning);
+            TxtMotDePasse.Focus();
+            return;
+        }
+
         DialogResult = true;
         Close();
     }

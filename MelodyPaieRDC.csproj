@@ -15,6 +15,9 @@
     <AssemblyName>MelodyPaieRDC</AssemblyName>
     <Company>Impact Entreprises</Company>
     <Product>Melody Paie RDC</Product>
+    <Version>1.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
     <ApplicationIcon>Assets\Icon_MelodyPaie_Installer.ico</ApplicationIcon>
     <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
@@ -35,6 +38,7 @@
 
   <ItemGroup>
     <PackageReference Include="ClosedXML" Version="0.102.2" />
+    <PackageReference Include="DocumentFormat.OpenXml" Version="2.20.0" />
     <PackageReference Include="MaterialDesignThemes" Version="5.0.0" />
     <PackageReference Include="QuestPDF" Version="2024.3.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.10" />
@@ -49,9 +53,7 @@
     empêche le publish self-contained (NETSDK1150). La copie des fichiers reste dans les cibles ci-dessous.
   -->
   <Target Name="BuildZktecoPullWorker" BeforeTargets="BeforeBuild" Condition="'$(DesignTimeBuild)' != 'true'">
-    <MSBuild Projects="$(MSBuildProjectDirectory)\ZktecoPullWorker\ZktecoPullWorker.csproj"
-             Targets="Restore;Build"
-             Properties="Configuration=$(Configuration)" />
+    <MSBuild Projects="$(MSBuildProjectDirectory)\ZktecoPullWorker\ZktecoPullWorker.csproj" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
   </Target>
 
   <!-- MSBuildProjectDirectory n'a pas de \ final : sans séparateur, le chemin devient ...\MelodyPaieRDCZktecoPullWorker et la copie ne s'exécute jamais. -->
@@ -68,8 +70,7 @@
     <ItemGroup>
       <_ZkWorkerFiles Include="$(_ZkWorkerBin)*.*" />
     </ItemGroup>
-    <Copy SourceFiles="@(_ZkWorkerFiles)" DestinationFolder="$(_ZkWorkerDest)" SkipUnchangedFiles="true"
-          Condition="Exists('$(_ZkWorkerBin)ZktecoPullWorker.exe')" />
+    <Copy SourceFiles="@(_ZkWorkerFiles)" DestinationFolder="$(_ZkWorkerDest)" SkipUnchangedFiles="true" Condition="Exists('$(_ZkWorkerBin)ZktecoPullWorker.exe')" />
   </Target>
 
   <Target Name="CopyZktecoPullWorkerPublish" AfterTargets="Publish">
@@ -81,8 +82,7 @@
     <ItemGroup>
       <_ZkWorkerPublish Include="$(_ZkWorkerBin)*.*" />
     </ItemGroup>
-    <Copy SourceFiles="@(_ZkWorkerPublish)" DestinationFolder="$(_ZkWorkerPublishDest)" SkipUnchangedFiles="true"
-          Condition="'$(PublishDir)' != '' And Exists('$(_ZkWorkerBin)ZktecoPullWorker.exe')" />
+    <Copy SourceFiles="@(_ZkWorkerPublish)" DestinationFolder="$(_ZkWorkerPublishDest)" SkipUnchangedFiles="true" Condition="'$(PublishDir)' != '' And Exists('$(_ZkWorkerBin)ZktecoPullWorker.exe')" />
   </Target>
 
   <!-- Ne pas copier PaieRDC.db depuis le projet : la base est créée au démarrage dans bin/.../Data/ -->
@@ -90,6 +90,9 @@
 
   <ItemGroup>
     <None Include="Forms\Defaults\**\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Guides\**\*.md">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

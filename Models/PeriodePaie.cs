@@ -27,6 +27,11 @@ public class PeriodePaie
 
     public bool Cloturee { get; set; }
 
+    public DateTime? DateClotureUtc { get; set; }
+
+    [MaxLength(100)]
+    public string? CloturePar { get; set; }
+
     public ICollection<BulletinPaie> Bulletins { get; set; } = new List<BulletinPaie>();
 }
 

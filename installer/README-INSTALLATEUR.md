@@ -53,6 +53,45 @@ Dans le `.iss`, à adapter avant une release :
 - Section **`[Tasks]`** : raccourci Bureau, lancement automatique, etc.
 - Section **`[Code]`** : règles supplémentaires (ex. version minimale de Windows)
 
+## Mises à jour automatiques (téléchargement par l'utilisateur)
+
+L'application vérifie un fichier **`version.json`** sur votre serveur (URL configurable).
+
+### 1. Héberger les fichiers
+
+| Fichier | Exemple d'URL |
+|---------|----------------|
+| Manifeste | `https://votre-domaine.com/melodypaie-rdc/updates/version.json` |
+| Installateur | `https://votre-domaine.com/melodypaie-rdc/releases/MelodyPaieRDC_Setup_1.1.exe` |
+
+Modèle fourni : `installer/updates/version.json`.
+
+```json
+{
+  "version": "1.1.0",
+  "downloadUrl": "https://votre-domaine.com/.../MelodyPaieRDC_Setup_1.1.exe",
+  "fileName": "MelodyPaieRDC_Setup_1.1.exe",
+  "publishedAt": "2026-05-16",
+  "releaseNotes": "Corrections et améliorations…",
+  "sha256": "OPTIONNEL_HEX_SHA256"
+}
+```
+
+Alignez **`AppUpdatesURL`** dans `MelodyPaieRDC.iss` avec l'URL du manifeste.
+
+### 2. Publier une nouvelle version
+
+1. Incrémenter `Version` dans `MelodyPaieRDC.csproj` et `MyAppVersion` dans `MelodyPaieRDC.iss`.
+2. Lancer `installer\CreerInstallateur.bat`.
+3. Uploader le `.exe` généré dans `publish\installer\`.
+4. Mettre à jour `version.json` sur le serveur (`version`, `downloadUrl`, notes, `sha256` recommandé).
+
+### 3. Côté client
+
+- Menu **Paramètres** → **Administration** → **Vérifier les mises à jour**.
+- Configuration locale : `%LocalAppData%\MelodyPaieRDC\Data\updates-config.json` (`manifestUrl`, `verifierAuDemarrage`).
+- Téléchargement dans `%LocalAppData%\MelodyPaieRDC\Data\Updates\`, puis **Installer et quitter** (Inno Setup remplace l'application ; la base SQLite est conservée).
+
 ## Publication portable (ZIP)
 
 Sans Inno Setup, utilisez **`installer\CreerPackageDistribution.bat`** → `publish\MelodyPaieRDC_Portable.zip`.

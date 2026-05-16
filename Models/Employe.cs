@@ -45,6 +45,9 @@ public class Employe
     [MaxLength(255)]
     public string? Adresse { get; set; }
 
+    /// <summary>Entreprise propriétaire (dénormalisé pour isolation multi-tenant).</summary>
+    public int EntrepriseId { get; set; }
+
     [ForeignKey(nameof(Departement))]
     public int DepartementId { get; set; }
 
@@ -68,6 +71,31 @@ public class Employe
     /// <summary>Numéro d'immatriculation CNSS du travailleur.</summary>
     [MaxLength(50)]
     public string? NumCnss { get; set; }
+
+    /// <summary>Commune ou territoire d'affectation (portail CNSS e-déclaration).</summary>
+    [MaxLength(100)]
+    public string? CommuneAffectation { get; set; }
+
+    /// <summary>Type travailleur CNSS : 1 = Travailleur, 2 = Assimilé.</summary>
+    public int TypeTravailleurCnss { get; set; } = 1;
+
+    [MaxLength(20)]
+    public string? CodeBanque { get; set; }
+
+    [MaxLength(100)]
+    public string? LibelleBanque { get; set; }
+
+    [MaxLength(50)]
+    public string? AgenceBancaire { get; set; }
+
+    [MaxLength(50)]
+    public string? NumeroCompteBancaire { get; set; }
+
+    [MaxLength(150)]
+    public string? TitulaireCompteBancaire { get; set; }
+
+    [MaxLength(10)]
+    public string? DeviseCompteBancaire { get; set; }
 
     /// <summary>Montants mensuels CDF issus de la dernière fiche importée (alignement bulletin / Excel).</summary>
     [Column(TypeName = "decimal(18,2)")]

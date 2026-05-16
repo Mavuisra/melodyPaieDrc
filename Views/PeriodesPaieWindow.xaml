@@ -74,6 +74,9 @@
             </DataGrid.Columns>
         </DataGrid>
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Clôturer avec contrôles…" Command="{Binding CloturerAvecControlesCommand}"
+                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#00695C"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="0,0,8,0"/>
             <Button Content="Supprimer la période" Command="{Binding SupprimerCommand}"
                     Style="{StaticResource MaterialDesignOutlinedButton}"
                     materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="0,0,8,0"/>

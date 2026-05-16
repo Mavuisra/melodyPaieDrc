@@ -142,6 +142,11 @@ public class EmployeViewModel
                 OnErreurValidation?.Invoke("Un employé avec ce matricule existe déjà.");
                 return;
             }
+
+            var entrepriseId = TenantDataBackfill.ResoudreEntrepriseIdDepuisDepartement(_db, Employe.DepartementId);
+            if (entrepriseId <= 0)
+                entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(_db);
+            Employe.EntrepriseId = entrepriseId;
             _db.Employes.Add(Employe);
         }
         else
@@ -333,6 +338,8 @@ public class EmployeViewModel
         DateNaissance = Employe.DateNaissance,
         Telephone = Employe.Telephone,
         NumCnss = Employe.NumCnss,
+        CommuneAffectation = Employe.CommuneAffectation,
+        TypeTravailleurCnss = Employe.TypeTravailleurCnss,
         Adresse = Employe.Adresse,
         DepartementId = Employe.DepartementId
     };
@@ -349,6 +356,8 @@ public class EmployeViewModel
         cible.DateNaissance = saisie.DateNaissance;
         cible.Telephone = saisie.Telephone;
         cible.NumCnss = saisie.NumCnss;
+        cible.CommuneAffectation = saisie.CommuneAffectation;
+        cible.TypeTravailleurCnss = saisie.TypeTravailleurCnss is 1 or 2 ? saisie.TypeTravailleurCnss : 1;
         cible.Adresse = saisie.Adresse;
         cible.DepartementId = saisie.DepartementId;
     }
@@ -365,6 +374,8 @@ public class EmployeViewModel
         public DateTime? DateNaissance { get; set; }
         public string? Telephone { get; set; }
         public string? NumCnss { get; set; }
+        public string? CommuneAffectation { get; set; }
+        public int TypeTravailleurCnss { get; set; } = 1;
         public string? Adresse { get; set; }
         public int DepartementId { get; set; }
     }

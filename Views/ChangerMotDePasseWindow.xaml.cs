@@ -1,4 +1,5 @@
 using System.Windows;
+using MelodyPaieRDC.Services;
 
 namespace MelodyPaieRDC.Views;
 
@@ -20,9 +21,9 @@ public partial class ChangerMotDePasseWindow : Window
 
     private void Enregistrer_Click(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrEmpty(TxtNouveau.Password))
+        if (!AuthService.ValiderPolitiqueMotDePasse(TxtNouveau.Password ?? "", out var erreur))
         {
-            MessageBox.Show(this, "Veuillez saisir le nouveau mot de passe.", "Mot de passe", MessageBoxButton.OK, MessageBoxImage.Warning);
+            MessageBox.Show(this, erreur, "Mot de passe", MessageBoxButton.OK, MessageBoxImage.Warning);
             TxtNouveau.Focus();
             return;
         }

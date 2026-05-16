@@ -41,7 +41,7 @@
                     <StackPanel Grid.Row="0" Margin="0,0,0,20">
                         <TextBlock Text="Identifiant" FontSize="12" Foreground="#546E7A" Margin="0,0,0,6"/>
                         <TextBox x:Name="TxtLogin" Padding="12,10" FontSize="14" TabIndex="0"
-                                 materialDesign:HintAssist.Hint="Ex. admin"/>
+                                 materialDesign:HintAssist.Hint="Votre identifiant"/>
                     </StackPanel>
 
                     <StackPanel Grid.Row="1" Margin="0,0,0,24">
@@ -52,7 +52,7 @@
                     </StackPanel>
 
                     <TextBlock Grid.Row="2" TextWrapping="Wrap" FontSize="11" Foreground="#78909C" Margin="0,0,0,16"
-                               Text="Première ouverture : identifiant « admin », mot de passe « admin » (à changer ensuite dans Utilisateurs)."/>
+                               Text="Utilisez l'identifiant et le mot de passe définis lors de la configuration initiale. En cas d'oubli, contactez l'administrateur de votre organisation."/>
 
                     <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Annuler" IsCancel="True" Click="Annuler_Click"

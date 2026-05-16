@@ -31,7 +31,7 @@ AppCopyright=Copyright (C) {#MyAppCopyright}
 ; Remplacez par vos URL reelles avant distribution commerciale
 AppPublisherURL=https://example.com/melodypaie-rdc
 AppSupportURL=https://example.com/melodypaie-rdc/support
-AppUpdatesURL=https://example.com/melodypaie-rdc/updates
+AppUpdatesURL=https://github.com/Mavuisra/melodyPaieDrc/releases
 VersionInfoVersion={#MyAppVersion}
 VersionInfoTextVersion={#MyAppVersion}
 VersionInfoProductName={#MyAppName}
@@ -62,8 +62,9 @@ UninstallDisplayName={#MyAppName}
 Compression=lzma2/ultra64
 SolidCompression=yes
 PrivilegesRequired=admin
-ArchitecturesAllowed=x64
-ArchitecturesInstallIn64BitMode=x64
+; x64compatible : Windows x64 natif + Windows Arm64 (emulation x64) — recommande par Inno Setup 6.3+
+ArchitecturesAllowed=x64compatible
+ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.17763
 
 ; Fermer l'app si elle tourne pendant la mise a jour

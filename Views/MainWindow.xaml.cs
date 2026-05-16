@@ -13,6 +13,7 @@ using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.ViewModels;
 using MelodyPaieRDC.Models;
 using MelodyPaieRDC.Services;
+using MelodyPaieRDC.Services.Export;
 using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.Views;
@@ -34,11 +35,14 @@ public partial class MainWindow : Window
         _viewModel.OnOuvrirPretsAvances = OuvrirPretsAvances;
         _viewModel.OnOuvrirPrimesIndemnites = OuvrirPrimesIndemnites;
         _viewModel.OnOuvrirHeuresMoisEmploye = OuvrirHeuresMoisEmploye;
+        _viewModel.OnOuvrirCentreConfiguration = OuvrirCentreConfiguration;
         _viewModel.OnOuvrirParametresIpr = OuvrirParametresIpr;
         _viewModel.OnOuvrirTauxSociaux = OuvrirTauxSociaux;
         _viewModel.OnOuvrirPeriodesPaie = OuvrirPeriodesPaie;
         _viewModel.OnOuvrirInfosEntreprise = OuvrirInfosEntreprise;
         _viewModel.OnOuvrirAssistantConfiguration = OuvrirAssistantConfiguration;
+        _viewModel.OnCreerNouvelleEntreprise = CreerNouvelleEntreprise;
+        _viewModel.OnForcerAssistantProchainDemarrage = ForcerAssistantProchainDemarrage;
         _viewModel.OnOuvrirConfigPrimesIndemnites = OuvrirConfigPrimesIndemnites;
         _viewModel.OnOuvrirEtablissementsDepartements = OuvrirEtablissementsDepartements;
         _viewModel.OnImporterFicheSalaireExcel = ImporterFicheSalaireExcel;
@@ -46,6 +50,7 @@ public partial class MainWindow : Window
         _viewModel.OnSauvegarderBase = SauvegarderBase;
         _viewModel.OnRestaurerBase = RestaurerBase;
         _viewModel.OnReinitialiserApplication = ReinitialiserApplication;
+        _viewModel.OnVerifierMiseAJour = () => MiseAJourWindow.Afficher(this);
         _viewModel.OnOuvrirCalendrierTravail = OuvrirCalendrierTravail;
         _viewModel.OnOuvrirSaisiePaieMois = OuvrirSaisiePaieMois;
         _viewModel.OnOuvrirSuiviJournalier = OuvrirSuiviJournalier;
@@ -66,6 +71,14 @@ public partial class MainWindow : Window
         _viewModel.OnExporterLivrePaieExcel = ExporterLivrePaieExcel;
         _viewModel.OnExporterDeclarationCnssExcel = ExporterDeclarationCnssExcel;
         _viewModel.OnExporterDeclarationIprExcel = ExporterDeclarationIprExcel;
+        _viewModel.OnExporterCnssEdeclarationExcel = ExporterCnssEdeclarationExcel;
+        _viewModel.OnExporterFeuillePaieCnss = ExporterFeuillePaieCnss;
+        _viewModel.OnExporterDgiIprExcel = ExporterDgiIprExcel;
+        _viewModel.OnExporterLivreReglementairePdf = ExporterLivreReglementairePdf;
+        _viewModel.OnExporterLivreReglementaireExcel = ExporterLivreReglementaireExcel;
+        _viewModel.OnOuvrirGuideCnss = () => GuideExportWindow.AfficherCnss(this);
+        _viewModel.OnOuvrirGuideIpr = () => GuideExportWindow.AfficherIpr(this);
+        _viewModel.OnOuvrirCloturePeriode = OuvrirCloturePeriode;
         _viewModel.OnExporterRapportPaieExcel = ExporterRapportPaieExcel;
         DataContext = _viewModel;
         Loaded += (_, _) =>
@@ -73,7 +86,9 @@ public partial class MainWindow : Window
             _viewModel.ChargerDonnees();
             Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
             ZktecoSynchronisationService.Reconfigurer();
+            ConfigurationUiHelper.AppliquerColonnesListeEmployes(GrilleEmployes);
             AfficherTableauDeBordEnPremier();
+            _ = ProposerMiseAJourAuDemarrageAsync();
         };
         _viewModel.PropertyChanged += ViewModelOnPropertyChanged;
     }
@@ -234,7 +249,7 @@ public partial class MainWindow : Window
         var confirm = MessageBox.Show(
             "Cette action va réinitialiser Melody Paie :\n\n" +
             "- Toutes les données (employés, contrats, bulletins, périodes, etc.) seront définitivement supprimées.\n" +
-            "- L'application redémarrera comme au premier lancement (structure minimale + utilisateur admin/admin).\n\n" +
+            "- L'application redémarrera comme au premier lancement (assistant de configuration + compte administrateur à définir).\n\n" +
             "Êtes-vous sûr de vouloir continuer ?",
             "Réinitialiser l'application",
             MessageBoxButton.YesNo,
@@ -478,6 +493,137 @@ public partial class MainWindow : Window
         }
     }
 
+    private void OuvrirCentreConfiguration()
+    {
+        var hub = new CentreConfigurationWindow { Owner = this };
+        hub.OuvrirPolitiquePaie = () => { hub.Close(); new PolitiquePaieWindow { Owner = this }.ShowDialog(); };
+        hub.OuvrirIpr = () => { hub.Close(); OuvrirParametresIpr(); };
+        hub.OuvrirTauxSociaux = () => { hub.Close(); OuvrirTauxSociaux(); };
+        hub.OuvrirPrimes = () => { hub.Close(); OuvrirConfigPrimesIndemnites(); };
+        hub.OuvrirEntreprise = () => { hub.Close(); OuvrirInfosEntreprise(); };
+        hub.OuvrirEtablissements = () => { hub.Close(); OuvrirEtablissementsDepartements(); };
+        hub.OuvrirColonnes = () =>
+        {
+            hub.Close();
+            if (new ColonnesEmployesWindow { Owner = this }.ShowDialog() == true)
+                ConfigurationUiHelper.AppliquerColonnesListeEmployes(GrilleEmployes);
+        };
+        hub.OuvrirChamps = () => { hub.Close(); new DefinitionChampsWindow { Owner = this }.ShowDialog(); };
+        hub.OuvrirFormulaires = () => { hub.Close(); DynamicFormNavigator.OuvrirGestionnaireDefinitions(this); };
+        hub.OuvrirPeriodes = () => { hub.Close(); OuvrirPeriodesPaie(); };
+        hub.OuvrirExportsPaie = () => { hub.Close(); new ConfigurationExportsPaieWindow { Owner = this }.ShowDialog(); };
+        hub.OuvrirAssistant = () => { hub.Close(); OuvrirAssistantConfiguration(); };
+        hub.ShowDialog();
+    }
+
+    private void OuvrirCloturePeriode(int periodeId)
+    {
+        if (new CloturePeriodeWindow(periodeId) { Owner = this }.ShowDialog() == true)
+        {
+            _viewModel.ChargerPeriodes();
+            _viewModel.ChargerDeclarations();
+        }
+    }
+
+    private void ExporterCnssEdeclarationExcel(int periodeId)
+    {
+        var p = _viewModel.PeriodeSelectionneePourDeclarations;
+        var dlg = new SaveFileDialog
+        {
+            Filter = "Excel (*.xlsx)|*.xlsx",
+            FileName = p != null ? $"CNSS_edeclaration_{p.Mois:D2}_{p.Annee}.xlsx" : "CNSS_edeclaration.xlsx",
+            DefaultExt = ".xlsx"
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            using var db = new PaieDbContext();
+            new CnssEDeclarationExportService(db).ExporterExcel(periodeId, dlg.FileName);
+            MessageBox.Show(this, "Export CNSS e-déclaration enregistré.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+
+    private void ExporterFeuillePaieCnss(int periodeId)
+    {
+        var p = _viewModel.PeriodeSelectionneePourDeclarations;
+        var dlg = new SaveFileDialog
+        {
+            Filter = "Document Word (*.docx)|*.docx",
+            FileName = p != null
+                ? FeuillePaieCnssExportService.ObtenirNomFichierSuggere(p)
+                : "Feuille_paie_CNSS.docx",
+            DefaultExt = ".docx"
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            using var db = new PaieDbContext();
+            new FeuillePaieCnssExportService(db).ExporterWord(periodeId, dlg.FileName);
+            MessageBox.Show(this,
+                "Feuille de paie CNSS exportée en Word.\n\nEnregistrez le document en PDF avant de le charger sur edeclaration.cnss.cd.",
+                "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+
+    private void ExporterDgiIprExcel(int periodeId)
+    {
+        var p = _viewModel.PeriodeSelectionneePourDeclarations;
+        var dlg = new SaveFileDialog
+        {
+            Filter = "Excel (*.xlsx)|*.xlsx",
+            FileName = p != null ? $"DGI_IPR_{p.Mois:D2}_{p.Annee}.xlsx" : "DGI_IPR.xlsx",
+            DefaultExt = ".xlsx"
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            using var db = new PaieDbContext();
+            new DgiIprDeclarationExportService(db).ExporterExcel(periodeId, dlg.FileName);
+            MessageBox.Show(this, "Export DGI IPR enregistré.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+
+    private void ExporterLivreReglementairePdf(int periodeId)
+    {
+        var p = _viewModel.PeriodeSelectionneePourDeclarations;
+        var dlg = new SaveFileDialog
+        {
+            Filter = "PDF (*.pdf)|*.pdf",
+            FileName = p != null ? $"Livre_reglementaire_{p.Mois:D2}_{p.Annee}.pdf" : "Livre_reglementaire.pdf",
+            DefaultExt = ".pdf"
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            using var db = new PaieDbContext();
+            new LivrePaieReglementaireExportService(db).ExporterPdf(periodeId, dlg.FileName);
+            MessageBox.Show(this, "Livre de paie réglementaire exporté.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+
+    private void ExporterLivreReglementaireExcel(int periodeId)
+    {
+        var p = _viewModel.PeriodeSelectionneePourDeclarations;
+        var dlg = new SaveFileDialog
+        {
+            Filter = "Excel (*.xlsx)|*.xlsx",
+            FileName = p != null ? $"Livre_reglementaire_{p.Mois:D2}_{p.Annee}.xlsx" : "Livre_reglementaire.xlsx",
+            DefaultExt = ".xlsx"
+        };
+        if (dlg.ShowDialog(this) != true) return;
+        try
+        {
+            using var db = new PaieDbContext();
+            new LivrePaieReglementaireExportService(db).ExporterExcel(periodeId, dlg.FileName);
+            MessageBox.Show(this, "Livre de paie réglementaire exporté.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+        catch (Exception ex) { MessageBox.Show(this, ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error); }
+    }
+
     private void OuvrirParametresIpr()
     {
         var win = new IprConfigWindow { Owner = this };
@@ -502,9 +648,46 @@ public partial class MainWindow : Window
         var win = new AssistantConfigurationWindow { Owner = this };
         if (win.ShowDialog() == true)
         {
-            _viewModel.ChargerDonnees();
-            Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
+            using var db = new PaieDbContext();
+            ConfigurationEntrepriseService.MarquerConfigurationTerminee(db);
+            RafraichirApresChangementEntreprise();
         }
+    }
+
+    private void CreerNouvelleEntreprise()
+    {
+        var dlg = new NouvelleEntrepriseWindow { Owner = this };
+        if (dlg.ShowDialog() != true || dlg.EntrepriseCreeeId is not int newId)
+            return;
+
+        ContexteEntrepriseService.DefinirEntrepriseCourante(newId);
+        _viewModel.EntrepriseCouranteId = newId;
+
+        var assistant = new AssistantConfigurationWindow { Owner = this };
+        if (assistant.ShowDialog() == true)
+        {
+            using var db = new PaieDbContext();
+            ConfigurationEntrepriseService.MarquerConfigurationTerminee(db);
+        }
+
+        RafraichirApresChangementEntreprise();
+    }
+
+    private void ForcerAssistantProchainDemarrage()
+    {
+        using var db = new PaieDbContext();
+        ParametresApplicationHelper.SetForcerAssistantProchainDemarrage(db, true);
+        MessageBox.Show(this,
+            "L'assistant de configuration s'affichera au prochain lancement de l'application, avant la connexion.\n\nFermez Melody Paie RDC puis relancez-la.",
+            "Assistant au prochain démarrage",
+            MessageBoxButton.OK,
+            MessageBoxImage.Information);
+    }
+
+    private void RafraichirApresChangementEntreprise()
+    {
+        _viewModel.ChargerDonnees();
+        Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
     }
 
     private void OuvrirInfosEntreprise()
@@ -809,4 +992,31 @@ public partial class MainWindow : Window
 
     private void ImpactEntreprisesSite_Click(object sender, RoutedEventArgs e) =>
         BrowseUriHelper.OpenImpactEntreprises();
+
+    private async Task ProposerMiseAJourAuDemarrageAsync()
+    {
+        try
+        {
+            var config = Helpers.UpdateConfigHelper.Charger();
+            if (!config.VerifierAuDemarrage)
+                return;
+
+            var result = await ApplicationUpdateService.VerifierAsync().ConfigureAwait(true);
+            if (result.Kind != UpdateCheckResultKind.UpdateAvailable)
+                return;
+
+            var reponse = MessageBox.Show(
+                this,
+                $"{result.Message}\n\nOuvrir l'assistant de téléchargement maintenant ?",
+                "Mise à jour disponible",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Information);
+            if (reponse == MessageBoxResult.Yes)
+                MiseAJourWindow.Afficher(this);
+        }
+        catch
+        {
+            // Ne pas bloquer le démarrage si le serveur de mises à jour est injoignable.
+        }
+    }
 }

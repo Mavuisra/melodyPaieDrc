@@ -10,10 +10,8 @@ public static class ZkTerminalParametresResolver
     /// <summary>Recharge la ligne singleton depuis la base pour éviter un cache EF obsolète après sauvegarde depuis un autre <see cref="PaieDbContext"/>.</summary>
     public static ParametresApplication? ObtenirParametresZkFresh(PaieDbContext db)
     {
-        ParametresApplicationHelper.EnsureRow(db);
-        var p = db.ParametresApplication.Find(ParametresApplication.SingletonId);
-        if (p != null)
-            db.Entry(p).Reload();
+        var p = ParametresApplicationHelper.GetParametresEntrepriseCourante(db);
+        db.Entry(p).Reload();
         return p;
     }
 

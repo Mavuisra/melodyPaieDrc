@@ -201,6 +201,35 @@ public static class SchemaSqliteApplicator
         AddColumnIfMissing("ReferenceInppCdf", "ALTER TABLE Employes ADD COLUMN \"ReferenceInppCdf\" REAL");
     }
 
+    /// <summary>Champs portail CNSS e-déclaration (commune, type travailleur).</summary>
+    public static void AjouterColonnesEmployesCnssEdeclarationSiNecessaire(DbContext db)
+    {
+        var conn = db.Database.GetDbConnection();
+        if (conn.State != ConnectionState.Open)
+            conn.Open();
+
+        var columns = new List<string>();
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA table_info(Employes)";
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                columns.Add(r.GetString(1));
+        }
+
+        void AddColumnIfMissing(string name, string sql)
+        {
+            if (columns.Contains(name)) return;
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.ExecuteNonQuery();
+            columns.Add(name);
+        }
+
+        AddColumnIfMissing("CommuneAffectation", "ALTER TABLE Employes ADD COLUMN \"CommuneAffectation\" TEXT");
+        AddColumnIfMissing("TypeTravailleurCnss", "ALTER TABLE Employes ADD COLUMN \"TypeTravailleurCnss\" INTEGER NOT NULL DEFAULT 1");
+    }
+
     /// <summary>
     /// Ajoute la colonne ZkUserId sur Employes si elle n'existe pas.
     /// </summary>

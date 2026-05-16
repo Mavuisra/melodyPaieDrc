@@ -18,7 +18,7 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Text="Données officielles STE LTSERVICES SARL — identité visuelle (logo, couleurs) et mentions légales sur les bulletins PDF."
+        <TextBlock Grid.Row="0" Text="{Binding SousTitreEntete}"
                   FontSize="14" TextWrapping="Wrap" Margin="0,0,0,16"/>
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>

@@ -88,6 +88,10 @@ public class MainViewModel : INotifyPropertyChanged
 
     public MainViewModel()
     {
+        ContexteEntrepriseService.InitialiserDepuisBase(_db);
+        if (ContexteEntrepriseService.EntrepriseCouranteId is int entrepriseId && entrepriseId > 0)
+            _db.SetTenant(entrepriseId);
+
         Employes = new ObservableCollection<Employe>();
         PeriodesPaie = new ObservableCollection<PeriodePaie>();
         DernierBulletinDetails = new ObservableCollection<BulletinDetail>();
@@ -116,9 +120,16 @@ public class MainViewModel : INotifyPropertyChanged
             var menu = ConvertMenuParameter(p);
             MenuSelectionne = menu;
             if (menu == 0) { ChargerStatistiques(); ChargerTableauDeBord(); }
-            // 1 = Pointage journalier, 2 = Totaux heures, 9 = Analyse heures & jours
+            // 1 = Pointage journalier, 2 = Totaux heures (paie)
             if (menu == 4) { ChargerPeriodes(); SelectionnerPremierePeriodeSiVide(); ChargerBulletinsPeriodeCalculPaie(); }
-            if (menu == 5) ChargerDeclarations();
+            if (menu == 5)
+            {
+                ChargerPeriodes();
+                if (PeriodeSelectionneePourDeclarations == null && PeriodesPaie.Count > 0)
+                    PeriodeSelectionneePourDeclarations = PeriodesPaie[0];
+                else
+                    ChargerDeclarations();
+            }
             if (menu == 7) ChargerTousBulletins();
             if (menu == 8)
             {
@@ -144,10 +155,24 @@ public class MainViewModel : INotifyPropertyChanged
         ExportDeclarationIprExcelCommand = new RelayCommand(_ => OnExporterDeclarationIprExcel?.Invoke(PeriodeSelectionneePourDeclarations!.Id), _ => PeriodeSelectionneePourDeclarations != null);
         ExportLivrePaiePdfCommand = new RelayCommand(_ => OnExporterLivrePaiePdf?.Invoke(PeriodeSelectionneePourDeclarations!.Id), _ => PeriodeSelectionneePourDeclarations != null);
         ExportLivrePaieExcelCommand = new RelayCommand(_ => OnExporterLivrePaieExcel?.Invoke(PeriodeSelectionneePourDeclarations!.Id), _ => PeriodeSelectionneePourDeclarations != null);
+        ExportCnssEdeclarationCommand = new RelayCommand(_ => ExporterCnssEdeclaration(), _ => PeriodeSelectionneePourDeclarations != null);
+        ExportFeuillePaieCnssCommand = new RelayCommand(_ => OnExporterFeuillePaieCnss?.Invoke(PeriodeSelectionneePourDeclarations!.Id), _ => PeriodeSelectionneePourDeclarations != null);
+        ExportCnssEdeclarationExcelCommand = new RelayCommand(_ => OnExporterCnssEdeclarationExcel?.Invoke(PeriodeSelectionneePourDeclarations!.Id), _ => PeriodeSelectionneePourDeclarations != null);
+        ExportDgiIprCommand = new RelayCommand(_ => ExporterDgiIpr(), _ => PeriodeSelectionneePourDeclarations != null);
+        ExportDgiIprExcelCommand = new RelayCommand(_ => OnExporterDgiIprExcel?.Invoke(PeriodeSelectionneePourDeclarations!.Id), _ => PeriodeSelectionneePourDeclarations != null);
+        ExportLivreReglementairePdfCommand = new RelayCommand(_ => OnExporterLivreReglementairePdf?.Invoke(PeriodeSelectionneePourDeclarations!.Id), _ => PeriodeSelectionneePourDeclarations != null);
+        ExportLivreReglementaireExcelCommand = new RelayCommand(_ => OnExporterLivreReglementaireExcel?.Invoke(PeriodeSelectionneePourDeclarations!.Id), _ => PeriodeSelectionneePourDeclarations != null);
+        ExportVirementCommand = new RelayCommand(_ => ExporterVirement(), _ => PeriodeSelectionneePourDeclarations != null);
+        OuvrirGuideCnssCommand = new RelayCommand(_ => OnOuvrirGuideCnss?.Invoke());
+        OuvrirGuideIprCommand = new RelayCommand(_ => OnOuvrirGuideIpr?.Invoke());
+        OuvrirCloturePeriodeCommand = new RelayCommand(_ => OuvrirCloturePeriode(), _ => PeriodeSelectionneePourDeclarations != null);
         OuvrirTauxSociauxCommand = new RelayCommand(_ => OnOuvrirTauxSociaux?.Invoke());
         OuvrirPeriodesPaieCommand = new RelayCommand(_ => OnOuvrirPeriodesPaie?.Invoke());
         OuvrirInfosEntrepriseCommand = new RelayCommand(_ => OnOuvrirInfosEntreprise?.Invoke());
+        OuvrirCentreConfigurationCommand = new RelayCommand(_ => OnOuvrirCentreConfiguration?.Invoke());
         OuvrirAssistantConfigurationCommand = new RelayCommand(_ => OnOuvrirAssistantConfiguration?.Invoke());
+        CreerNouvelleEntrepriseCommand = new RelayCommand(_ => OnCreerNouvelleEntreprise?.Invoke());
+        ForcerAssistantProchainDemarrageCommand = new RelayCommand(_ => OnForcerAssistantProchainDemarrage?.Invoke());
         OuvrirConfigPrimesIndemnitesCommand = new RelayCommand(_ => OnOuvrirConfigPrimesIndemnites?.Invoke());
         OuvrirCalendrierTravailCommand = new RelayCommand(_ => OnOuvrirCalendrierTravail?.Invoke());
         OuvrirEtablissementsDepartementsCommand = new RelayCommand(_ => OnOuvrirEtablissementsDepartements?.Invoke());
@@ -156,6 +181,7 @@ public class MainViewModel : INotifyPropertyChanged
         SauvegarderBaseCommand = new RelayCommand(_ => OnSauvegarderBase?.Invoke());
         RestaurerBaseCommand = new RelayCommand(_ => OnRestaurerBase?.Invoke());
         ReinitialiserApplicationCommand = new RelayCommand(_ => OnReinitialiserApplication?.Invoke());
+        VerifierMiseAJourCommand = new RelayCommand(_ => OnVerifierMiseAJour?.Invoke());
         OuvrirSaisiePaieMoisCommand = new RelayCommand(_ =>
         {
             if (PeriodeSelectionneePourPaie != null)
@@ -227,8 +253,9 @@ public class MainViewModel : INotifyPropertyChanged
         {
             if (_entrepriseCouranteId == value) return;
             _entrepriseCouranteId = value;
-            ContexteEntrepriseService.DefinirEntrepriseCourante(value);
+            _db.SetTenant(value);
             OnPropertyChanged();
+            ViderDonneesAffichees();
             ChargerContexteEntreprise();
             ChargerDonnees();
         }
@@ -348,7 +375,7 @@ public class MainViewModel : INotifyPropertyChanged
         set { _totalIprAPayer = value; OnPropertyChanged(); }
     }
 
-    /// <summary>0=Tableau de bord, 1=Pointage, 2=Totaux heures paie, 3=Employés, 4=Calcul paie, 5=Déclarations, 6=Paramètres, 7=Bulletins, 8=Rapport, 9=Analyse heures/jours.</summary>
+    /// <summary>0=Tableau de bord, 1=Pointage, 2=Totaux heures paie, 3=Employés, 4=Calcul paie, 5=Déclarations, 6=Paramètres, 7=Bulletins, 8=Rapport.</summary>
     public int MenuSelectionne
     {
         get => _menuSelectionne;
@@ -402,7 +429,10 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand OuvrirTauxSociauxCommand { get; }
     public ICommand OuvrirPeriodesPaieCommand { get; }
     public ICommand OuvrirInfosEntrepriseCommand { get; }
+    public ICommand OuvrirCentreConfigurationCommand { get; }
     public ICommand OuvrirAssistantConfigurationCommand { get; }
+    public ICommand CreerNouvelleEntrepriseCommand { get; }
+    public ICommand ForcerAssistantProchainDemarrageCommand { get; }
     public ICommand OuvrirConfigPrimesIndemnitesCommand { get; }
     public ICommand OuvrirCalendrierTravailCommand { get; }
     public ICommand OuvrirEtablissementsDepartementsCommand { get; }
@@ -411,6 +441,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand SauvegarderBaseCommand { get; }
     public ICommand RestaurerBaseCommand { get; }
     public ICommand ReinitialiserApplicationCommand { get; }
+    public ICommand VerifierMiseAJourCommand { get; }
     public ICommand VoirBulletinCommand { get; }
     public ICommand TelechargerBulletinCommand { get; }
     public ICommand TelechargerTousBulletinsCommand { get; }
@@ -605,10 +636,7 @@ public class MainViewModel : INotifyPropertyChanged
             _periodeSelectionneePourDeclarations = value;
             OnPropertyChanged();
             ChargerDeclarations();
-            (ExportLivrePaiePdfCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (ExportLivrePaieExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (ExportDeclarationCnssExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
-            (ExportDeclarationIprExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            NotifierExportsDeclarationsCanExecute();
         }
     }
 
@@ -685,6 +713,25 @@ public class MainViewModel : INotifyPropertyChanged
         (OuvrirHeuresMoisEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
+    private void NotifierExportsDeclarationsCanExecute()
+    {
+        (ExportDeclarationCnssCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportDeclarationIprCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportDeclarationCnssExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportDeclarationIprExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportLivrePaiePdfCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportLivrePaieExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportCnssEdeclarationCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportFeuillePaieCnssCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportCnssEdeclarationExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportDgiIprCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportDgiIprExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportLivreReglementairePdfCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportLivreReglementaireExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExportVirementCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (OuvrirCloturePeriodeCommand as RelayCommand)?.RaiseCanExecuteChanged();
+    }
+
     public PeriodePaie? PeriodeSelectionneePourPaie
     {
         get => _periodeSelectionneePourPaie;
@@ -697,14 +744,37 @@ public class MainViewModel : INotifyPropertyChanged
         set { _dernierBulletinGenere = value; OnPropertyChanged(); }
     }
 
+    private void ViderDonneesAffichees()
+    {
+        _tousEmployes.Clear();
+        Employes.Clear();
+        PeriodesPaie.Clear();
+        BulletinsPeriode.Clear();
+        BulletinsPeriodeCalculPaie.Clear();
+        BulletinsRapportPaie.Clear();
+        TousBulletins.Clear();
+        _tousBulletinsPeriode.Clear();
+        _tousBulletinsRapport.Clear();
+        _sourceTousBulletinsGenerees.Clear();
+        DashboardMois.Clear();
+        EmployeSelectionne = null;
+        EmployeSelectionnePourPaie = null;
+        PeriodeSelectionneePourPaie = null;
+        PeriodeSelectionneePourDeclarations = null;
+        PeriodeSelectionneePourRapport = null;
+    }
+
     public void ChargerContexteEntreprise()
     {
-        ContexteEntrepriseService.InitialiserDepuisBase(_db);
-        _entrepriseCouranteId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(_db);
+        var id = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(_db);
+        if (id > 0 && _db.TenantId != id)
+            _db.SetTenant(id);
+
+        _entrepriseCouranteId = id;
         OnPropertyChanged(nameof(EntrepriseCouranteId));
 
         EntreprisesDisponibles.Clear();
-        foreach (var e in _db.Entreprises.AsNoTracking().OrderBy(x => x.RaisonSociale))
+        foreach (var e in _db.Entreprises.IgnoreQueryFilters().AsNoTracking().OrderBy(x => x.RaisonSociale))
             EntreprisesDisponibles.Add(e);
 
         EntrepriseCouranteLibelle = ContexteEntrepriseService.ObtenirRaisonSocialeCourante(_db)
@@ -713,7 +783,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void ChargerEmployes()
     {
-        _tousEmployes = ContexteEntrepriseService.EmployesEntrepriseCourante(_db)
+        _tousEmployes = _db.Employes
             .AsNoTracking()
             .Include(x => x.Departement)
             .OrderBy(x => x.Nom)
@@ -1239,6 +1309,19 @@ public class MainViewModel : INotifyPropertyChanged
         if (BulletinSelectionne is null) return;
 
         var b = BulletinSelectionne;
+        var cfg = ConfigurationExportsPaieService.Obtenir(_db);
+        if (cfg.Cloture.BloquerSuppressionBulletinSiCloturee &&
+            b.PeriodePaie?.Cloturee == true)
+        {
+            OnErreurCalculPaie?.Invoke("Impossible de supprimer : la période est clôturée. Rouvrez-la depuis « Périodes de paie » si nécessaire.");
+            return;
+        }
+        if (b.PeriodePaieId > 0 && PeriodeClotureService.PeriodeEstVerrouillee(_db, b.PeriodePaieId) &&
+            cfg.Cloture.BloquerSuppressionBulletinSiCloturee)
+        {
+            OnErreurCalculPaie?.Invoke("Impossible de supprimer : la période est clôturée.");
+            return;
+        }
         var employe = $"{b.Employe?.Nom} {b.Employe?.Postnom} {b.Employe?.Prenom}".Trim();
         var periode = b.PeriodePaie != null ? $"{b.PeriodePaie.Mois:D2}/{b.PeriodePaie.Annee}" : "N/A";
         var numero = string.IsNullOrWhiteSpace(b.NumeroBulletin) ? b.Id.ToString() : b.NumeroBulletin;
@@ -1371,7 +1454,10 @@ public class MainViewModel : INotifyPropertyChanged
     public Action? OnOuvrirTauxSociaux { get; set; }
     public Action? OnOuvrirPeriodesPaie { get; set; }
     public Action? OnOuvrirInfosEntreprise { get; set; }
+    public Action? OnOuvrirCentreConfiguration { get; set; }
     public Action? OnOuvrirAssistantConfiguration { get; set; }
+    public Action? OnCreerNouvelleEntreprise { get; set; }
+    public Action? OnForcerAssistantProchainDemarrage { get; set; }
     public Action? OnOuvrirConfigPrimesIndemnites { get; set; }
     public Action? OnOuvrirEtablissementsDepartements { get; set; }
     public Action? OnImporterFicheSalaireExcel { get; set; }
@@ -1379,6 +1465,10 @@ public class MainViewModel : INotifyPropertyChanged
     public Action? OnSauvegarderBase { get; set; }
     public Action? OnRestaurerBase { get; set; }
     public Action? OnReinitialiserApplication { get; set; }
+    public Action? OnVerifierMiseAJour { get; set; }
+
+    public string VersionApplication =>
+        ApplicationUpdateService.FormaterVersion(ApplicationUpdateService.ObtenirVersionInstallee());
     public Action? OnOuvrirCalendrierTravail { get; set; }
 
     /// <summary>Ouvre le formulaire de saisie de paie pour une période (tous les employés).</summary>
@@ -1423,6 +1513,76 @@ public class MainViewModel : INotifyPropertyChanged
 
     /// <summary>Export déclaration IPR Excel : la vue affiche SaveFileDialog puis génère le fichier pour la période (id).</summary>
     public Action<int>? OnExporterDeclarationIprExcel { get; set; }
+
+    public Action<int>? OnExporterCnssEdeclarationExcel { get; set; }
+    public Action<int>? OnExporterFeuillePaieCnss { get; set; }
+    public Action<int>? OnExporterDgiIprExcel { get; set; }
+    public Action<int>? OnExporterLivreReglementairePdf { get; set; }
+    public Action<int>? OnExporterLivreReglementaireExcel { get; set; }
+    public Action? OnOuvrirGuideCnss { get; set; }
+    public Action? OnOuvrirGuideIpr { get; set; }
+    public Action<int>? OnOuvrirCloturePeriode { get; set; }
+
+    public ICommand ExportCnssEdeclarationCommand { get; }
+    public ICommand ExportFeuillePaieCnssCommand { get; }
+    public ICommand ExportCnssEdeclarationExcelCommand { get; }
+    public ICommand ExportDgiIprCommand { get; }
+    public ICommand ExportDgiIprExcelCommand { get; }
+    public ICommand ExportLivreReglementairePdfCommand { get; }
+    public ICommand ExportLivreReglementaireExcelCommand { get; }
+    public ICommand ExportVirementCommand { get; }
+    public ICommand OuvrirGuideCnssCommand { get; }
+    public ICommand OuvrirGuideIprCommand { get; }
+    public ICommand OuvrirCloturePeriodeCommand { get; }
+
+    private void ExporterCnssEdeclaration()
+    {
+        if (PeriodeSelectionneePourDeclarations is null) return;
+        try
+        {
+            var profil = ConfigurationExportsPaieService.Obtenir(_db).ExportCnssEdeclaration;
+            if (string.Equals(profil.TypeFormat, "Excel", StringComparison.OrdinalIgnoreCase))
+            {
+                OnExporterCnssEdeclarationExcel?.Invoke(PeriodeSelectionneePourDeclarations.Id);
+                return;
+            }
+
+            var svc = new CnssEDeclarationExportService(_db);
+            var csv = svc.ExporterCsv(PeriodeSelectionneePourDeclarations.Id);
+            OnExporterFichier?.Invoke(csv, svc.ObtenirNomFichierSuggere(PeriodeSelectionneePourDeclarations));
+        }
+        catch (Exception ex) { OnErreurCalculPaie?.Invoke(ex.Message); }
+    }
+
+    private void ExporterDgiIpr()
+    {
+        if (PeriodeSelectionneePourDeclarations is null) return;
+        try
+        {
+            var svc = new DgiIprDeclarationExportService(_db);
+            var csv = svc.ExporterCsv(PeriodeSelectionneePourDeclarations.Id);
+            OnExporterFichier?.Invoke(csv, svc.ObtenirNomFichierSuggere(PeriodeSelectionneePourDeclarations));
+        }
+        catch (Exception ex) { OnErreurCalculPaie?.Invoke(ex.Message); }
+    }
+
+    private void ExporterVirement()
+    {
+        if (PeriodeSelectionneePourDeclarations is null) return;
+        try
+        {
+            var svc = new VirementBancaireExportService(_db);
+            var csv = svc.ExporterCsv(PeriodeSelectionneePourDeclarations.Id);
+            OnExporterFichier?.Invoke(csv, svc.ObtenirNomFichierSuggere(PeriodeSelectionneePourDeclarations, null));
+        }
+        catch (Exception ex) { OnErreurCalculPaie?.Invoke(ex.Message); }
+    }
+
+    private void OuvrirCloturePeriode()
+    {
+        if (PeriodeSelectionneePourDeclarations is null) return;
+        OnOuvrirCloturePeriode?.Invoke(PeriodeSelectionneePourDeclarations.Id);
+    }
 
     private void ModifierEmploye()
     {
@@ -1480,8 +1640,8 @@ public class MainViewModel : INotifyPropertyChanged
     private void ChargerTauxChangeDepuisDb()
     {
         ParametresApplicationHelper.EnsureRow(_db);
-        var p = _db.ParametresApplication.Find(ParametresApplication.SingletonId);
-        TauxChangeCdfParUsd = p is { TauxCdfParUsd: > 0 } ? p.TauxCdfParUsd : ParametresApplicationHelper.TauxParDefaut;
+        TauxChangeCdfParUsd = ParametresApplicationHelper.GetTauxCdfParUsd(_db);
+        var p = ParametresApplicationHelper.GetParametresEntrepriseCourante(_db);
         TauxChangeDerniereMajLibelle = p?.DateDerniereModification is { } dt
             ? $"Dernière modification : {DateTime.SpecifyKind(dt, DateTimeKind.Utc).ToLocalTime():g}"
             : "";
@@ -1489,9 +1649,7 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ChargerParametresZk()
     {
-        ParametresApplicationHelper.EnsureRow(_db);
-        var p = _db.ParametresApplication.Find(ParametresApplication.SingletonId);
-        if (p == null) return;
+        var p = ParametresApplicationHelper.GetParametresEntrepriseCourante(_db);
 
         _zkIpText = p.ZkTerminalIp ?? "";
         _zkPortText = p.ZkTerminalPort > 0 ? p.ZkTerminalPort.ToString() : "4370";
@@ -1541,9 +1699,7 @@ public class MainViewModel : INotifyPropertyChanged
                 return;
             }
 
-            ParametresApplicationHelper.EnsureRow(_db);
-            var p = _db.ParametresApplication.Find(ParametresApplication.SingletonId)
-                    ?? throw new InvalidOperationException("Paramètres application introuvables.");
+            var p = ParametresApplicationHelper.GetParametresEntrepriseCourante(_db);
 
             p.ZkTerminalIp = string.IsNullOrWhiteSpace(ZkIpText) ? null : ZkIpText.Trim();
             p.ZkTerminalPort = port;
@@ -1696,9 +1852,7 @@ public class MainViewModel : INotifyPropertyChanged
                 return;
             }
 
-            ParametresApplicationHelper.EnsureRow(_db);
-            var p = _db.ParametresApplication.Find(ParametresApplication.SingletonId)
-                    ?? throw new InvalidOperationException("Paramètres application introuvables.");
+            var p = ParametresApplicationHelper.GetParametresEntrepriseCourante(_db);
 
             p.LtHeureDebutTravail = NormaliserHeure(LtHeureDebutTravailText);
             p.LtHeureLimiteTolerance = NormaliserHeure(LtHeureLimiteToleranceText);

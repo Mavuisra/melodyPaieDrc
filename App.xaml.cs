@@ -99,31 +99,66 @@ public partial class App : Application
             StartupLog.Append("MainWindow créée (avant login)");
 
             // Le splash a servi uniquement pendant l'initialisation (base / schéma).
-            // On le ferme avant d'afficher l'écran de login pour que la transition soit plus rapide.
             splash?.Close();
 
-            // Connexion obligatoire (multi-utilisateurs)
-            var loginWin = new Views.LoginWindow();
-            if (loginWin.ShowDialog() != true)
-            {
-                StartupLog.Append("Fermeture : écran de connexion annulé ou identifiants non validés (comportement normal si l'utilisateur ferme la fenêtre)");
-                Shutdown(0);
-                return;
-            }
-
+            // Parcours « grandes applications » : configurer le tenant AVANT la connexion et l'usage métier.
+            var assistantAffiche = false;
             using (var dbCtx = new PaieDbContext())
             {
                 ContexteEntrepriseService.InitialiserDepuisBase(dbCtx);
-                if (!ConfigurationEntrepriseService.EstConfigurationComplete(dbCtx))
+                if (ContexteEntrepriseService.EntrepriseCouranteId is int tenantId && tenantId > 0)
+                    dbCtx.SetTenant(tenantId);
+                if (ConfigurationEntrepriseService.DoitAfficherAssistantAuDemarrage(dbCtx))
                 {
-                    var configWin = new Views.AssistantConfigurationWindow();
+                    var raison = ConfigurationEntrepriseService.RaisonAffichageAssistant(dbCtx);
+                    StartupLog.Append($"Affichage assistant avant connexion ({raison})");
+                    var configWin = new Views.AssistantConfigurationWindow
+                    {
+                        Topmost = true,
+                        Title = "Configuration — étape 1 sur 2 (entreprise)"
+                    };
+                    assistantAffiche = true;
                     if (configWin.ShowDialog() != true)
                     {
                         StartupLog.Append("Fermeture : configuration initiale non terminée");
                         Shutdown(0);
                         return;
                     }
+                    ConfigurationEntrepriseService.MarquerConfigurationTerminee(dbCtx);
+                    StartupLog.Append("Configuration initiale terminée");
                 }
+                else
+                {
+                    StartupLog.Append("Configuration complète : assistant ignoré au démarrage");
+                }
+            }
+
+            using (var dbAuth = new PaieDbContext())
+            {
+                if (!AuthService.AdministrateurActifExiste(dbAuth))
+                {
+                    MessageBox.Show(
+                        "Aucun compte administrateur n'est configuré.\n\nRelancez l'application et terminez l'assistant de configuration (étape « Compte administrateur »).",
+                        "Connexion impossible",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    Shutdown(0);
+                    return;
+                }
+            }
+
+            // Connexion une fois l'environnement (entreprise / politique paie) prêt.
+            var loginWin = new Views.LoginWindow
+            {
+                Title = assistantAffiche
+                    ? "Étape 2/2 — Connexion"
+                    : "Connexion - Melody Paie RDC"
+            };
+            if (loginWin.ShowDialog() != true)
+            {
+                StartupLog.Append("Fermeture : écran de connexion annulé ou identifiants non validés (comportement normal si l'utilisateur ferme la fenêtre)");
+                Shutdown(0);
+                return;
             }
 
             mainWin.Show();
@@ -184,6 +219,7 @@ public partial class App : Application
         SchemaSqliteApplicator.AjouterColonneNumCnssEmployeSiNecessaire(db);
         SchemaSqliteApplicator.AjouterColonneZkUserIdEmployeSiNecessaire(db);
         SchemaSqliteApplicator.AjouterColonnesEmployesReferencesFicheSalaireSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesEmployesCnssEdeclarationSiNecessaire(db);
         SchemaSqliteApplicator.AjouterColonneCotisationInppBulletinSiNecessaire(db);
         SchemaSqliteApplicator.AjouterColonnesContratsRemunerationAvanceeSiNecessaire(db);
         SchemaSqliteApplicator.AjouterTableJoursTravailCalendrierSiNecessaire(db);
@@ -193,11 +229,16 @@ public partial class App : Application
         SchemaSqliteApplicator.AjouterColonnesParametresZktecoSiNecessaire(db);
         SchemaSqliteApplicator.AjouterTableFormFieldValuesSiNecessaire(db);
         SchemaSqliteApplicatorExtensible.AppliquerSiNecessaire(db);
+        ContexteEntrepriseService.InitialiserDepuisBase(db);
+        if (ContexteEntrepriseService.EntrepriseCouranteId is int entrepriseId && entrepriseId > 0)
+            db.SetTenant(entrepriseId);
+
         BackfillNumeroBulletinSiNecessaire(db);
 
         try
         {
             db.SeedSiVide();
+            TenantDataBackfill.AppliquerSiNecessaire(db);
             return;
         }
         catch (SqliteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
@@ -217,6 +258,7 @@ public partial class App : Application
         SchemaSqliteApplicator.AjouterColonneNumCnssEmployeSiNecessaire(db);
         SchemaSqliteApplicator.AjouterColonneZkUserIdEmployeSiNecessaire(db);
         SchemaSqliteApplicator.AjouterColonnesEmployesReferencesFicheSalaireSiNecessaire(db);
+        SchemaSqliteApplicator.AjouterColonnesEmployesCnssEdeclarationSiNecessaire(db);
         SchemaSqliteApplicator.AjouterColonneCotisationInppBulletinSiNecessaire(db);
         SchemaSqliteApplicator.AjouterColonnesContratsRemunerationAvanceeSiNecessaire(db);
         SchemaSqliteApplicator.AjouterTableJoursTravailCalendrierSiNecessaire(db);
@@ -228,6 +270,7 @@ public partial class App : Application
         SchemaSqliteApplicatorExtensible.AppliquerSiNecessaire(db);
         BackfillNumeroBulletinSiNecessaire(db);
         db.SeedSiVide();
+        TenantDataBackfill.AppliquerSiNecessaire(db);
     }
 
     /// <summary>

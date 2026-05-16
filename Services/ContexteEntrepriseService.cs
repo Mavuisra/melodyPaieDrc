@@ -15,31 +15,48 @@ public static class ContexteEntrepriseService
 
     public static void InitialiserDepuisBase(PaieDbContext db)
     {
+        ParametresApplicationHelper.EnsureRow(db);
+        var derniere = ParametresApplicationHelper.GetDerniereEntrepriseActive(db);
+        if (derniere is > 0
+            && db.Entreprises.IgnoreQueryFilters().Any(e => e.Id == derniere.Value))
+        {
+            EntrepriseCouranteId = derniere.Value;
+            return;
+        }
+
         _ = ObtenirEntrepriseCouranteId(db);
     }
 
     public static int ObtenirEntrepriseCouranteId(PaieDbContext db)
     {
-        if (EntrepriseCouranteId is > 0 && db.Entreprises.Any(e => e.Id == EntrepriseCouranteId.Value))
+        if (EntrepriseCouranteId is > 0
+            && db.Entreprises.IgnoreQueryFilters().Any(e => e.Id == EntrepriseCouranteId.Value))
             return EntrepriseCouranteId.Value;
 
-        var id = db.Entreprises.OrderBy(e => e.Id).Select(e => e.Id).FirstOrDefault();
+        var id = db.Entreprises.IgnoreQueryFilters().OrderBy(e => e.Id).Select(e => e.Id).FirstOrDefault();
         if (id > 0)
-            EntrepriseCouranteId = id;
+            DefinirEntrepriseCourante(db, id);
         return id;
     }
 
     public static void DefinirEntrepriseCourante(int entrepriseId)
     {
-        if (entrepriseId > 0)
-            EntrepriseCouranteId = entrepriseId;
+        if (entrepriseId <= 0) return;
+        EntrepriseCouranteId = entrepriseId;
+    }
+
+    public static void DefinirEntrepriseCourante(PaieDbContext db, int entrepriseId)
+    {
+        if (entrepriseId <= 0) return;
+        EntrepriseCouranteId = entrepriseId;
+        ParametresApplicationHelper.SetDerniereEntrepriseActive(db, entrepriseId);
     }
 
     public static string? ObtenirRaisonSocialeCourante(PaieDbContext db)
     {
         var id = ObtenirEntrepriseCouranteId(db);
         if (id <= 0) return null;
-        return db.Entreprises.AsNoTracking()
+        return db.Entreprises.IgnoreQueryFilters().AsNoTracking()
             .Where(e => e.Id == id)
             .Select(e => e.RaisonSociale)
             .FirstOrDefault();

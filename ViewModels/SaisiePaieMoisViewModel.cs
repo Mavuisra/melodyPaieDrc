@@ -41,12 +41,20 @@ public class SaisiePaieMoisViewModel : INotifyPropertyChanged
     private readonly PaieDbContext _db;
     private readonly int _periodePaieId;
 
+    private bool _periodeVerrouillee;
+
     public SaisiePaieMoisViewModel(PaieDbContext db, int periodePaieId)
     {
         _db = db;
         _periodePaieId = periodePaieId;
         Lignes = new ObservableCollection<SaisiePaieLigne>();
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer());
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => !PeriodeVerrouillee);
+    }
+
+    public bool PeriodeVerrouillee
+    {
+        get => _periodeVerrouillee;
+        private set { _periodeVerrouillee = value; OnPropertyChanged(); (EnregistrerCommand as RelayCommand)?.RaiseCanExecuteChanged(); }
     }
 
     public ObservableCollection<SaisiePaieLigne> Lignes { get; }
@@ -60,6 +68,8 @@ public class SaisiePaieMoisViewModel : INotifyPropertyChanged
     {
         Lignes.Clear();
         var periode = _db.PeriodesPaie.FirstOrDefault(p => p.Id == _periodePaieId);
+        var cfg = ConfigurationExportsPaieService.Obtenir(_db);
+        PeriodeVerrouillee = cfg.Cloture.BloquerSaisiePaieSiCloturee && (periode?.Cloturee ?? false);
         var employes = ContexteEntrepriseService.EmployesEntrepriseCourante(_db)
             .AsNoTracking()
             .OrderBy(e => e.Nom)
@@ -88,6 +98,11 @@ public class SaisiePaieMoisViewModel : INotifyPropertyChanged
 
     private void Enregistrer()
     {
+        if (PeriodeVerrouillee)
+        {
+            OnErreur?.Invoke("La période est clôturée : la saisie de paie est verrouillée.");
+            return;
+        }
         try
         {
             var existantes = _db.SaisiesPaie.Where(s => s.PeriodePaieId == _periodePaieId).ToList();
