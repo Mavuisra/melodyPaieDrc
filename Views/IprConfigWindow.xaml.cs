@@ -1,5 +1,6 @@
 using System.Windows;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
 
 namespace MelodyPaieRDC.Views;
@@ -19,15 +20,12 @@ public partial class IprConfigWindow : Window
 
         _viewModel.OnEnregistrementReussi += () =>
         {
-            MessageBox.Show("Paramètres IPR enregistrés avec succès.", "IPR", MessageBoxButton.OK, MessageBoxImage.Information);
+            UiFeedback.Succes("Paramètres IPR enregistrés.");
             DialogResult = true;
             Close();
         };
 
-        _viewModel.OnErreur += message =>
-        {
-            MessageBox.Show(message, "Erreur IPR", MessageBoxButton.OK, MessageBoxImage.Warning);
-        };
+        _viewModel.OnErreur += message => UiFeedback.Avertissement(message);
 
         Loaded += (_, _) => _viewModel.Charger();
     }

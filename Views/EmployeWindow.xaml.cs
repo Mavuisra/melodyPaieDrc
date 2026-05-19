@@ -1,5 +1,6 @@
 using System.Windows;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
 
 namespace MelodyPaieRDC.Views;
@@ -28,7 +29,7 @@ public partial class EmployeWindow : Window
             Close();
         };
         _viewModel.OnErreurValidation = msg => MessageBox.Show(msg, "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-        _viewModel.OnInfo = msg => MessageBox.Show(msg, "Employé", MessageBoxButton.OK, MessageBoxImage.Information);
+        _viewModel.OnInfo = msg => UiFeedback.Info(msg);
 
         Loaded += (_, _) => _viewModel.ChargerDepartements();
     }

@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
+using MelodyPaieRDC.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.ViewModels;
@@ -22,15 +23,17 @@ public class PeriodesPaieViewModel : INotifyPropertyChanged
         _db = db;
         _tauxChangeBudget = ParametresApplicationHelper.GetTauxCdfParUsd(_db);
         Periodes = new ObservableCollection<PeriodePaie>();
-        CreerCommand = new RelayCommand(_ => Creer());
-        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => PeriodeSelectionnee != null);
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer());
+        CreerCommand = new RelayCommand(_ => Creer(), _ => DroitsUi.PeutModifier);
+        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => DroitsUi.PeutModifier && PeriodeSelectionnee != null);
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => DroitsUi.PeutModifier);
         CloturerAvecControlesCommand = new RelayCommand(_ =>
         {
             if (PeriodeSelectionnee != null)
                 OuvrirAssistantCloture?.Invoke(PeriodeSelectionnee.Id);
-        }, _ => PeriodeSelectionnee != null);
+        }, _ => DroitsUi.PeutModifier && PeriodeSelectionnee != null);
     }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public ObservableCollection<PeriodePaie> Periodes { get; }
 

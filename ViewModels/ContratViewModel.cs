@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
+using MelodyPaieRDC.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.ViewModels;
@@ -39,9 +40,11 @@ public class ContratViewModel : INotifyPropertyChanged
             IndemniteLicenciementMoisBase = 0m
         };
 
-        AjouterCommand = new RelayCommand(_ => Ajouter());
-        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => Selectionne != null && !EmployeDejaPaye);
+        AjouterCommand = new RelayCommand(_ => Ajouter(), _ => DroitsUi.PeutModifier);
+        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => DroitsUi.PeutModifier && Selectionne != null && !EmployeDejaPaye);
     }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public string NomEmploye { get; set; } = "";
 

@@ -2,6 +2,7 @@ using System.Windows;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Forms.Metadata;
 using MelodyPaieRDC.Forms.ViewModels;
+using MelodyPaieRDC.Services;
 
 namespace MelodyPaieRDC.Views;
 
@@ -27,6 +28,7 @@ public partial class DynamicFormWindow : Window
 
         vm.OnEnregistreReussi = () =>
         {
+            UiFeedback.Succes("Formulaire enregistré.");
             DialogResult = true;
             Close();
         };
@@ -36,7 +38,7 @@ public partial class DynamicFormWindow : Window
             Close();
         };
         vm.OnErreurValidation = msg => MessageBox.Show(msg, "Validation", MessageBoxButton.OK, MessageBoxImage.Warning);
-        vm.OnInfo = msg => MessageBox.Show(msg, "Formulaire", MessageBoxButton.OK, MessageBoxImage.Information);
+        vm.OnInfo = msg => UiFeedback.Info(msg);
 
         FormControl.Initialiser(vm);
     }

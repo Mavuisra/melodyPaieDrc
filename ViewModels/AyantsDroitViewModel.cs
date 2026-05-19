@@ -25,9 +25,11 @@ public class AyantsDroitViewModel : INotifyPropertyChanged
         AyantsDroit = new ObservableCollection<AyantDroit>();
         LiensParente = new ObservableCollection<string> { "Enfant", "Conjoint", "Autre" };
 
-        AjouterCommand = new RelayCommand(_ => Ajouter());
-        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => Selectionne != null);
+        AjouterCommand = new RelayCommand(_ => Ajouter(), _ => DroitsUi.PeutModifier);
+        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => DroitsUi.PeutModifier && Selectionne != null);
     }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public string NomEmploye { get; set; } = "";
 

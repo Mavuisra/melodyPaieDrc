@@ -10,6 +10,7 @@
         TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
         FontFamily="{materialDesign:MaterialDesignFont}">
     <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <helpers:StringToIntConverter x:Key="StringToIntConverter"/>
         <helpers:StringToDecimalConverter x:Key="StringToDecimalConverter"/>
     </Window.Resources>
@@ -23,10 +24,13 @@
         <StackPanel Grid.Row="0" Margin="0,0,0,12">
             <TextBlock Text="Saisie de la paie du mois" FontSize="18" FontWeight="SemiBold"/>
             <TextBlock Text="Renseignez les jours prestés, les gains supplémentaires, les acomptes et les sanctions pour chaque employé. Les valeurs vides ne modifient pas le calcul automatique." FontSize="12" Foreground="Gray" TextWrapping="Wrap" Margin="0,4,0,0"/>
+            <TextBlock Text="Mode lecture seule — consultation uniquement." FontSize="12" Foreground="#E65100" FontWeight="SemiBold" Margin="0,8,0,0"
+                       Visibility="{Binding FormulaireLectureSeule, Converter={StaticResource BooleanToVisibilityConverter}}"/>
         </StackPanel>
 
         <DataGrid Grid.Row="1"
                   ItemsSource="{Binding Lignes}"
+                  IsReadOnly="{Binding FormulaireLectureSeule}"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
                   CanUserDeleteRows="False"

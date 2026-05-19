@@ -27,6 +27,17 @@ public partial class UtilisateurEditWindow : Window
             Title = "Nouvel utilisateur";
             CmbRole.SelectedIndex = 1; // Gestionnaire
         }
+
+        if (!DroitsUi.PeutAdministrer)
+        {
+            Title += " (lecture seule)";
+            TxtLogin.IsReadOnly = true;
+            TxtNomComplet.IsReadOnly = true;
+            CmbRole.IsEnabled = false;
+            TxtMotDePasse.IsEnabled = false;
+            ChkActif.IsEnabled = false;
+            BtnEnregistrer.IsEnabled = false;
+        }
     }
 
     public string Login => TxtLogin.Text?.Trim() ?? "";
@@ -43,6 +54,9 @@ public partial class UtilisateurEditWindow : Window
 
     private void Enregistrer_Click(object sender, RoutedEventArgs e)
     {
+        if (!DroitsUi.PeutAdministrer)
+            return;
+
         if (string.IsNullOrWhiteSpace(TxtLogin.Text))
         {
             MessageBox.Show(this, "L'identifiant est obligatoire.", "Enregistrer", MessageBoxButton.OK, MessageBoxImage.Warning);

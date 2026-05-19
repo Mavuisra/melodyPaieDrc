@@ -1,6 +1,7 @@
 using System.Windows;
 using Microsoft.Win32;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
 
 namespace MelodyPaieRDC.Views;
@@ -13,8 +14,8 @@ public partial class EntrepriseWindow : Window
         var db = new PaieDbContext();
         var vm = new EntrepriseViewModel(db);
         DataContext = vm;
-        vm.OnErreur = msg => MessageBox.Show(msg, "Informations entreprise", MessageBoxButton.OK, MessageBoxImage.Warning);
-        vm.OnEnregistre = () => MessageBox.Show("Informations enregistrées.", "Informations entreprise", MessageBoxButton.OK, MessageBoxImage.Information);
+        vm.OnErreur = msg => UiFeedback.Avertissement(msg);
+        vm.OnEnregistre = () => UiFeedback.Succes("Informations entreprise enregistrées.");
         vm.OnDemandeChoisirLogo = () =>
         {
             var dlg = new OpenFileDialog

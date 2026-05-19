@@ -15,7 +15,20 @@ public partial class UtilisateursWindow : Window
     public UtilisateursWindow()
     {
         InitializeComponent();
-        Loaded += (_, _) => Charger();
+        Loaded += (_, _) =>
+        {
+            AppliquerDroitsAdministrateur();
+            Charger();
+        };
+    }
+
+    private void AppliquerDroitsAdministrateur()
+    {
+        var admin = DroitsUi.PeutAdministrer;
+        BtnAjouter.IsEnabled = admin;
+        BtnModifier.IsEnabled = admin;
+        BtnMotDePasse.IsEnabled = admin;
+        BtnSupprimer.IsEnabled = admin;
     }
 
     private void Charger()
@@ -42,6 +55,7 @@ public partial class UtilisateursWindow : Window
 
     private void Ajouter_Click(object sender, RoutedEventArgs e)
     {
+        if (!DroitsUi.PeutAdministrer) return;
         var dlg = new UtilisateurEditWindow(null) { Owner = this };
         if (dlg.ShowDialog() != true) return;
         using (var db = new PaieDbContext())
@@ -65,10 +79,11 @@ public partial class UtilisateursWindow : Window
 
     private void Modifier_Click(object sender, RoutedEventArgs e)
     {
+        if (!DroitsUi.PeutAdministrer) return;
         var u = GetSelectionne();
         if (u == null)
         {
-            MessageBox.Show(this, "Sélectionnez un utilisateur.", "Modifier", MessageBoxButton.OK, MessageBoxImage.Information);
+            UiFeedback.Info("Sélectionnez un utilisateur.");
             return;
         }
         var dlg = new UtilisateurEditWindow(u) { Owner = this };
@@ -94,10 +109,11 @@ public partial class UtilisateursWindow : Window
 
     private void ChangerMotDePasse_Click(object sender, RoutedEventArgs e)
     {
+        if (!DroitsUi.PeutAdministrer) return;
         var u = GetSelectionne();
         if (u == null)
         {
-            MessageBox.Show(this, "Sélectionnez un utilisateur.", "Mot de passe", MessageBoxButton.OK, MessageBoxImage.Information);
+            UiFeedback.Info("Sélectionnez un utilisateur.");
             return;
         }
         var dlg = new ChangerMotDePasseWindow(u.Login) { Owner = this };
@@ -111,15 +127,16 @@ public partial class UtilisateursWindow : Window
             entite.Salt = salt;
             db.SaveChanges();
         }
-        MessageBox.Show(this, "Mot de passe modifié.", "Mot de passe", MessageBoxButton.OK, MessageBoxImage.Information);
+        UiFeedback.Succes("Mot de passe modifié.");
     }
 
     private void Supprimer_Click(object sender, RoutedEventArgs e)
     {
+        if (!DroitsUi.PeutAdministrer) return;
         var u = GetSelectionne();
         if (u == null)
         {
-            MessageBox.Show(this, "Sélectionnez un utilisateur.", "Supprimer", MessageBoxButton.OK, MessageBoxImage.Information);
+            UiFeedback.Info("Sélectionnez un utilisateur.");
             return;
         }
         if (AuthService.UtilisateurCourant?.Id == u.Id)

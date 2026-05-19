@@ -32,6 +32,9 @@ public sealed class DetailJourEmployeVm : INotifyPropertyChanged
         decimal heuresPrestees,
         bool estLayoutSemaine,
         bool estLayoutSamedi,
+        bool estLayoutEntreeSortie,
+        bool afficherChampsPause,
+        bool estLayoutTroisPointages,
         bool peutEditerMoments,
         IReadOnlyList<DateTime> extrasOriginaux)
     {
@@ -43,6 +46,11 @@ public sealed class DetailJourEmployeVm : INotifyPropertyChanged
         _heuresPrestees = heuresPrestees;
         EstLayoutSemaine = estLayoutSemaine;
         EstLayoutSamedi = estLayoutSamedi;
+        EstLayoutEntreeSortie = estLayoutEntreeSortie;
+        AfficherChampsPause = afficherChampsPause;
+        EstLayoutTroisPointages = estLayoutTroisPointages;
+        AfficherGrilleJourOuvrable = estLayoutSemaine || estLayoutEntreeSortie;
+        AfficherFinPause = estLayoutSemaine && !estLayoutTroisPointages;
         PeutEditerMoments = peutEditerMoments;
         _extrasOriginaux = extrasOriginaux.Count > 0 ? new List<DateTime>(extrasOriginaux) : new List<DateTime>();
         PointagesSupplementaires = new ObservableCollection<string>();
@@ -94,6 +102,21 @@ public sealed class DetailJourEmployeVm : INotifyPropertyChanged
     public bool EstLayoutSemaine { get; }
     public bool EstLayoutSamedi { get; }
 
+    /// <summary>Lun–ven en mode 2 pointages : entrée et sortie seulement.</summary>
+    public bool EstLayoutEntreeSortie { get; }
+
+    /// <summary>Affiche début/fin pause (mode 4) ou pause unique (mode 3).</summary>
+    public bool AfficherChampsPause { get; }
+
+    /// <summary>Mode 3 : une seule case « pause » (début pause).</summary>
+    public bool EstLayoutTroisPointages { get; }
+
+    /// <summary>Affiche la grille d’édition lun–ven (2, 3 ou 4 pointages).</summary>
+    public bool AfficherGrilleJourOuvrable { get; }
+
+    /// <summary>Affiche le champ « fin de pause » (mode 4 uniquement).</summary>
+    public bool AfficherFinPause { get; }
+
     /// <summary>Édition réservée aux jours normaux non « heures manuelles ».</summary>
     public bool PeutEditerMoments { get; }
 
@@ -141,7 +164,8 @@ public sealed class DetailJourEmployeVm : INotifyPropertyChanged
         DateTime jour,
         SuiviJournalierPdfLigne lignePdf,
         SuiviJournalier? suivi,
-        IReadOnlyList<DateTime> pointagesTriés)
+        IReadOnlyList<DateTime> pointagesTriés,
+        LtServicesRegles? regles = null)
     {
         var titre = jour.ToString("dddd d MMMM yyyy", Fr);
         var sous = $"{lignePdf.JourSemaine} · {lignePdf.TypeJour}";
@@ -149,11 +173,15 @@ public sealed class DetailJourEmployeVm : INotifyPropertyChanged
         var typeOk = lignePdf.TypeJour == SuiviJournalier.TypeNormal;
         var manuel = suivi?.HeuresManuelles == true;
 
-        var decoupe = PointagesMomentsHelper.Decouper(pointagesTriés, jour);
+        var r = regles ?? LtServicesRegles.Defaut;
+        var decoupe = PointagesMomentsHelper.Decouper(pointagesTriés, jour, r);
         var dow = jour.DayOfWeek;
         var estSemaine = dow is >= DayOfWeek.Monday and <= DayOfWeek.Friday;
         var estSamedi = dow == DayOfWeek.Saturday;
-        var peutEditerMoments = typeOk && !manuel && (estSemaine || estSamedi);
+        var layoutDeux = estSemaine && r.UtiliseDeuxPointages;
+        var layoutTrois = estSemaine && r.UtiliseTroisPointages;
+        var layoutQuatre = estSemaine && r.UtiliseQuatrePointages;
+        var peutEditerMoments = DroitsUi.PeutModifier && typeOk && !manuel && (estSemaine || estSamedi);
 
         var vm = new DetailJourEmployeVm(
             jour,
@@ -162,20 +190,29 @@ public sealed class DetailJourEmployeVm : INotifyPropertyChanged
             lignePdf.TypeJour,
             lignePdf.ModeCalcul,
             lignePdf.HeuresPrestees,
-            estSemaine,
+            layoutQuatre || layoutTrois,
             estSamedi,
+            layoutDeux,
+            layoutTrois || layoutQuatre,
+            layoutTrois,
             peutEditerMoments,
             decoupe.PointagesSupplementaires);
         vm.TypeJourSelectionne = lignePdf.TypeJour;
 
-        if (estSemaine)
+        if (layoutQuatre)
         {
             vm.EntreeHhMm = PointagesMomentsHelper.FormaterHhMm(decoupe.Entree);
             vm.DebutPauseHhMm = PointagesMomentsHelper.FormaterHhMm(decoupe.DebutPause);
             vm.FinPauseHhMm = PointagesMomentsHelper.FormaterHhMm(decoupe.FinPause);
             vm.SortieHhMm = PointagesMomentsHelper.FormaterHhMm(decoupe.Sortie);
         }
-        else if (estSamedi)
+        else if (layoutTrois)
+        {
+            vm.EntreeHhMm = PointagesMomentsHelper.FormaterHhMm(decoupe.Entree);
+            vm.DebutPauseHhMm = PointagesMomentsHelper.FormaterHhMm(decoupe.DebutPause);
+            vm.SortieHhMm = PointagesMomentsHelper.FormaterHhMm(decoupe.Sortie);
+        }
+        else if (layoutDeux || estSamedi)
         {
             vm.EntreeHhMm = PointagesMomentsHelper.FormaterHhMm(decoupe.Entree);
             vm.SortieHhMm = PointagesMomentsHelper.FormaterHhMm(decoupe.Sortie);
@@ -189,6 +226,16 @@ public sealed class DetailJourEmployeVm : INotifyPropertyChanged
     {
         liste = new List<DateTime>();
         erreur = "";
+
+        if (EstLayoutEntreeSortie && !EstLayoutSamedi)
+        {
+            return ConstruireEntreeSortie(out liste, out erreur);
+        }
+
+        if (EstLayoutTroisPointages)
+        {
+            return ConstruireTroisPointages(out liste, out erreur);
+        }
 
         if (EstLayoutSemaine)
         {
@@ -221,49 +268,86 @@ public sealed class DetailJourEmployeVm : INotifyPropertyChanged
         }
 
         if (EstLayoutSamedi)
-        {
-            DateTime? e = null;
-            DateTime? s = null;
-            if (!string.IsNullOrWhiteSpace(EntreeHhMm))
-            {
-                if (!PointagesMomentsHelper.TryParseHeureDuJour(EntreeHhMm, Jour, out var dt))
-                {
-                    erreur = $"Entrée invalide : « {EntreeHhMm.Trim()} ».";
-                    return false;
-                }
-
-                e = dt;
-            }
-
-            if (!string.IsNullOrWhiteSpace(SortieHhMm))
-            {
-                if (!PointagesMomentsHelper.TryParseHeureDuJour(SortieHhMm, Jour, out var dt))
-                {
-                    erreur = $"Sortie invalide : « {SortieHhMm.Trim()} ».";
-                    return false;
-                }
-
-                s = dt;
-            }
-
-            if (e.HasValue)
-                liste.Add(e.Value);
-            liste.AddRange(_extrasOriginaux);
-            if (s.HasValue)
-                liste.Add(s.Value);
-            liste = liste.OrderBy(x => x).ToList();
-
-            if (liste.Count >= 2 && liste[0] >= liste[^1])
-            {
-                erreur = "L’entrée doit être avant la sortie.";
-                return false;
-            }
-
-            return true;
-        }
+            return ConstruireEntreeSortie(out liste, out erreur);
 
         erreur = "Ce jour ne prend pas en charge l’édition des moments.";
         return false;
+    }
+
+    private bool ConstruireEntreeSortie(out List<DateTime> liste, out string erreur)
+    {
+        liste = new List<DateTime>();
+        erreur = "";
+        DateTime? e = null;
+        DateTime? s = null;
+        if (!string.IsNullOrWhiteSpace(EntreeHhMm))
+        {
+            if (!PointagesMomentsHelper.TryParseHeureDuJour(EntreeHhMm, Jour, out var dt))
+            {
+                erreur = $"Entrée invalide : « {EntreeHhMm.Trim()} ».";
+                return false;
+            }
+
+            e = dt;
+        }
+
+        if (!string.IsNullOrWhiteSpace(SortieHhMm))
+        {
+            if (!PointagesMomentsHelper.TryParseHeureDuJour(SortieHhMm, Jour, out var dt))
+            {
+                erreur = $"Sortie invalide : « {SortieHhMm.Trim()} ».";
+                return false;
+            }
+
+            s = dt;
+        }
+
+        if (e.HasValue)
+            liste.Add(e.Value);
+        liste.AddRange(_extrasOriginaux);
+        if (s.HasValue)
+            liste.Add(s.Value);
+        liste = liste.OrderBy(x => x).ToList();
+
+        if (liste.Count >= 2 && liste[0] >= liste[^1])
+        {
+            erreur = "L’entrée doit être avant la sortie.";
+            return false;
+        }
+
+        return true;
+    }
+
+    private bool ConstruireTroisPointages(out List<DateTime> liste, out string erreur)
+    {
+        liste = new List<DateTime>();
+        erreur = "";
+        foreach (var txt in new[] { EntreeHhMm, DebutPauseHhMm, SortieHhMm })
+        {
+            if (string.IsNullOrWhiteSpace(txt))
+                continue;
+            if (!PointagesMomentsHelper.TryParseHeureDuJour(txt, Jour, out var dt))
+            {
+                erreur = $"Heure invalide : « {txt.Trim()} ». Utilisez le format HH:mm (ex. 14:25).";
+                return false;
+            }
+
+            liste.Add(dt);
+        }
+
+        var chaine = liste.ToList();
+        for (var i = 1; i < chaine.Count; i++)
+        {
+            if (chaine[i] <= chaine[i - 1])
+            {
+                erreur = "Les horaires doivent être strictement croissants (entrée → pause → sortie).";
+                return false;
+            }
+        }
+
+        liste.AddRange(_extrasOriginaux);
+        liste = liste.OrderBy(x => x).ToList();
+        return true;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

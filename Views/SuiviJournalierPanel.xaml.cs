@@ -1,8 +1,10 @@
 using System;
+using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
 using Microsoft.Win32;
 
@@ -22,31 +24,85 @@ public partial class SuiviJournalierPanel : UserControl
         var vm = new SuiviJournalierViewModel(db);
         vm.ChargerEmployes();
         vm.ChargerPeriodes();
-        vm.OnErreur = msg => MessageBox.Show(msg, "Pointage journalier", MessageBoxButton.OK, MessageBoxImage.Warning);
-        vm.OnMessageInformation = msg => MessageBox.Show(msg, "Terminal ZKTeco", MessageBoxButton.OK, MessageBoxImage.Information);
+        vm.OnErreur = msg => AppNotificationService.Avertissement(msg);
+        vm.OnMessageInformation = msg => AppNotificationService.Afficher(msg, NotificationKind.Info);
         vm.OnSauvegardeReussie = () =>
-            MessageBox.Show("Les données du pointage journalier ont été enregistrées.", "Pointage journalier",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+        {
+            AppNotificationService.Succes("Pointage journalier enregistré.");
+            AppSessionEvents.NotifierDonneesMetierModifiees();
+        };
         DataContext = vm;
+        vm.PropertyChanged += ViewModelOnPropertyChanged;
         Loaded += (_, _) =>
         {
             vm.RafraichirAffichageTerminalDepuisBase();
-            vm.SelectionnerPremiersParDefaut();
+            vm.SelectionnerPeriodeMoisCourant();
+            AppliquerVisibiliteColonnesPresence();
         };
         IsVisibleChanged += (_, _) =>
         {
             if (DataContext is not SuiviJournalierViewModel v)
                 return;
             if (IsVisible)
+            {
                 v.DemarrerSurveillancePresenceAutomatique();
+                AppliquerVisibiliteColonnesPresence();
+            }
             else
                 v.ArreterSurveillancePresenceAutomatique();
         };
+        AppSessionEvents.EntrepriseCouranteChanged += OnEntrepriseCouranteChanged;
+        AppSessionEvents.SessionUtilisateurChanged += OnSessionUtilisateurChanged;
         Unloaded += (_, _) =>
         {
             if (DataContext is SuiviJournalierViewModel v)
                 v.ArreterSurveillancePresenceAutomatique();
+            AppSessionEvents.EntrepriseCouranteChanged -= OnEntrepriseCouranteChanged;
+            AppSessionEvents.SessionUtilisateurChanged -= OnSessionUtilisateurChanged;
         };
+    }
+
+    private void OnSessionUtilisateurChanged() =>
+        Dispatcher.Invoke(() => SuiviViewModel?.NotifierDroitsModification());
+
+    public void RafraichirPourEntrepriseCourante()
+    {
+        if (DataContext is not SuiviJournalierViewModel vm)
+            return;
+        vm.ChargerEmployes();
+        vm.ChargerPeriodes();
+        vm.RafraichirAffichageTerminalDepuisBase();
+        if (IsVisible)
+            vm.DemarrerSurveillancePresenceAutomatique();
+    }
+
+    private void OnEntrepriseCouranteChanged() =>
+        Dispatcher.Invoke(RafraichirPourEntrepriseCourante);
+
+    private void ViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(SuiviJournalierViewModel.PresenceAfficherColonnesPause)
+            or nameof(SuiviJournalierViewModel.PresenceAfficherColonneFinPause)
+            or nameof(SuiviJournalierViewModel.PresenceEnteteColonnePause))
+            AppliquerVisibiliteColonnesPresence();
+    }
+
+    /// <summary>Les colonnes DataGrid n’héritent pas du DataContext : visibilité pilotée en code.</summary>
+    private void GrillePresenceSynthese_SelectionChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (SuiviViewModel == null || GrillePresenceSynthese.SelectedItem is not PresenceEmployeSyntheseLigne ligne)
+            return;
+        SuiviViewModel.SelectionnerEmployeParMatricule(ligne.Matricule);
+    }
+
+    private void AppliquerVisibiliteColonnesPresence()
+    {
+        if (DataContext is not SuiviJournalierViewModel vm)
+            return;
+
+        ColDebutPause.Visibility = vm.PresenceAfficherColonnesPause ? Visibility.Visible : Visibility.Collapsed;
+        ColFinPause.Visibility = vm.PresenceAfficherColonneFinPause ? Visibility.Visible : Visibility.Collapsed;
+        ColDebutPause.Header = vm.PresenceEnteteColonnePause;
     }
 
     /// <summary>En mode fenêtre modale : fermer la fenêtre après succès au lieu du simple message (réécrit l'action par défaut).</summary>
@@ -55,8 +111,8 @@ public partial class SuiviJournalierPanel : UserControl
         if (DataContext is not SuiviJournalierViewModel vm) return;
         vm.OnSauvegardeReussie = () =>
         {
-            MessageBox.Show(fenetre, "Les données du pointage journalier ont été enregistrées.", "Pointage journalier",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            AppNotificationService.Succes("Pointage journalier enregistré.");
+            AppSessionEvents.NotifierDonneesMetierModifiees();
             fenetre.DialogResult = true;
             fenetre.Close();
         };
@@ -82,15 +138,11 @@ public partial class SuiviJournalierPanel : UserControl
         try
         {
             vm.ExporterPointesAujourdhuiPdf(dlg.FileName);
-            MessageBox.Show(
-                $"Le fichier PDF a été enregistré :{Environment.NewLine}{dlg.FileName}",
-                "Exporter PDF",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            AppNotificationService.Succes("PDF du jour exporté.");
         }
         catch (Exception ex)
         {
-            MessageBox.Show(ex.Message, "Exporter PDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+            AppNotificationService.Avertissement(ex.Message);
         }
     }
 
@@ -100,8 +152,7 @@ public partial class SuiviJournalierPanel : UserControl
             return;
         if (vm.PeriodeSelectionnee == null)
         {
-            MessageBox.Show("Sélectionnez d’abord une période de paie.", "PDF tous employés",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            AppNotificationService.Afficher("Sélectionnez d'abord une période de paie.", NotificationKind.Info);
             return;
         }
 
@@ -120,15 +171,11 @@ public partial class SuiviJournalierPanel : UserControl
         try
         {
             vm.ExporterSuiviJournalierPdfTousEmployes(dlg.FileName);
-            MessageBox.Show(
-                $"Le fichier PDF a été enregistré :{Environment.NewLine}{dlg.FileName}",
-                "PDF tous employés",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            AppNotificationService.Succes("PDF pointage (tous employés) exporté.");
         }
         catch (Exception ex)
         {
-            MessageBox.Show(ex.Message, "PDF tous employés", MessageBoxButton.OK, MessageBoxImage.Warning);
+            AppNotificationService.Avertissement(ex.Message);
         }
     }
 }

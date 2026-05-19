@@ -235,7 +235,7 @@
 
                                 <TextBlock Grid.Row="1" FontSize="12" Foreground="#64748B" Margin="0,0,0,8">
                                     <Run Text="Total du mois affiché : "/>
-                                    <Run Text="{Binding TotalHeuresMoisAfficheLibelle, Mode=OneWay}" FontWeight="SemiBold" Foreground="#1E3A5F"/>
+                                    <Run Text="{Binding TotalHeuresMoisAfficheLibelle, Mode=OneWay}" FontWeight="SemiBold" Foreground="{DynamicResource BrandPrimaryBrush}"/>
                                 </TextBlock>
 
                                 <!-- En-têtes jours (lundi → dimanche) -->
@@ -422,7 +422,7 @@
                                     </Style>
                                 </StackPanel.Style>
                                 <TextBlock Text="Journée sélectionnée" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,4"/>
-                                <TextBlock Text="{Binding DetailJour.TitreDate}" FontSize="15" FontWeight="SemiBold" Foreground="#1E3A5F" TextWrapping="Wrap"/>
+                                <TextBlock Text="{Binding DetailJour.TitreDate}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource BrandPrimaryBrush}" TextWrapping="Wrap"/>
                                 <TextBlock Text="{Binding DetailJour.SousTitreJour}" FontSize="12" Foreground="#64748B" Margin="0,4,0,12" TextWrapping="Wrap"/>
 
                                 <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="10,8" Margin="0,0,0,10">
@@ -471,7 +471,7 @@
 
                                 <TextBlock Text="Moments de pointage" FontSize="12" FontWeight="Bold" Foreground="#0D9488" Margin="0,4,0,6"/>
                                 <TextBlock TextWrapping="Wrap" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,10"
-                                           Text="En semaine, le moteur LT aligne entrée, début / fin de pause et sortie sur les quatre premiers horodatages (chronologie). Les autres lectures restent listées ci‑dessous."/>
+                                           Text="Lun–ven : édition selon le mode de pointage de l’entreprise (2, 3 ou 4 lectures). Les lectures supplémentaires restent listées ci‑dessous."/>
 
                                 <!-- Lun–Ven -->
                                 <StackPanel Margin="0,0,0,10">
@@ -479,7 +479,7 @@
                                         <Style TargetType="StackPanel">
                                             <Setter Property="Visibility" Value="Collapsed"/>
                                             <Style.Triggers>
-                                                <DataTrigger Binding="{Binding DetailJour.EstLayoutSemaine}" Value="True">
+                                                <DataTrigger Binding="{Binding DetailJour.AfficherGrilleJourOuvrable}" Value="True">
                                                     <Setter Property="Visibility" Value="Visible"/>
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -500,6 +500,16 @@
                                         </Grid>
                                     </Border>
                                     <Border CornerRadius="12" Padding="10,8" Margin="0,0,0,8" BorderThickness="2" BorderBrush="#F59E0B" Background="#FFFBEB">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DetailJour.AfficherChampsPause}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
@@ -507,13 +517,34 @@
                                             </Grid.ColumnDefinitions>
                                             <materialDesign:PackIcon Kind="CoffeeOutline" Width="22" Height="22" Foreground="#D97706" VerticalAlignment="Center"/>
                                             <StackPanel Grid.Column="1" Margin="10,0,0,0">
-                                                <TextBlock Text="Début de pause" FontWeight="Bold" FontSize="12" Foreground="#B45309"/>
+                                                <TextBlock FontWeight="Bold" FontSize="12" Foreground="#B45309">
+                                                    <TextBlock.Style>
+                                                        <Style TargetType="TextBlock">
+                                                            <Setter Property="Text" Value="Début de pause"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding DetailJour.EstLayoutTroisPointages}" Value="True">
+                                                                    <Setter Property="Text" Value="Pause"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </TextBlock.Style>
+                                                </TextBlock>
                                                 <TextBox Text="{Binding DetailJour.DebutPauseHhMm, UpdateSourceTrigger=PropertyChanged}" materialDesign:HintAssist.Hint="HH:mm"
                                                          IsEnabled="{Binding DetailJour.PeutEditerMoments}" Margin="0,4,0,0" FontSize="15" FontWeight="SemiBold" Foreground="#78350F"/>
                                             </StackPanel>
                                         </Grid>
                                     </Border>
                                     <Border CornerRadius="12" Padding="10,8" Margin="0,0,0,8" BorderThickness="2" BorderBrush="#F97316" Background="#FFF7ED">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding DetailJour.AfficherFinPause}" Value="True">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="Auto"/>
@@ -596,7 +627,7 @@
                                             <Style.Triggers>
                                                 <MultiDataTrigger>
                                                     <MultiDataTrigger.Conditions>
-                                                        <Condition Binding="{Binding DetailJour.EstLayoutSemaine}" Value="False"/>
+                                                        <Condition Binding="{Binding DetailJour.AfficherGrilleJourOuvrable}" Value="False"/>
                                                         <Condition Binding="{Binding DetailJour.EstLayoutSamedi}" Value="False"/>
                                                     </MultiDataTrigger.Conditions>
                                                     <Setter Property="Visibility" Value="Visible"/>
@@ -917,13 +948,13 @@
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <materialDesign:PackIcon Kind="Sigma" Width="22" Height="22" Foreground="#1E3A5F" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Kind="Sigma" Width="22" Height="22" Foreground="{DynamicResource BrandPrimaryBrush}" Margin="0,0,10,0" VerticalAlignment="Center"/>
                         <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#37474F">
                             <Run Text="Période : " FontWeight="SemiBold"/>
                             <Run Text="{Binding PériodeLibellé, Mode=OneWay}"/>
                         </TextBlock>
                     </StackPanel>
-                    <TextBlock Grid.Column="1" FontSize="15" FontWeight="SemiBold" Foreground="#1E3A5F" VerticalAlignment="Center">
+                    <TextBlock Grid.Column="1" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource BrandPrimaryBrush}" VerticalAlignment="Center">
                         <Run Text="Total général : "/>
                         <Run Text="{Binding TotalGeneralHeuresLibelle, Mode=OneWay}"/>
                     </TextBlock>

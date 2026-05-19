@@ -12,12 +12,7 @@
         TextElement.FontSize="14"
         FontFamily="{materialDesign:MaterialDesignFont}">
     <Window.Resources>
-        <!-- Sidebar : palette cohérente -->
-        <SolidColorBrush x:Key="SidebarBrush" Color="#152238"/>
-        <SolidColorBrush x:Key="SidebarHoverBrush" Color="#243652"/>
-        <SolidColorBrush x:Key="SidebarSelectedBrush" Color="#1E3A5F"/>
-        <SolidColorBrush x:Key="SidebarAccentBrush" Color="#4FC3F7"/>
-        <SolidColorBrush x:Key="SidebarMutedBrush" Color="#8BA3C4"/>
+        <!-- Sidebar : palette entreprise (clés définies dans Themes/BrandResources.xaml) -->
         <helpers:MenuIndexEqualsConverter x:Key="MenuIndexEqualsConverter"/>
         <helpers:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
         <!-- Libellé de section (non cliquable) -->
@@ -163,8 +158,8 @@
                             <Border Width="42" Height="42" CornerRadius="12" VerticalAlignment="Top" Margin="0,0,14,0">
                                 <Border.Background>
                                     <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                        <GradientStop Color="#0078D4" Offset="0"/>
-                                        <GradientStop Color="#00A6B8" Offset="1"/>
+                                        <GradientStop Color="{DynamicResource BrandPrimaryColor}" Offset="0"/>
+                                        <GradientStop Color="{DynamicResource BrandSecondaryColor}" Offset="1"/>
                                     </LinearGradientBrush>
                                 </Border.Background>
                                 <materialDesign:PackIcon Kind="CalculatorVariant" Width="24" Height="24" Foreground="White"
@@ -179,13 +174,13 @@
                             <TextBlock Text="Vue d’ensemble · Temps · RH · Paie · Admin" FontSize="10" Foreground="#B0C4DE" FontWeight="Medium" TextWrapping="Wrap"/>
                         </Border>
                         <TextBlock Text="Entreprise active" FontSize="10" Foreground="{StaticResource SidebarMutedBrush}" Margin="0,16,0,4"/>
-                        <TextBlock Text="{Binding EntrepriseCouranteLibelle}" FontSize="12" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding EntrepriseCouranteLibelle, Mode=OneWay}" FontSize="12" FontWeight="SemiBold" Foreground="White" TextWrapping="Wrap"/>
                         <ComboBox ItemsSource="{Binding EntreprisesDisponibles}"
-                                  SelectedValue="{Binding EntrepriseCouranteId, Mode=TwoWay}"
-                                  SelectedValuePath="Id"
+                                  SelectedItem="{Binding EntrepriseCouranteSelection, Mode=TwoWay}"
                                   DisplayMemberPath="RaisonSociale"
+                                  Validation.ErrorTemplate="{x:Null}"
                                   Margin="0,6,0,0"
-                                  Foreground="#1E3A5F"/>
+                                  Foreground="{DynamicResource BrandPrimaryBrush}"/>
                     </StackPanel>
                 </Border>
                 <Border Grid.Row="1" Height="1" Margin="20,0" VerticalAlignment="Bottom">
@@ -206,6 +201,13 @@
                             <DockPanel LastChildFill="True">
                                 <materialDesign:PackIcon DockPanel.Dock="Left" Kind="ViewDashboard" Width="22" Height="22" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
                                 <TextBlock Text="Tableau de bord" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
+                                <Border DockPanel.Dock="Right" MinWidth="20" Height="20" CornerRadius="10" Padding="6,2"
+                                        Margin="8,0,0,0" VerticalAlignment="Center"
+                                        Background="#FF7043"
+                                        Visibility="{Binding AfficherBadgeChecklist, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <TextBlock Text="{Binding BadgeChecklistLibelle}" FontSize="10" FontWeight="Bold"
+                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
                             </DockPanel>
                         </Button>
 
@@ -270,6 +272,24 @@
                         </Button>
                     </StackPanel>
                 </ScrollViewer>
+                <!-- Pied de menu : session -->
+                <Border Grid.Row="3" Padding="16,12,16,16" BorderBrush="#335A80" BorderThickness="0,1,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{Binding NomUtilisateurConnecte, Mode=OneWay}" FontSize="10" Foreground="#B0C4DE" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                        <Button Command="{Binding DeconnecterCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Foreground="White"
+                                BorderBrush="#5A7A9A"
+                                Padding="10,6"
+                                HorizontalAlignment="Stretch"
+                                materialDesign:ButtonAssist.CornerRadius="8">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                <materialDesign:PackIcon Kind="Logout" Width="16" Height="16" Margin="0,0,6,0"/>
+                                <TextBlock Text="Se déconnecter" FontSize="12"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Border>
             </Grid>
         </Border>
 
@@ -279,11 +299,49 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
+                <!-- Bandeau session / entreprise active -->
+                <Border Grid.Row="0" Margin="0,0,0,12" CornerRadius="12" Padding="14,10" BorderBrush="#BBDEFB" BorderThickness="1">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                            <GradientStop Color="#E3F2FD" Offset="0"/>
+                            <GradientStop Color="#FFFFFF" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="Domain" Width="20" Height="20" Foreground="#1565C0" Margin="0,0,10,0"/>
+                            <TextBlock VerticalAlignment="Center" FontSize="13" Foreground="#0D47A1">
+                                <Run Text="Entreprise active : " FontWeight="SemiBold"/>
+                                <Run Text="{Binding EntrepriseCouranteLibelle, Mode=OneWay}" FontWeight="Bold"/>
+                            </TextBlock>
+                        </StackPanel>
+                        <Border Grid.Column="1" Background="#FFF3E0" CornerRadius="8" Padding="10,4"
+                                Visibility="{Binding AfficherBandeauLectureSeule, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="Mode lecture seule" FontSize="11" FontWeight="SemiBold" Foreground="#E65100"/>
+                        </Border>
+                    </Grid>
+                </Border>
+
+                <!-- Notifications non bloquantes -->
+                <Border x:Name="BandeauNotification" Grid.Row="1" Margin="0,0,0,12" CornerRadius="10" Padding="12,8"
+                        Visibility="Collapsed" BorderThickness="1" BorderBrush="#A5D6A7" Background="#E8F5E9">
+                    <DockPanel LastChildFill="True">
+                        <materialDesign:PackIcon x:Name="IconeNotification" DockPanel.Dock="Left" Kind="InformationOutline" Width="18" Height="18" Margin="0,0,10,0" Foreground="#2E7D32"/>
+                        <TextBlock x:Name="TexteNotification" TextWrapping="Wrap" VerticalAlignment="Center" FontSize="12.5" Foreground="#1B5E20"/>
+                    </DockPanel>
+                </Border>
+
                 <!-- En-tête section : design statement avec accent dynamique -->
-                <Border Grid.Row="0" Margin="0,0,0,24">
+                <Border Grid.Row="2" Margin="0,0,0,24">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
@@ -371,7 +429,7 @@
                 </Border>
 
                 <!-- KPI Cards : uniquement sur le tableau de bord pour aérer les autres écrans -->
-                <Grid Grid.Row="1" Margin="0,0,0,24">
+                <Grid Grid.Row="3" Margin="0,0,0,24">
                     <Grid.Style>
                         <Style TargetType="Grid">
                             <Setter Property="Visibility" Value="Collapsed"/>
@@ -440,7 +498,7 @@
                 </Grid>
 
                 <!-- Employés (menu 3) -->
-                <Border Grid.Row="2" CornerRadius="14" Padding="0" ClipToBounds="True"
+                <Border Grid.Row="4" CornerRadius="14" Padding="0" ClipToBounds="True"
                         BorderBrush="#D6E4F0" BorderThickness="1"
                         Visibility="{Binding MenuSelectionne, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=3}">
                     <Border.Background>
@@ -612,7 +670,8 @@
                                     </ScrollViewer>
                                 </Border>
 
-                                <Border Grid.Row="1" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" MinHeight="280" VerticalAlignment="Stretch">
+                                <Grid Grid.Row="1" MinHeight="280">
+                                    <Border Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" VerticalAlignment="Stretch">
                                     <Border.Effect>
                                         <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.06"/>
                                     </Border.Effect>
@@ -686,14 +745,45 @@
                                             <DataGridTextColumn Header="Salaire / h (FC)" Binding="{Binding SalaireHeureCdf, StringFormat=N0}" Width="112"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
-                                </Border>
+                                    </Border>
+
+                                    <Border CornerRadius="12" Background="#F7FAFD" BorderBrush="#B2DFDB" BorderThickness="1"
+                                            HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="24" Padding="32,28">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding NbEmployes}" Value="0">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <StackPanel HorizontalAlignment="Center" MaxWidth="420">
+                                            <materialDesign:PackIcon Kind="AccountPlusOutline" Width="48" Height="48" Foreground="#00838F"
+                                                                     HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                                            <TextBlock Text="Aucun employé pour cette entreprise" FontSize="16" FontWeight="SemiBold"
+                                                       Foreground="#0D47A1" TextAlignment="Center" Margin="0,0,0,8"/>
+                                            <TextBlock Text="Créez votre premier dossier pour démarrer le pointage, les contrats et la paie."
+                                                       TextWrapping="Wrap" TextAlignment="Center" Foreground="#546E7A" FontSize="13" Margin="0,0,0,20"/>
+                                            <Button Command="{Binding NouvelEmployeCommand}" HorizontalAlignment="Center"
+                                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                                    materialDesign:ButtonAssist.CornerRadius="8" Padding="18,10">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="AccountPlus" Width="18" Height="18" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="Créer le premier employé" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
                             </Grid>
                         </Border>
                     </Grid>
                 </Border>
 
                 <!-- Calcul de paie (menu 4) -->
-                <Border Grid.Row="2" CornerRadius="14" Padding="0" ClipToBounds="True"
+                <Border Grid.Row="4" CornerRadius="14" Padding="0" ClipToBounds="True"
                         BorderBrush="#D6E4F0" BorderThickness="1"
                         Visibility="{Binding MenuSelectionne, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=4}">
                     <Border.Background>
@@ -907,7 +997,7 @@
                 </Border>
 
                 <!-- Déclarations CNSS / IPR (menu 5) -->
-                <Border Grid.Row="2" CornerRadius="14" Padding="0" ClipToBounds="True"
+                <Border Grid.Row="4" CornerRadius="14" Padding="0" ClipToBounds="True"
                         BorderBrush="#D6E4F0" BorderThickness="1"
                         Visibility="{Binding MenuSelectionne, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=5}">
                     <Border.Background>
@@ -1220,7 +1310,7 @@
                 </Border>
 
                 <!-- Rapport de paie (menu 8) -->
-                <Border Grid.Row="2" CornerRadius="14" Padding="0" ClipToBounds="True"
+                <Border Grid.Row="4" CornerRadius="14" Padding="0" ClipToBounds="True"
                         BorderBrush="#D6E4F0" BorderThickness="1"
                         Visibility="{Binding MenuSelectionne, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=8}">
                     <Border.Background>
@@ -1469,7 +1559,7 @@
                 </Border>
 
                 <!-- Pointage journalier (menu 1) -->
-                <Border Grid.Row="2" CornerRadius="14" Padding="0" ClipToBounds="True"
+                <Border Grid.Row="4" CornerRadius="14" Padding="0" ClipToBounds="True"
                         BorderBrush="#D6E4F0" BorderThickness="1"
                         Visibility="{Binding MenuSelectionne, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=1}">
                     <Border.Background>
@@ -1490,8 +1580,8 @@
                         <Border Grid.Row="0" Padding="20,16">
                             <Border.Background>
                                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                                    <GradientStop Color="#1E3A5F" Offset="0"/>
-                                    <GradientStop Color="#2D5A8A" Offset="1"/>
+                                    <GradientStop Color="{DynamicResource BrandPrimaryColor}" Offset="0"/>
+                                    <GradientStop Color="{DynamicResource BrandPrimaryLightColor}" Offset="1"/>
                                 </LinearGradientBrush>
                             </Border.Background>
                             <Grid>
@@ -1505,8 +1595,8 @@
                                                                  HorizontalAlignment="Center" VerticalAlignment="Center"/>
                                     </Border>
                                     <StackPanel VerticalAlignment="Center">
-                                        <TextBlock Text="Présence &amp; temps de travail" FontSize="15" FontWeight="SemiBold" Foreground="White"/>
-                                        <TextBlock Text="Heures, absences et maladie par employé — utilisé pour le calcul de paie."
+                                        <TextBlock Text="Présence en direct" FontSize="15" FontWeight="SemiBold" Foreground="White"/>
+                                        <TextBlock Text="Pointages du jour (terminal) · clic sur un employé pour son mois. Totaux paie : menu suivant."
                                                    FontSize="12" Foreground="#C5D4E8" TextWrapping="Wrap" MaxWidth="520" Margin="0,4,0,0"/>
                                     </StackPanel>
                                 </StackPanel>
@@ -1527,13 +1617,13 @@
                             </Grid>
                         </Border>
                         <Border Grid.Row="1" Background="Transparent" Padding="20,16,20,20">
-                            <views:SuiviJournalierPanel MinHeight="340"/>
+                            <views:SuiviJournalierPanel x:Name="PanneauSuiviJournalier" MinHeight="340"/>
                         </Border>
                     </Grid>
                 </Border>
 
                 <!-- Totaux heures pour la paie (menu 2) -->
-                <Border Grid.Row="2" CornerRadius="14" Padding="0" ClipToBounds="True"
+                <Border Grid.Row="4" CornerRadius="14" Padding="0" ClipToBounds="True"
                         BorderBrush="#D6E4F0" BorderThickness="1"
                         Visibility="{Binding MenuSelectionne, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=2}">
                     <Border.Background>
@@ -1570,13 +1660,13 @@
                             </StackPanel>
                         </Border>
                         <Border Grid.Row="1" Background="Transparent" Padding="20,16,20,20">
-                            <views:HeuresPresteesTotauxPanel MinHeight="320"/>
+                            <views:HeuresPresteesTotauxPanel x:Name="PanneauHeuresPrestees" MinHeight="320"/>
                         </Border>
                     </Grid>
                 </Border>
 
                 <!-- Bulletins générés (menu 7) -->
-                <Border Grid.Row="2" CornerRadius="14" Padding="0" ClipToBounds="True"
+                <Border Grid.Row="4" CornerRadius="14" Padding="0" ClipToBounds="True"
                         BorderBrush="#D6E4F0" BorderThickness="1"
                         Visibility="{Binding MenuSelectionne, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=7}">
                     <Border.Background>
@@ -1801,7 +1891,7 @@
                 </Border>
 
                 <!-- Paramètres (menu 6) -->
-                <Border Grid.Row="2" CornerRadius="14" Padding="0" ClipToBounds="True"
+                <Border Grid.Row="4" CornerRadius="14" Padding="0" ClipToBounds="True"
                         BorderBrush="#D6E4F0" BorderThickness="1"
                         Visibility="{Binding MenuSelectionne, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=6}">
                     <Border.Background>
@@ -1969,18 +2059,10 @@
                                                     </Button>
                                                     <Button Command="{Binding OuvrirCalendrierTravailCommand}"
                                                             Style="{StaticResource MaterialDesignOutlinedButton}"
-                                                            materialDesign:ButtonAssist.CornerRadius="8" Padding="14,10" Margin="0,0,0,8">
+                                                            materialDesign:ButtonAssist.CornerRadius="8" Padding="14,10" Margin="0,0,0,0">
                                                         <StackPanel Orientation="Horizontal">
                                                             <materialDesign:PackIcon Kind="Calendar" Width="18" Height="18" Margin="0,0,10,0"/>
                                                             <TextBlock Text="Calendrier de travail" VerticalAlignment="Center"/>
-                                                        </StackPanel>
-                                                    </Button>
-                                                    <Button Command="{Binding ImporterFicheSalaireExcelCommand}"
-                                                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                                                            materialDesign:ButtonAssist.CornerRadius="8" Padding="14,10" Margin="0,0,0,0">
-                                                        <StackPanel Orientation="Horizontal">
-                                                            <materialDesign:PackIcon Kind="MicrosoftExcel" Width="18" Height="18" Margin="0,0,10,0"/>
-                                                            <TextBlock Text="Importer fiche salaire LTS (grille complète)" VerticalAlignment="Center" TextWrapping="Wrap"/>
                                                         </StackPanel>
                                                     </Button>
                                                 </StackPanel>
@@ -2096,6 +2178,7 @@
                                                                FontSize="11" Foreground="#607D8B" TextWrapping="Wrap" Margin="0,0,0,10"/>
                                                     <CheckBox Content="Déduire automatiquement la pause déjeuner (modes 2 et 3 pointages)"
                                                               IsChecked="{Binding LtDeductionPauseAutomatique, Mode=TwoWay}"
+                                                              Visibility="{Binding AfficherDeductionPauseAutomatique, Converter={StaticResource BooleanToVisibilityConverter}}"
                                                               Margin="0,0,0,12"/>
                                                     <Grid Margin="0,0,0,8">
                                                         <Grid.ColumnDefinitions>
@@ -2181,9 +2264,7 @@
                                     <StackPanel Grid.Row="1" Margin="18,16,18,18">
                                         <TextBlock Text="Comptes administrateurs, copies de sécurité SQLite et zone sensible." FontSize="12" Foreground="#78909C" Margin="0,0,0,14" TextWrapping="Wrap"/>
                                         <Button Command="{Binding OuvrirCentreConfigurationCommand}"
-                                                Style="{StaticResource MaterialDesignRaisedButton}"
-                                                Background="#1E3A5F"
-                                                Foreground="White"
+                                                Style="{StaticResource BrandRaisedButton}"
                                                 materialDesign:ButtonAssist.CornerRadius="8"
                                                 Padding="16,14"
                                                 MinHeight="48"
@@ -2213,18 +2294,18 @@
                                         </Button>
                                         <Button Command="{Binding VerifierMiseAJourCommand}"
                                                 Style="{StaticResource MaterialDesignOutlinedButton}"
-                                                Foreground="#1E3A5F"
-                                                BorderBrush="#1E3A5F"
+                                                Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                BorderBrush="{DynamicResource BrandPrimaryBrush}"
                                                 materialDesign:ButtonAssist.CornerRadius="8"
                                                 Padding="16,12"
                                                 MinHeight="52"
                                                 Margin="0,0,0,8">
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <materialDesign:PackIcon Kind="Update" Width="20" Height="20" Margin="0,0,10,0" Foreground="#1E3A5F" VerticalAlignment="Center"/>
+                                                <materialDesign:PackIcon Kind="Update" Width="20" Height="20" Margin="0,0,10,0" Foreground="{DynamicResource BrandPrimaryBrush}" VerticalAlignment="Center"/>
                                                 <StackPanel VerticalAlignment="Center">
                                                     <TextBlock Text="Vérifier les mises à jour"
                                                                FontWeight="SemiBold"
-                                                               Foreground="#1E3A5F"
+                                                               Foreground="{DynamicResource BrandPrimaryBrush}"
                                                                LineHeight="18"/>
                                                     <TextBlock Text="{Binding VersionApplication, StringFormat=Version {0}}"
                                                                FontSize="11"
@@ -2246,19 +2327,23 @@
                                                 <TextBlock Text="Sauvegarder la base (backup)" VerticalAlignment="Center" Foreground="#37474F"/>
                                             </StackPanel>
                                         </Button>
-                                        <Button Command="{Binding RestaurerBaseCommand}"
-                                                Style="{StaticResource MaterialDesignOutlinedButton}"
-                                                Foreground="#37474F"
-                                                BorderBrush="#90A4AE"
-                                                materialDesign:ButtonAssist.CornerRadius="8"
-                                                Padding="16,12"
-                                                MinHeight="44"
-                                                Margin="0,0,0,12">
-                                            <StackPanel Orientation="Horizontal">
-                                                <materialDesign:PackIcon Kind="DatabaseRefresh" Width="18" Height="18" Margin="0,0,10,0" Foreground="#37474F"/>
-                                                <TextBlock Text="Restaurer depuis un backup" VerticalAlignment="Center" Foreground="#37474F"/>
+                                        <Border Background="#FFF3E0" CornerRadius="10" Padding="12" BorderBrush="#FFCC80" BorderThickness="1" Margin="0,0,0,12">
+                                            <StackPanel>
+                                                <TextBlock Text="Restauration (irréversible)" FontSize="11" FontWeight="SemiBold" Foreground="#E65100" Margin="0,0,0,8"/>
+                                                <Button Command="{Binding RestaurerBaseCommand}"
+                                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                        Foreground="#E65100"
+                                                        BorderBrush="#FFB74D"
+                                                        materialDesign:ButtonAssist.CornerRadius="8"
+                                                        Padding="16,12"
+                                                        MinHeight="44">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="DatabaseRefresh" Width="18" Height="18" Margin="0,0,10,0" Foreground="#E65100"/>
+                                                        <TextBlock Text="Restaurer depuis un backup" VerticalAlignment="Center" Foreground="#E65100" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                </Button>
                                             </StackPanel>
-                                        </Button>
+                                        </Border>
                                         <Border Background="#FFEBEE" CornerRadius="10" Padding="12" BorderBrush="#FFCDD2" BorderThickness="1">
                                             <StackPanel>
                                                 <TextBlock Text="Zone critique" FontSize="11" FontWeight="SemiBold" Foreground="#C62828" Margin="0,0,0,8"/>
@@ -2282,7 +2367,7 @@
                 </Border>
 
                 <!-- Tableau de bord (menu 0) -->
-                <Border Grid.Row="2" Visibility="{Binding AfficherContenuGenerique, Converter={StaticResource BooleanToVisibilityConverter}}"
+                <Border Grid.Row="4" Visibility="{Binding AfficherContenuGenerique, Converter={StaticResource BooleanToVisibilityConverter}}"
                         CornerRadius="16" BorderBrush="#D6E4F0" BorderThickness="1" Padding="0" ClipToBounds="True" Margin="0,0,0,8">
                     <Border.Background>
                         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
@@ -2294,6 +2379,33 @@
                         <DropShadowEffect BlurRadius="20" ShadowDepth="4" Opacity="0.10"/>
                     </Border.Effect>
                     <StackPanel Margin="24,24,24,28">
+                        <Border Margin="0,0,0,20" CornerRadius="12" Padding="16,12" BorderBrush="#FFE0B2" BorderThickness="1" Background="#FFF8E1">
+                            <Border.Style>
+                                <Style TargetType="Border">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding NbEmployes}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Border.Style>
+                            <DockPanel>
+                                <materialDesign:PackIcon DockPanel.Dock="Left" Kind="RocketLaunchOutline" Width="22" Height="22" Foreground="#E65100" Margin="0,0,12,0"/>
+                                <StackPanel>
+                                    <TextBlock Text="Première étape : enregistrer vos employés" FontWeight="SemiBold" Foreground="#E65100" FontSize="13"/>
+                                    <TextBlock TextWrapping="Wrap" Foreground="#5D4037" FontSize="12" Margin="0,4,0,8">
+                                        Sans effectif, le pointage et le calcul de paie ne peuvent pas démarrer. Utilisez le parcours du mois ci-dessous ou créez un employé.
+                                    </TextBlock>
+                                    <Button Command="{Binding NouvelEmployeCommand}" HorizontalAlignment="Left"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            materialDesign:ButtonAssist.CornerRadius="8" Padding="12,6">
+                                        <TextBlock Text="Ajouter un employé"/>
+                                    </Button>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
                         <!-- Hero -->
                         <Border Margin="0,0,0,28" CornerRadius="18" Padding="36,32" ClipToBounds="True">
                             <Border.Effect>
@@ -2424,6 +2536,98 @@
                                         </StackPanel>
                                     </Border>
                                 </UniformGrid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Parcours du mois de paie -->
+                        <Border Margin="0,0,0,28" CornerRadius="14" Padding="20,18" BorderBrush="#C5CAE9" BorderThickness="1" Background="White">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.06"/>
+                            </Border.Effect>
+                            <StackPanel>
+                                <Grid Margin="0,0,0,14">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="PARCOURS DU MOIS" FontSize="11" FontWeight="SemiBold" Foreground="#3949AB"/>
+                                        <TextBlock Text="Checklist paie — suivez les étapes dans l'ordre" FontSize="15" FontWeight="SemiBold" Foreground="#1A237E" Margin="0,4,0,0"/>
+                                    </StackPanel>
+                                    <Border Grid.Column="1" Background="#E8EAF6" CornerRadius="10" Padding="12,6" VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding MoisPaieProgression}" FontSize="12" FontWeight="Bold" Foreground="#283593"/>
+                                    </Border>
+                                </Grid>
+                                <ItemsControl ItemsSource="{Binding ChecklistMoisPaie}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border Margin="0,0,0,8" CornerRadius="10" Padding="12,10" BorderThickness="1" Cursor="Hand">
+                                                <Border.InputBindings>
+                                                    <MouseBinding MouseAction="LeftClick" Command="{Binding OuvrirCommand}"/>
+                                                </Border.InputBindings>
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#FAFAFA"/>
+                                                        <Setter Property="BorderBrush" Value="#E0E0E0"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding EstTermine}" Value="True">
+                                                                <Setter Property="Background" Value="#E8F5E9"/>
+                                                                <Setter Property="BorderBrush" Value="#A5D6A7"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding EstProchaineEtape}" Value="True">
+                                                                <Setter Property="Background" Value="#FFF8E1"/>
+                                                                <Setter Property="BorderBrush" Value="#FFB74D"/>
+                                                            </DataTrigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="BorderBrush" Value="#90CAF9"/>
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Width="28" Height="28" CornerRadius="14" VerticalAlignment="Center" Margin="0,0,12,0">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Background" Value="#EEEEEE"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding EstTermine}" Value="True">
+                                                                        <Setter Property="Background" Value="#43A047"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock Text="{Binding Numero}" HorizontalAlignment="Center" VerticalAlignment="Center" FontWeight="Bold" Foreground="White" FontSize="12"/>
+                                                    </Border>
+                                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                        <TextBlock Text="{Binding Libelle}" FontWeight="SemiBold" FontSize="13" Foreground="#212121"/>
+                                                        <TextBlock Text="{Binding Detail}" FontSize="11" Foreground="#757575" Margin="0,2,0,0" TextWrapping="Wrap"/>
+                                                    </StackPanel>
+                                                    <Button Grid.Column="2" Command="{Binding OuvrirCommand}"
+                                                            Padding="12,4" VerticalAlignment="Center" FontSize="11">
+                                                        <Button.Style>
+                                                            <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+                                                                <Setter Property="Content" Value="Ouvrir"/>
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding EstProchaineEtape}" Value="True">
+                                                                        <Setter Property="Content" Value="Continuer"/>
+                                                                        <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
+                                                                        <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
+                                                                        <Setter Property="FontWeight" Value="SemiBold"/>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Button.Style>
+                                                    </Button>
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
                         </Border>
 

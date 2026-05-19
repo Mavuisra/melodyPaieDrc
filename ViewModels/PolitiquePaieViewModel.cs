@@ -20,9 +20,11 @@ public class PolitiquePaieViewModel : INotifyPropertyChanged
         _db = db;
         _entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(db);
         Rubriques = new ObservableCollection<RubriqueBulletin>();
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer());
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => DroitsUi.PeutModifier);
         Charger();
     }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public ObservableCollection<RubriqueBulletin> Rubriques { get; }
 

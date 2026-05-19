@@ -95,8 +95,15 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(AfficherTerminer));
             (PrecedentCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (TerminerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            if (value == EtapeIdentiteVisuelle)
+                EntrepriseBrandingService.AppliquerApercuCouleurs(CouleurPrincipale, CouleurSecondaire);
+            if (value == EtapeAdministrateur)
+                ActualiserMessageEtat();
         }
     }
+
+    public bool DoitRemplacerMotDePasseParDefaut =>
+        AuthService.UnAdministrateurActifUtiliseIdentifiantsParDefaut(_db);
 
     public bool EstEtape1 => EtapeCourante == EtapeIdentiteLegale;
     public bool EstEtape2 => EtapeCourante == EtapeIdentiteVisuelle;
@@ -138,8 +145,29 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
         }
     }
 
-    public string? CouleurPrincipale { get => _couleurPrincipale; set { _couleurPrincipale = value; OnPropertyChanged(); } }
-    public string? CouleurSecondaire { get => _couleurSecondaire; set { _couleurSecondaire = value; OnPropertyChanged(); } }
+    public string? CouleurPrincipale
+    {
+        get => _couleurPrincipale;
+        set
+        {
+            _couleurPrincipale = value;
+            OnPropertyChanged();
+            if (EtapeCourante == EtapeIdentiteVisuelle)
+                EntrepriseBrandingService.AppliquerApercuCouleurs(value, CouleurSecondaire);
+        }
+    }
+
+    public string? CouleurSecondaire
+    {
+        get => _couleurSecondaire;
+        set
+        {
+            _couleurSecondaire = value;
+            OnPropertyChanged();
+            if (EtapeCourante == EtapeIdentiteVisuelle)
+                EntrepriseBrandingService.AppliquerApercuCouleurs(CouleurPrincipale, value);
+        }
+    }
 
     public string NomSite { get => _nomSite; set { _nomSite = value ?? ""; OnPropertyChanged(); } }
     public string NomDepartement { get => _nomDepartement; set { _nomDepartement = value ?? ""; OnPropertyChanged(); } }
@@ -164,6 +192,14 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
 
     /// <summary>Fourni par la vue (PasswordBox) avant enregistrement de l'étape 4.</summary>
     public Func<(string MotDePasse, string Confirmation)>? ObtenirMotsDePasseAdmin { get; set; }
+
+    public void SynchroniserMotsDePasseDepuisVue()
+    {
+        if (ObtenirMotsDePasseAdmin == null) return;
+        var (pwd, confirm) = ObtenirMotsDePasseAdmin();
+        AdminMotDePasse = pwd;
+        AdminMotDePasseConfirm = confirm;
+    }
 
     public void Charger()
     {
@@ -251,6 +287,34 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
         if (!EnregistrerEtapeCourante())
             return;
         EtapeCourante = Math.Min(EtapeAdministrateur, EtapeCourante + 1);
+        ActualiserMessageEtat();
+    }
+
+    private void ActualiserMessageEtat()
+    {
+        if (EtapeCourante == EtapeAdministrateur)
+        {
+            if (DoitRemplacerMotDePasseParDefaut)
+            {
+                MessageEtat =
+                    "Sécurité : le compte admin/admin par défaut doit être remplacé. " +
+                    "Saisissez un identifiant, un mot de passe (8 caractères min., lettre + chiffre) et la même confirmation.";
+                return;
+            }
+
+            if (AuthService.AdministrateurActifExiste(_db))
+            {
+                MessageEtat =
+                    "Compte administrateur déjà présent. Laissez les mots de passe vides pour conserver l'actuel, " +
+                    "ou saisissez un nouveau mot de passe + confirmation pour le modifier.";
+                return;
+            }
+
+            MessageEtat =
+                "Créez le compte de connexion (étape 2/2 après cette fenêtre). Mot de passe : 8 caractères min., lettre + chiffre.";
+            return;
+        }
+
         MessageEtat = ConfigurationEntrepriseService.Evaluer(_db).Resume;
     }
 
@@ -262,6 +326,14 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
         EtapeAdministrateur => EnregistrerAdministrateur(),
         _ => false
     };
+
+    /// <summary>Termine la configuration avec les mots de passe lus depuis les PasswordBox (évite perte IME / focus).</summary>
+    public void TerminerAvecMotsDePasse(string motDePasse, string confirmation)
+    {
+        AdminMotDePasse = motDePasse ?? "";
+        AdminMotDePasseConfirm = confirmation ?? "";
+        Terminer();
+    }
 
     private void Terminer()
     {
@@ -276,6 +348,7 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
         }
 
         ConfigurationEntrepriseService.MarquerConfigurationTerminee(_db);
+        AppSessionEvents.NotifierEntrepriseCouranteChanged();
         OnConfigurationTerminee?.Invoke();
     }
 
@@ -312,6 +385,7 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
         _db.SaveChanges();
         _entrepriseId = ent.Id;
         ContexteEntrepriseService.DefinirEntrepriseCourante(_entrepriseId);
+        AppSessionEvents.NotifierEntrepriseCouranteChanged();
         return true;
     }
 
@@ -328,6 +402,7 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
         ent.CouleurPrincipale = NormaliserCouleurHex(CouleurPrincipale) ?? "#1E3A5F";
         ent.CouleurSecondaire = NormaliserCouleurHex(CouleurSecondaire);
         _db.SaveChanges();
+        AppSessionEvents.NotifierEntrepriseCouranteChanged();
         return true;
     }
 
@@ -391,11 +466,7 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
     private bool EnregistrerAdministrateur()
     {
         if (ObtenirMotsDePasseAdmin != null)
-        {
-            var (pwd, confirm) = ObtenirMotsDePasseAdmin();
-            AdminMotDePasse = pwd;
-            AdminMotDePasseConfirm = confirm;
-        }
+            SynchroniserMotsDePasseDepuisVue();
 
         if (string.IsNullOrWhiteSpace(AdminLogin))
         {
@@ -403,26 +474,49 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
             return false;
         }
 
-        if (!AuthService.ValiderPolitiqueMotDePasse(AdminMotDePasse, out var erreurMdp))
-        {
-            OnErreur?.Invoke(erreurMdp);
-            return false;
-        }
-
-        if (AdminMotDePasse != AdminMotDePasseConfirm)
-        {
-            OnErreur?.Invoke("Les mots de passe ne correspondent pas.");
-            return false;
-        }
-
         var login = AdminLogin.Trim();
+        var motDePasse = AdminMotDePasse ?? "";
+        var confirmation = AdminMotDePasseConfirm ?? "";
+        var saisieMotDePasse = !string.IsNullOrEmpty(motDePasse) || !string.IsNullOrEmpty(confirmation);
+        var adminExiste = AuthService.AdministrateurActifExiste(_db);
+        var doitDefinirMotDePasse = !adminExiste || DoitRemplacerMotDePasseParDefaut || saisieMotDePasse;
+
+        if (doitDefinirMotDePasse)
+        {
+            if (motDePasse != confirmation)
+            {
+                OnErreur?.Invoke(
+                    $"Les mots de passe ne correspondent pas ({motDePasse.Length} caractère(s) saisi(s) / {confirmation.Length} en confirmation). " +
+                    "Vérifiez les deux champs « Mot de passe » et « Confirmer ».");
+                return false;
+            }
+
+            if (!AuthService.ValiderPolitiqueMotDePasse(motDePasse, out var erreurMdp))
+            {
+                OnErreur?.Invoke(erreurMdp);
+                return false;
+            }
+        }
+        else if (!adminExiste)
+        {
+            OnErreur?.Invoke("Le mot de passe administrateur est obligatoire.");
+            return false;
+        }
+
         var existant = _db.Utilisateurs.FirstOrDefault(u => u.Login == login);
-        var (hash, salt) = AuthService.HashMotDePasse(AdminMotDePasse);
+        string? hash = null;
+        string? salt = null;
+        if (doitDefinirMotDePasse)
+            (hash, salt) = AuthService.HashMotDePasse(motDePasse);
 
         if (existant != null)
         {
-            existant.MotDePasseHash = hash;
-            existant.Salt = salt;
+            if (hash != null && salt != null)
+            {
+                existant.MotDePasseHash = hash;
+                existant.Salt = salt;
+            }
+
             existant.NomComplet = string.IsNullOrWhiteSpace(AdminNomComplet) ? existant.NomComplet : AdminNomComplet.Trim();
             existant.Role = Utilisateur.RoleAdmin;
             existant.Actif = true;
@@ -432,6 +526,12 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
             if (_db.Utilisateurs.Any(u => u.Login == login))
             {
                 OnErreur?.Invoke("Cet identifiant est déjà utilisé.");
+                return false;
+            }
+
+            if (hash == null || salt == null)
+            {
+                OnErreur?.Invoke("Le mot de passe est obligatoire pour créer ce compte.");
                 return false;
             }
 

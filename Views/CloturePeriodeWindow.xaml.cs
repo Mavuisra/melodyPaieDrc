@@ -1,5 +1,6 @@
 using System.Windows;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
 
 namespace MelodyPaieRDC.Views;
@@ -12,8 +13,8 @@ public partial class CloturePeriodeWindow : Window
     {
         InitializeComponent();
         var vm = new CloturePeriodeViewModel(_db, periodePaieId);
-        vm.OnErreur = msg => MessageBox.Show(this, msg, "Clôture", MessageBoxButton.OK, MessageBoxImage.Warning);
-        vm.OnSucces = msg => MessageBox.Show(this, msg, "Clôture", MessageBoxButton.OK, MessageBoxImage.Information);
+        vm.OnErreur = msg => UiFeedback.Avertissement(msg);
+        vm.OnSucces = msg => UiFeedback.Succes(msg);
         vm.OnClotureEffectuee = () => DialogResult = true;
         DataContext = vm;
     }

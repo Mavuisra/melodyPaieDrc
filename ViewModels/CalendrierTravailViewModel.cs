@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
+using MelodyPaieRDC.Services;
 
 namespace MelodyPaieRDC.ViewModels;
 
@@ -28,9 +29,9 @@ public class CalendrierTravailViewModel : INotifyPropertyChanged
         Jours = new ObservableCollection<JourTravailCalendrier>();
         AnneesDisponibles = new ObservableCollection<int>(Enumerable.Range(_annee - 2, 5));
 
-        AjouterJourCommand = new RelayCommand(_ => AjouterJour());
-        SupprimerJourCommand = new RelayCommand(_ => SupprimerJour(), _ => Selectionne != null);
-        AppliquerTypeSemaineCommand = new RelayCommand(_ => AppliquerTypeSemaine());
+        AjouterJourCommand = new RelayCommand(_ => AjouterJour(), _ => DroitsUi.PeutModifier);
+        SupprimerJourCommand = new RelayCommand(_ => SupprimerJour(), _ => DroitsUi.PeutModifier && Selectionne != null);
+        AppliquerTypeSemaineCommand = new RelayCommand(_ => AppliquerTypeSemaine(), _ => DroitsUi.PeutModifier);
 
         // Charger les jours pour l'année courante
         Charger();
@@ -91,6 +92,8 @@ public class CalendrierTravailViewModel : INotifyPropertyChanged
     public ICommand AjouterJourCommand { get; }
     public ICommand SupprimerJourCommand { get; }
     public ICommand AppliquerTypeSemaineCommand { get; }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public void Charger()
     {

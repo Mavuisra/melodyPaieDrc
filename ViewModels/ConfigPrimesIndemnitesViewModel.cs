@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
+using MelodyPaieRDC.Services;
 
 namespace MelodyPaieRDC.ViewModels;
 
@@ -17,10 +18,12 @@ public class ConfigPrimesIndemnitesViewModel : INotifyPropertyChanged
     {
         _db = db;
         PrimesIndemnites = new ObservableCollection<PrimeIndemnite>();
-        AjouterCommand = new RelayCommand(_ => Ajouter());
-        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => Selectionne != null);
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer());
+        AjouterCommand = new RelayCommand(_ => Ajouter(), _ => DroitsUi.PeutModifier);
+        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => DroitsUi.PeutModifier && Selectionne != null);
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => DroitsUi.PeutModifier);
     }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public ObservableCollection<PrimeIndemnite> PrimesIndemnites { get; }
 

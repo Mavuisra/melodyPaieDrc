@@ -23,7 +23,7 @@ public sealed class ColonneEmployeItem : INotifyPropertyChanged
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
 }
 
-public class ColonnesEmployesViewModel : INotifyPropertyChanged
+public class ColonnesEmployesViewModel
 {
     private readonly PaieDbContext _db;
     private ConfigurationPlateforme _config = new();
@@ -32,12 +32,13 @@ public class ColonnesEmployesViewModel : INotifyPropertyChanged
     {
         _db = db;
         Colonnes = new ObservableCollection<ColonneEmployeItem>();
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer());
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => DroitsUi.PeutModifier);
         Charger();
     }
 
     public ObservableCollection<ColonneEmployeItem> Colonnes { get; }
     public ICommand EnregistrerCommand { get; }
+    public bool PeutModifier => DroitsUi.PeutModifier;
     public Action? OnEnregistre { get; set; }
 
     private static readonly (string Code, string Libelle)[] Definitions =
@@ -75,6 +76,4 @@ public class ColonnesEmployesViewModel : INotifyPropertyChanged
         ConfigurationPlateformeService.Enregistrer(_db, _config);
         OnEnregistre?.Invoke();
     }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
 }

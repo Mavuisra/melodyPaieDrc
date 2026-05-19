@@ -189,12 +189,21 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     private int _presenceCycleBusy;
     /// <summary>Intervalle entre deux cycles de synchro (léger pour le PC ; une seule lecture terminal par cycle via la file globale).</summary>
     private static readonly TimeSpan IntervalSurveillancePresence = TimeSpan.FromSeconds(3);
+
+    public static int IntervalleSurveillanceSecondes => (int)IntervalSurveillancePresence.TotalSeconds;
+
+    public int IntervalleLiveSecondes => IntervalleSurveillanceSecondes;
     private readonly HashSet<string> _presenceKeysVus = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, List<DateTime>> _historiquePointageParUserJour = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>Dernière lecture terminal (jour courant) — inclut les PIN non reconnus en base.</summary>
+    private List<(string CodePin, DateTime HorodatageLocal)> _logsTerminalAujourdhui = new();
     private string _zkConnexionResume = "";
     private DateTime? _zkDerniereSyncUtc;
     private DateTime _derniereMajUiSyncUtc;
     private string _presenceResumeDureesAujourdhui = "Aujourd’hui — aucun pointage pour le moment.";
+    private string _presenceEnteteColonnePause = "Début pause";
+    private bool _presenceAfficherColonnesPause = true;
+    private bool _presenceAfficherColonneFinPause = true;
 
     public SuiviJournalierViewModel(PaieDbContext db)
     {
@@ -202,13 +211,16 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         Employes = new ObservableCollection<Employe>();
         PeriodesPaie = new ObservableCollection<PeriodePaie>();
         Lignes = new ObservableCollection<SuiviJournalierLigne>();
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => EmployeSelectionne != null && PeriodeSelectionnee != null);
+        static bool PeutMod() => DroitsUi.PeutModifier;
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(),
+            _ => PeutMod() && EmployeSelectionne != null && PeriodeSelectionnee != null);
         ChargerEmployesCommand = new RelayCommand(_ => ChargerEmployes());
         ChargerPeriodesCommand = new RelayCommand(_ => ChargerPeriodes());
         RechercherEmployeCommand = new RelayCommand(_ => RechercherEmployes());
-        ImporterUtilisateursTerminalCommand = new RelayCommand(_ => ImporterUtilisateursTerminal());
+        ImporterUtilisateursTerminalCommand = new RelayCommand(_ => ImporterUtilisateursTerminal(), _ => PeutMod());
         ChargerLignesCommand = new RelayCommand(_ => ChargerLignes(), _ => EmployeSelectionne != null && PeriodeSelectionnee != null);
-        RetablirCalculAutomatiqueCommand = new RelayCommand(_ => RetablirCalculAutomatique());
+        RetablirCalculAutomatiqueCommand = new RelayCommand(_ => RetablirCalculAutomatique(),
+            _ => PeutMod() && EmployeSelectionne != null && PeriodeSelectionnee != null);
         ZktecoSynchronisationService.SynchroReussie += OnSynchroZkReussie;
         ZkTerminalParametresNotifier.ParametresModifies += OnZkTerminalParametresModifiesDepuisAutreEcran;
         RafraichirAffichageTerminalDepuisBase();
@@ -220,7 +232,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public ObservableCollection<PresencePointageLigne> PresencePointages { get; } = new();
     public ObservableCollection<PresenceEmployeSyntheseLigne> PresenceSyntheseEmployes { get; } = new();
 
-    /// <summary>Résumé des durées du jour : dernier − premier pointage par employé (les pauses ne sont pas retranchées).</summary>
+    /// <summary>Résumé des durées du jour selon les règles LT de l’entreprise.</summary>
     public string PresenceResumeDureesAujourdhui
     {
         get => _presenceResumeDureesAujourdhui;
@@ -232,6 +244,48 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>En-tête colonne pause (mode 3 : « Pause », mode 4 : « Début pause »).</summary>
+    public string PresenceEnteteColonnePause
+    {
+        get => _presenceEnteteColonnePause;
+        private set
+        {
+            if (_presenceEnteteColonnePause == value) return;
+            _presenceEnteteColonnePause = value ?? "Début pause";
+            OnPropertyChanged(nameof(PresenceEnteteColonnePause));
+        }
+    }
+
+    public bool PresenceAfficherColonnesPause
+    {
+        get => _presenceAfficherColonnesPause;
+        private set
+        {
+            if (_presenceAfficherColonnesPause == value) return;
+            _presenceAfficherColonnesPause = value;
+            OnPropertyChanged(nameof(PresenceAfficherColonnesPause));
+        }
+    }
+
+    public bool PresenceAfficherColonneFinPause
+    {
+        get => _presenceAfficherColonneFinPause;
+        private set
+        {
+            if (_presenceAfficherColonneFinPause == value) return;
+            _presenceAfficherColonneFinPause = value;
+            OnPropertyChanged(nameof(PresenceAfficherColonneFinPause));
+        }
+    }
+
+    /// <summary>Texte d’aide sous la synthèse (colonnes selon le mode de pointage).</summary>
+    public string PresenceLegendeColonnes =>
+        PresenceAfficherColonneFinPause
+            ? "Mode 4 pointages : entrée, début/fin de pause, sortie. « Autres » = lectures supplémentaires au-delà des 4."
+            : PresenceAfficherColonnesPause
+                ? "Mode 3 pointages : entrée, pause, sortie. « Autres » = lectures supplémentaires au-delà des 3."
+                : "Mode 2 pointages : seules les colonnes Entrée et Sortie sont utilisées pour le calcul. « Autres » = 3e lecture et suivantes (hors calcul principal).";
+
     public Employe? EmployeSelectionne
     {
         get => _employeSelectionne;
@@ -242,8 +296,12 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(MessageVide));
             (EnregistrerCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (ChargerLignesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (RetablirCalculAutomatiqueCommand as RelayCommand)?.RaiseCanExecuteChanged();
             if (value != null && PeriodeSelectionnee != null)
                 ChargerLignes();
+            OnPropertyChanged(nameof(ContexteSaisieLibelle));
+            OnPropertyChanged(nameof(AfficherDetailMois));
+            OnPropertyChanged(nameof(AfficherInviteSelectionEmploye));
         }
     }
 
@@ -257,10 +315,33 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(MessageVide));
             (EnregistrerCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (ChargerLignesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (RetablirCalculAutomatiqueCommand as RelayCommand)?.RaiseCanExecuteChanged();
             if (value != null && EmployeSelectionne != null)
                 ChargerLignes();
+            OnPropertyChanged(nameof(ContexteSaisieLibelle));
+            OnPropertyChanged(nameof(AfficherDetailMois));
+            OnPropertyChanged(nameof(AfficherInviteSelectionEmploye));
         }
     }
+
+    public bool AfficherDetailMois => EmployeSelectionne != null && PeriodeSelectionnee != null;
+
+    public bool AfficherInviteSelectionEmploye =>
+        PeriodeSelectionnee != null && EmployeSelectionne == null && Employes.Count > 0;
+
+    public string ContexteSaisieLibelle
+    {
+        get
+        {
+            if (EmployeSelectionne == null || PeriodeSelectionnee == null)
+                return "";
+            var nom = $"{EmployeSelectionne.Nom} {EmployeSelectionne.Postnom} {EmployeSelectionne.Prenom}".Trim();
+            return $"Suivi mois — {nom} ({EmployeSelectionne.Matricule}) · {PeriodeSelectionnee.Mois:D2}/{PeriodeSelectionnee.Annee}";
+        }
+    }
+
+    public string TotalHeuresMoisLibelle =>
+        Lignes.Count == 0 ? "—" : $"{Lignes.Sum(l => l.HeuresPrestees):N2} h sur {Lignes.Count} jour(s)";
 
     public ICommand EnregistrerCommand { get; }
     public ICommand ChargerEmployesCommand { get; }
@@ -272,6 +353,15 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     /// <summary>Réapplique le calcul LTservices sur toutes les lignes qui ont des horodatages en base.</summary>
     public ICommand RetablirCalculAutomatiqueCommand { get; }
 
+    /// <summary>Rafraîchit les commandes après connexion / déconnexion.</summary>
+    public void NotifierDroitsModification()
+    {
+        (EnregistrerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ImporterUtilisateursTerminalCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (RetablirCalculAutomatiqueCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ChargerLignesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+    }
+
     /// <summary>Appelé après enregistrement réussi (message utilisateur ou fermeture fenêtre modale).</summary>
     public Action? OnSauvegardeReussie { get; set; }
     public Action<string>? OnErreur { get; set; }
@@ -280,7 +370,13 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public string RechercheEmployeText
     {
         get => _rechercheEmployeText;
-        set { if (_rechercheEmployeText == value) return; _rechercheEmployeText = value ?? ""; OnPropertyChanged(); }
+        set
+        {
+            if (_rechercheEmployeText == value) return;
+            _rechercheEmployeText = value ?? "";
+            OnPropertyChanged();
+            RechercherEmployes();
+        }
     }
 
     /// <summary>Vrai lorsque l’écran pointage est affiché : un minuteur poll le terminal de façon récurrente.</summary>
@@ -318,9 +414,16 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     {
         var app = System.Windows.Application.Current;
         if (app?.Dispatcher.CheckAccess() == true)
+        {
             RafraichirAffichageTerminalDepuisBase();
+            RecalculerSynthesePresenceEmployes();
+        }
         else
-            app?.Dispatcher.Invoke(RafraichirAffichageTerminalDepuisBase);
+            app?.Dispatcher.Invoke(() =>
+            {
+                RafraichirAffichageTerminalDepuisBase();
+                RecalculerSynthesePresenceEmployes();
+            });
     }
 
     /// <summary>Relecture des paramètres terminal depuis la base (ex. après modification dans Paramètres).</summary>
@@ -414,6 +517,9 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
 
         PresenceSurveillanceActive = true;
         PresenceStatut = "Surveillance automatique — synchronisation du terminal…";
+        _logsTerminalAujourdhui.Clear();
+        RecalculerSynthesePresenceEmployes();
+        RecalculerResumeDureesAujourdhui();
 
         _presenceTimer?.Stop();
         _presenceTimer = new DispatcherTimer { Interval = IntervalSurveillancePresence };
@@ -473,18 +579,17 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             if (PeriodeSelectionnee != null)
                 ChargerLignes();
 
+            MettreAJourLogsTerminalAujourdhui(logs);
             var nouveaux = FiltrerNouveauxPourPresence(logs);
-            if (nouveaux.Count > 0)
-            {
-                var ajoutes = AjouterPointagesPresence(nouveaux);
-                PresenceStatut = ajoutes > 0
-                    ? $"{ajoutes} pointage(s) détecté(s) — sessions attribuées automatiquement"
-                    : "Surveillance active — en attente de pointage";
-            }
-            else
-            {
-                PresenceStatut = "Surveillance active — en attente de pointage";
-            }
+            RecalculerSynthesePresenceEmployes();
+            RecalculerResumeDureesAujourdhui();
+
+            var nbPersonnes = PresenceSyntheseEmployes.Count;
+            PresenceStatut = nbPersonnes > 0
+                ? (nouveaux.Count > 0
+                    ? $"{nbPersonnes} personne(s) pointée(s) aujourd'hui — {nouveaux.Count} nouvelle(s) lecture(s)"
+                    : $"{nbPersonnes} personne(s) pointée(s) aujourd'hui")
+                : "Surveillance active — en attente de pointage";
         }
         finally
         {
@@ -559,6 +664,108 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         var cles = _historiquePointageParUserJour.Keys.Where(k => !k.EndsWith(suffixeJour, StringComparison.Ordinal)).ToList();
         foreach (var c in cles)
             _historiquePointageParUserJour.Remove(c);
+        _logsTerminalAujourdhui.Clear();
+    }
+
+    private void MettreAJourLogsTerminalAujourdhui(IReadOnlyList<(string CodePin, DateTime Horodatage)>? logs)
+    {
+        if (logs == null || logs.Count == 0)
+            return;
+
+        var aujourdhui = DateTime.Today;
+        _logsTerminalAujourdhui = logs
+            .Select(l => (l.CodePin.Trim(), NormaliserHorodatageLocal(l.Horodatage)))
+            .Where(l => l.Item2.Date == aujourdhui)
+            .ToList();
+    }
+
+    private sealed class PresencePersonneJour
+    {
+        public PresencePersonneJour(Employe? employe, string codeTerminal)
+        {
+            Employe = employe;
+            CodeTerminal = codeTerminal;
+        }
+
+        public Employe? Employe { get; }
+        public string CodeTerminal { get; }
+        public List<DateTime> Pointages { get; } = new();
+    }
+
+    /// <summary>Toutes les personnes ayant pointé aujourd'hui (base + terminal, une ligne par employé ou PIN).</summary>
+    private Dictionary<string, PresencePersonneJour> CollecterPersonnesPointeesAujourdhui()
+    {
+        var aujourdhui = DateTime.Today;
+        var jourFin = aujourdhui.AddDays(1);
+        var mapEmployes = ConstruireMapEmployesPourPresence();
+        var parCle = new Dictionary<string, PresencePersonneJour>(StringComparer.OrdinalIgnoreCase);
+
+        void Ajouter(string codePin, DateTime horodatageLocal, Employe? employeConnu = null)
+        {
+            if (horodatageLocal.Date != aujourdhui)
+                return;
+
+            var emp = employeConnu ?? ResoudreEmployePourPresence(mapEmployes, codePin);
+            var cle = emp != null ? "E:" + emp.Id : "Z:" + NormaliserCleLocal(codePin);
+            if (!parCle.TryGetValue(cle, out var bloc))
+            {
+                bloc = new PresencePersonneJour(emp, codePin.Trim());
+                parCle[cle] = bloc;
+            }
+
+            bloc.Pointages.Add(horodatageLocal);
+        }
+
+        var suivis = _db.SuivisJournaliers
+            .AsNoTracking()
+            .Where(s => s.Date >= aujourdhui && s.Date < jourFin &&
+                        s.PointagesJson != null && s.PointagesJson != "" && s.PointagesJson != "[]")
+            .ToList();
+
+        if (suivis.Count > 0)
+        {
+            var ids = suivis.Select(s => s.EmployeId).Distinct().ToList();
+            var employes = _db.Employes
+                .AsNoTracking()
+                .Include(e => e.Departement)
+                .Where(e => ids.Contains(e.Id))
+                .ToDictionary(e => e.Id);
+
+            foreach (var suivi in suivis)
+            {
+                if (!employes.TryGetValue(suivi.EmployeId, out var emp))
+                    continue;
+                var codePin = !string.IsNullOrWhiteSpace(emp.ZkUserId) ? emp.ZkUserId! : emp.Matricule ?? emp.Id.ToString(CultureInfo.InvariantCulture);
+                foreach (var dt in PointagesJournalierSerializer.Deserialiser(suivi.PointagesJson, aujourdhui))
+                    Ajouter(codePin, NormaliserHorodatageLocal(dt), emp);
+            }
+        }
+
+        foreach (var (pin, dt) in _logsTerminalAujourdhui)
+            Ajouter(pin, dt);
+
+        foreach (var bloc in parCle.Values)
+        {
+            bloc.Pointages.Sort();
+            for (var i = bloc.Pointages.Count - 1; i > 0; i--)
+            {
+                if (bloc.Pointages[i] == bloc.Pointages[i - 1])
+                    bloc.Pointages.RemoveAt(i);
+            }
+        }
+
+        return parCle;
+    }
+
+    private static Employe? ResoudreEmployePourPresence(Dictionary<string, Employe> map, string codePin)
+    {
+        var cle = NormaliserCleLocal(codePin);
+        if (!string.IsNullOrWhiteSpace(cle) && map.TryGetValue(cle, out var emp))
+            return emp;
+        var digits = NormaliserDigitsLocal(codePin);
+        if (!string.IsNullOrWhiteSpace(digits) && map.TryGetValue(digits, out emp))
+            return emp;
+        return null;
     }
 
     /// <summary>Ne conserve que les pointages du jour civil courant et met à jour le résumé des durées.</summary>
@@ -583,63 +790,61 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
                 PresencePointages.RemoveAt(i);
         }
 
-        RecalculerResumeDureesAujourdhui();
         RecalculerSynthesePresenceEmployes();
+        RecalculerResumeDureesAujourdhui();
+    }
 
-        while (PresencePointages.Count > 200)
-            PresencePointages.RemoveAt(PresencePointages.Count - 1);
+    private void MettreAJourEntetesPresenceColonnes(LtServicesRegles regles)
+    {
+        PresenceAfficherColonnesPause = !regles.UtiliseDeuxPointages;
+        PresenceAfficherColonneFinPause = regles.UtiliseQuatrePointages;
+        PresenceEnteteColonnePause = regles.UtiliseTroisPointages ? "Pause" : "Début pause";
+        OnPropertyChanged(nameof(PresenceLegendeColonnes));
     }
 
     private void RecalculerSynthesePresenceEmployes()
     {
+        var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
+        MettreAJourEntetesPresenceColonnes(reglesLt);
+
         PresenceSyntheseEmployes.Clear();
-        if (PresencePointages.Count == 0)
+        var parPersonne = CollecterPersonnesPointeesAujourdhui();
+        if (parPersonne.Count == 0)
             return;
 
-        var lignesAujourdhui = PresencePointages
-            .Where(r => EstHorodatageUtilisable(r.HorodatageLocal) && r.HorodatageLocal.Date == DateTime.Today)
-            .ToList();
-
+        var aujourdhui = DateTime.Today;
         static string HeureMin(DateTime dt) => dt.ToString("HH:mm");
 
-        foreach (var grp in lignesAujourdhui
-                     .GroupBy(x => (x.Matricule, x.NomComplet, x.Departement, x.Statut))
-                     .OrderBy(g => g.Key.NomComplet, StringComparer.CurrentCultureIgnoreCase))
+        foreach (var bloc in parPersonne.Values
+                     .OrderBy(b => b.Employe != null ? 0 : 1)
+                     .ThenBy(b => b.Employe != null ? $"{b.Employe.Nom} {b.Employe.Prenom}" : b.CodeTerminal, StringComparer.CurrentCultureIgnoreCase))
         {
-            var ordonnes = grp.OrderBy(x => x.HorodatageLocal).ToList();
-            var momentsUtiles = ordonnes.Where(x =>
-                    x.Moment == "Entrée" ||
-                    x.Moment == "Entrée (retard)" ||
-                    x.Moment == "Début pause" ||
-                    x.Moment == "Fin pause" ||
-                    x.Moment == "Sortie")
-                .ToList();
+            var pointages = bloc.Pointages;
+            if (pointages.Count == 0)
+                continue;
 
-            var entree = momentsUtiles.FirstOrDefault(x => x.Moment == "Entrée" || x.Moment == "Entrée (retard)");
-            var debutPause = momentsUtiles.FirstOrDefault(x => x.Moment == "Début pause");
-            var finPause = momentsUtiles.FirstOrDefault(x => x.Moment == "Fin pause");
-            var sortie = momentsUtiles.FirstOrDefault(x => x.Moment == "Sortie");
-            var estRetard = entree?.Moment == "Entrée (retard)";
+            var decoupe = PointagesMomentsHelper.Decouper(pointages, aujourdhui, reglesLt);
+            var estRetard = decoupe.Entree.HasValue && decoupe.Entree.Value.TimeOfDay > reglesLt.HeureLimiteTolerance;
+            var autres = decoupe.PointagesSupplementaires.Count > 0
+                ? string.Join(", ", decoupe.PointagesSupplementaires.Select(HeureMin))
+                : "—";
 
-            var autres = ordonnes
-                .Where(x =>
-                    x.Moment == "Pointage supplémentaire" ||
-                    x.Moment == "Inconnu")
-                .Select(x => HeureMin(x.HorodatageLocal))
-                .ToList();
-
+            var emp = bloc.Employe;
+            var reconnu = emp != null;
             PresenceSyntheseEmployes.Add(new PresenceEmployeSyntheseLigne
             {
-                Jour = DateTime.Today.ToString("dd/MM/yyyy"),
-                Matricule = string.IsNullOrWhiteSpace(grp.Key.Matricule) ? "—" : grp.Key.Matricule,
-                NomComplet = string.IsNullOrWhiteSpace(grp.Key.NomComplet) ? "—" : grp.Key.NomComplet,
-                Departement = string.IsNullOrWhiteSpace(grp.Key.Departement) ? "—" : grp.Key.Departement,
-                Entree = entree == null ? "—" : HeureMin(entree.HorodatageLocal),
-                DebutPause = debutPause == null ? "—" : HeureMin(debutPause.HorodatageLocal),
-                FinPause = finPause == null ? "—" : HeureMin(finPause.HorodatageLocal),
-                Sortie = sortie == null ? "—" : HeureMin(sortie.HorodatageLocal),
-                Autres = autres.Count == 0 ? "—" : string.Join(", ", autres),
-                Statut = string.IsNullOrWhiteSpace(grp.Key.Statut) ? "—" : grp.Key.Statut,
+                Jour = aujourdhui.ToString("dd/MM/yyyy"),
+                Matricule = reconnu ? (string.IsNullOrWhiteSpace(emp!.Matricule) ? "—" : emp.Matricule) : bloc.CodeTerminal,
+                NomComplet = reconnu
+                    ? $"{emp!.Nom} {emp.Postnom} {emp.Prenom}".Trim()
+                    : $"Non attribué (ID terminal {bloc.CodeTerminal})",
+                Departement = reconnu ? (emp!.Departement?.NomDepartement ?? "—") : "—",
+                Entree = decoupe.Entree.HasValue ? HeureMin(decoupe.Entree.Value) : "—",
+                DebutPause = decoupe.DebutPause.HasValue ? HeureMin(decoupe.DebutPause.Value) : "—",
+                FinPause = decoupe.FinPause.HasValue ? HeureMin(decoupe.FinPause.Value) : "—",
+                Sortie = decoupe.Sortie.HasValue ? HeureMin(decoupe.Sortie.Value) : "—",
+                Autres = autres,
+                Statut = reconnu ? "Reconnu Melody" : "Non reconnu Melody",
                 EstRetard = estRetard,
                 IndicateurRetard = estRetard ? "En retard" : "À l'heure"
             });
@@ -649,54 +854,38 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     private void RecalculerResumeDureesAujourdhui()
     {
         var aujourdhui = DateTime.Today.Date;
-        var lignes = PresencePointages.Where(r =>
-        {
-            if (EstHorodatageUtilisable(r.HorodatageLocal))
-                return r.HorodatageLocal.Date == aujourdhui;
-            return DateTime.TryParseExact(r.Jour, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var d) && d.Date == aujourdhui;
-        }).ToList();
-
-        if (lignes.Count == 0)
+        var parPersonne = CollecterPersonnesPointeesAujourdhui();
+        if (parPersonne.Count == 0)
         {
             PresenceResumeDureesAujourdhui = "Aujourd’hui — aucun pointage pour le moment.";
             return;
         }
 
-        static DateTime? ParserHorodatage(PresencePointageLigne r)
-        {
-            if (EstHorodatageUtilisable(r.HorodatageLocal))
-                return r.HorodatageLocal;
-            if (DateTime.TryParseExact($"{r.Jour} {r.Heure}:{r.Minute}", "dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
-                return dt;
-            return null;
-        }
-
+        var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
         var parties = new List<string>();
-        foreach (var grp in lignes.GroupBy(x => (x.Matricule, x.ZkUserId)))
+        foreach (var bloc in parPersonne.Values
+                     .OrderBy(b => b.Employe != null ? $"{b.Employe!.Nom} {b.Employe.Prenom}" : b.CodeTerminal, StringComparer.CurrentCultureIgnoreCase))
         {
-            var horaires = grp.Select(ParserHorodatage).Where(x => x.HasValue).Select(x => x!.Value).OrderBy(x => x).ToList();
+            var horaires = bloc.Pointages;
             if (horaires.Count == 0)
                 continue;
 
-            var nom = grp.First().NomComplet;
-            var mat = grp.Key.Matricule;
+            var libelle = bloc.Employe != null
+                ? $"{bloc.Employe.Nom} {bloc.Employe.Prenom}".Trim()
+                : $"ID {bloc.CodeTerminal}";
+            var refId = bloc.Employe?.Matricule ?? bloc.CodeTerminal;
             if (horaires.Count == 1)
             {
-                parties.Add($"{nom} ({mat}) — 1 pointage");
+                parties.Add($"{libelle} ({refId}) — 1 pointage");
                 continue;
             }
 
-            var delta = horaires[^1] - horaires[0];
-            var totalMin = (int)Math.Round(delta.TotalMinutes);
-            if (totalMin < 0)
-                continue;
-            var hh = totalMin / 60;
-            var mm = totalMin % 60;
-            parties.Add($"{nom} ({mat}) — {hh}h{mm:00}");
+            var heures = LtServicesPointageCalcul.CalculerHeuresPrestees(horaires, aujourdhui, reglesLt);
+            parties.Add($"{libelle} ({refId}) — {heures.ToString("N2", CultureInfo.CurrentCulture)} h");
         }
 
         PresenceResumeDureesAujourdhui =
-            "Durées du jour : écart entre dernier et premier pointage (les pauses ne sont pas déduites de cet écart) — "
+            "Durées du jour (calcul selon règles de service) — "
             + string.Join(" · ", parties);
     }
 
@@ -712,29 +901,36 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         }
 
         string moment;
-        if (logsJour.Count == 0)
+        var entreeLabel = t <= reglesLt.HeureLimiteTolerance ? "Entrée" : "Entrée (retard)";
+        if (reglesLt.UtiliseDeuxPointages)
         {
-            moment = t <= reglesLt.HeureLimiteTolerance ? "Entrée" : "Entrée (retard)";
+            moment = logsJour.Count switch
+            {
+                0 => entreeLabel,
+                1 => "Sortie",
+                _ => "Pointage supplémentaire"
+            };
         }
-        else if (logsJour.Count == 1)
+        else if (reglesLt.UtiliseTroisPointages)
         {
-            // 2e pointage de la journée : on force "Début pause"
-            // pour éviter les doublons incohérents de moment.
-            moment = "Début pause";
-        }
-        else if (logsJour.Count == 2)
-        {
-            // 3e pointage de la journée : "Fin pause"
-            moment = "Fin pause";
-        }
-        else if (logsJour.Count == 3)
-        {
-            // 4e pointage de la journée : "Sortie"
-            moment = "Sortie";
+            moment = logsJour.Count switch
+            {
+                0 => entreeLabel,
+                1 => "Pause",
+                2 => "Sortie",
+                _ => "Pointage supplémentaire"
+            };
         }
         else
         {
-            moment = "Pointage supplémentaire";
+            moment = logsJour.Count switch
+            {
+                0 => entreeLabel,
+                1 => "Début pause",
+                2 => "Fin pause",
+                3 => "Sortie",
+                _ => "Pointage supplémentaire"
+            };
         }
 
         logsJour.Add(dateHeure);
@@ -869,18 +1065,45 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(MessageVide));
     }
 
-    /// <summary>Sélectionne la première période et le premier employé pour afficher la grille de saisie.</summary>
-    public void SelectionnerPremiersParDefaut()
+    /// <summary>Période du mois calendaire courant (sans présélection d'employé — choix via le tableau live ou la liste).</summary>
+    public void SelectionnerPeriodeMoisCourant()
     {
-        if (PeriodesPaie.Count > 0 && PeriodeSelectionnee == null)
-            PeriodeSelectionnee = PeriodesPaie[0];
-        if (Employes.Count > 0 && EmployeSelectionne == null)
-            EmployeSelectionne = Employes[0];
+        if (PeriodesPaie.Count == 0)
+        {
+            PeriodeSelectionnee = null;
+            return;
+        }
+
+        if (PeriodeSelectionnee != null)
+            return;
+
+        var now = DateTime.Today;
+        PeriodeSelectionnee = PeriodesPaie.FirstOrDefault(p => p.Mois == now.Month && p.Annee == now.Year)
+            ?? PeriodesPaie.OrderByDescending(p => p.Annee).ThenByDescending(p => p.Mois).First();
+    }
+
+    /// <summary>Sélectionne l'employé depuis une ligne du tableau présence (suivi en direct).</summary>
+    public void SelectionnerEmployeParMatricule(string? matricule)
+    {
+        if (string.IsNullOrWhiteSpace(matricule) || matricule == "—")
+            return;
+
+        var cle = matricule.Trim();
+        var emp = Employes.FirstOrDefault(e =>
+                string.Equals(e.Matricule?.Trim(), cle, StringComparison.OrdinalIgnoreCase))
+            ?? _sourceEmployes.FirstOrDefault(e =>
+                string.Equals(e.Matricule?.Trim(), cle, StringComparison.OrdinalIgnoreCase));
+
+        if (emp != null)
+            EmployeSelectionne = emp;
     }
 
     public void ChargerLignes()
     {
+        foreach (var ligne in Lignes)
+            ligne.PropertyChanged -= LigneSuiviPropertyChanged;
         Lignes.Clear();
+        OnPropertyChanged(nameof(TotalHeuresMoisLibelle));
         if (EmployeSelectionne == null || PeriodeSelectionnee == null) return;
 
         try
@@ -927,11 +1150,30 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
 
                 Lignes.Add(ligne);
             }
+
+            AbonnerLignesPourTotaux();
+            OnPropertyChanged(nameof(TotalHeuresMoisLibelle));
         }
         catch (Exception ex)
         {
             OnErreur?.Invoke($"Erreur chargement : {ex.Message}");
         }
+    }
+
+    private void AbonnerLignesPourTotaux()
+    {
+        foreach (var ligne in Lignes)
+            ligne.PropertyChanged -= LigneSuiviPropertyChanged;
+        foreach (var ligne in Lignes)
+            ligne.PropertyChanged += LigneSuiviPropertyChanged;
+    }
+
+    private void LigneSuiviPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(SuiviJournalierLigne.HeuresPrestees)
+            or nameof(SuiviJournalierLigne.TypeJour)
+            or nameof(SuiviJournalierLigne.HeuresManuelles))
+            OnPropertyChanged(nameof(TotalHeuresMoisLibelle));
     }
 
     private static string NormaliserTypeJour(string? typeJour)
@@ -999,6 +1241,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             }
 
             _db.SaveChanges();
+            ChargerLignes();
             OnSauvegardeReussie?.Invoke();
         }
         catch (Exception ex)
@@ -1032,7 +1275,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     }
 
     /// <summary>
-    /// Export PDF des personnels qui ont pointé aujourd'hui (données en base).
+    /// Export PDF de toutes les personnes ayant pointé aujourd'hui (base + terminal, reconnus ou non).
     /// </summary>
     public void ExporterPointesAujourdhuiPdf(string cheminFichier)
     {
@@ -1041,65 +1284,71 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
 
         var aujourdHui = DateTime.Today;
         var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
-
-        var suivisDuJour = _db.SuivisJournaliers
-            .AsNoTracking()
-            .Where(s => s.Date.Date == aujourdHui &&
-                        !string.IsNullOrEmpty(s.PointagesJson) &&
-                        s.PointagesJson != "[]")
-            .ToList();
-
-        if (suivisDuJour.Count == 0)
+        var parPersonne = CollecterPersonnesPointeesAujourdhui();
+        if (parPersonne.Count == 0)
         {
             OnErreur?.Invoke("Aucun pointage trouvé aujourd'hui.");
             return;
         }
 
-        var idsEmployes = suivisDuJour.Select(s => s.EmployeId).Distinct().ToList();
-        var employes = _db.Employes
-            .AsNoTracking()
-            .Include(e => e.Departement)
-            .Where(e => idsEmployes.Contains(e.Id))
-            .ToDictionary(e => e.Id);
-
         var lignesPdf = new List<PresencePdfLigne>();
-        foreach (var suivi in suivisDuJour.OrderBy(s => s.EmployeId))
+        foreach (var bloc in parPersonne.Values)
         {
-            if (!employes.TryGetValue(suivi.EmployeId, out var e))
-                continue;
-
-            var pointages = PointagesJournalierSerializer.Deserialiser(suivi.PointagesJson, aujourdHui)
-                .Select(NormaliserHorodatageLocal)
-                .OrderBy(x => x)
-                .ToList();
+            var pointages = bloc.Pointages;
             if (pointages.Count == 0)
                 continue;
 
+            var decoupe = PointagesMomentsHelper.Decouper(pointages, aujourdHui, reglesLt);
             var entreeLabel = pointages[0].TimeOfDay <= reglesLt.HeureLimiteTolerance ? "Entrée" : "Entrée (retard)";
             var entree = $"{entreeLabel} {pointages[0]:HH:mm}";
-            var debutPause = pointages.Count >= 2 ? pointages[1].ToString("HH:mm") : "—";
-            var finPause = pointages.Count >= 3 ? pointages[2].ToString("HH:mm") : "—";
-            var sortie = pointages.Count >= 4 ? pointages[3].ToString("HH:mm") : "—";
-            var autres = pointages.Count > 4
-                ? string.Join(", ", pointages.Skip(4).Select(p => p.ToString("HH:mm")))
+            string debutPause;
+            string finPause;
+            string sortie;
+            if (reglesLt.UtiliseDeuxPointages)
+            {
+                debutPause = "—";
+                finPause = "—";
+                sortie = decoupe.Sortie.HasValue ? decoupe.Sortie.Value.ToString("HH:mm") : "—";
+            }
+            else if (reglesLt.UtiliseTroisPointages)
+            {
+                debutPause = decoupe.DebutPause.HasValue ? decoupe.DebutPause.Value.ToString("HH:mm") : "—";
+                finPause = "—";
+                sortie = decoupe.Sortie.HasValue ? decoupe.Sortie.Value.ToString("HH:mm") : "—";
+            }
+            else
+            {
+                debutPause = decoupe.DebutPause.HasValue ? decoupe.DebutPause.Value.ToString("HH:mm") : "—";
+                finPause = decoupe.FinPause.HasValue ? decoupe.FinPause.Value.ToString("HH:mm") : "—";
+                sortie = decoupe.Sortie.HasValue ? decoupe.Sortie.Value.ToString("HH:mm") : "—";
+            }
+
+            var nbMoments = reglesLt.NombrePointagesJourComplet;
+            var autres = pointages.Count > nbMoments
+                ? string.Join(", ", pointages.Skip(nbMoments).Select(p => p.ToString("HH:mm")))
                 : "—";
-            var nom = $"{e.Nom} {e.Postnom} {e.Prenom}".Trim();
+
+            var emp = bloc.Employe;
+            var reconnu = emp != null;
+            var nom = reconnu
+                ? $"{emp!.Nom} {emp.Postnom} {emp.Prenom}".Trim()
+                : $"Non attribué (ID terminal {bloc.CodeTerminal})";
             lignesPdf.Add(new PresencePdfLigne(
                 aujourdHui.ToString("dd/MM/yyyy"),
-                e.Matricule ?? "—",
+                reconnu ? (emp!.Matricule ?? "—") : bloc.CodeTerminal,
                 nom,
-                e.Departement?.NomDepartement ?? "—",
+                reconnu ? (emp!.Departement?.NomDepartement ?? "—") : "—",
                 entree,
                 debutPause,
                 finPause,
                 sortie,
                 autres,
-                "Reconnu Melody"));
+                reconnu ? "Reconnu Melody" : "Non reconnu Melody"));
         }
 
         if (lignesPdf.Count == 0)
         {
-            OnErreur?.Invoke("Aucun employé pointé aujourd'hui n'a pu être exporté.");
+            OnErreur?.Invoke("Aucune personne pointée aujourd'hui n'a pu être exportée.");
             return;
         }
 
@@ -1142,7 +1391,14 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     /// <summary>Annule les ajustements manuels d’heures pour les jours où des horodatages sont disponibles.</summary>
     private void RetablirCalculAutomatique()
     {
+        if (EmployeSelectionne == null || PeriodeSelectionnee == null)
+        {
+            OnErreur?.Invoke("Sélectionnez d'abord un employé et une période.");
+            return;
+        }
+
         var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
+        var nb = 0;
         foreach (var ligne in Lignes)
         {
             if (ligne.TypeJour != SuiviJournalier.TypeNormal)
@@ -1151,7 +1407,13 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
                 continue;
             var h = PointagesJournalierSerializer.CalculerHeuresLt(ligne.PointagesJson, ligne.Date, reglesLt);
             ligne.AppliquerHeuresAutomatiques(h);
+            nb++;
         }
+
+        OnPropertyChanged(nameof(TotalHeuresMoisLibelle));
+        OnMessageInformation?.Invoke(nb > 0
+            ? $"{nb} jour(s) recalculé(s) depuis les pointages terminal (LT)."
+            : "Aucun jour avec horodatages à recalculer pour cet employé.");
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

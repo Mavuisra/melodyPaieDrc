@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
+using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -1080,31 +1081,30 @@ public class ExportPdfService
         var primary = DefaultPrimary;
         var secondary = DefaultSecondary;
 
-        using var db = new PaieDbContext();
-        var ent = db.Entreprises.FirstOrDefault();
-        if (ent != null)
+        var profil = EntrepriseBrandingService.ChargerProfilCourant();
+        if (!string.IsNullOrWhiteSpace(profil.RaisonSociale))
         {
-            raison = ent.RaisonSociale;
-            adr = ent.Adresse;
-            tel = ent.Telephone;
-            email = ent.Email;
-            site = ent.SiteWeb;
-            nif = ent.Nif;
-            idNat = ent.IdNat;
-            nrc = ent.Nrc;
-            cnssEnt = ent.NumCnss;
-            affCnss = ent.NumeroAffiliationCnss;
+            raison = profil.RaisonSociale;
+            primary = EntrepriseBrandingService.NormaliserCouleurHex(profil.CouleurPrincipale, DefaultPrimary);
+            secondary = EntrepriseBrandingService.NormaliserCouleurHex(profil.CouleurSecondaire, DefaultSecondary);
+            logo = profil.CheminLogo;
 
-            if (!string.IsNullOrWhiteSpace(ent.CouleurPrincipale))
-                primary = NormalizeHex(ent.CouleurPrincipale, DefaultPrimary);
-            if (!string.IsNullOrWhiteSpace(ent.CouleurSecondaire))
-                secondary = NormalizeHex(ent.CouleurSecondaire, DefaultSecondary);
-
-            if (!string.IsNullOrWhiteSpace(ent.Logo))
+            using var db = new PaieDbContext();
+            var id = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(db);
+            var ent = id > 0
+                ? db.Entreprises.IgnoreQueryFilters().AsNoTracking().FirstOrDefault(e => e.Id == id)
+                : null;
+            if (ent != null)
             {
-                var fullPath = Path.Combine(PaieDbContext.GetDataDirectory(), Path.GetFileName(ent.Logo));
-                if (File.Exists(fullPath))
-                    logo = fullPath;
+                adr = ent.Adresse;
+                tel = ent.Telephone;
+                email = ent.Email;
+                site = ent.SiteWeb;
+                nif = ent.Nif;
+                idNat = ent.IdNat;
+                nrc = ent.Nrc;
+                cnssEnt = ent.NumCnss;
+                affCnss = ent.NumeroAffiliationCnss;
             }
         }
 

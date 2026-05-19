@@ -35,7 +35,7 @@
             <Button Content="Annuler" IsCancel="True" Click="Annuler_Click"
                     Style="{StaticResource MaterialDesignOutlinedButton}"
                     materialDesign:ButtonAssist.CornerRadius="6" Padding="16,8" Margin="0,0,12,0"/>
-            <Button Content="Enregistrer" IsDefault="True" Click="Enregistrer_Click"
+            <Button x:Name="BtnEnregistrer" Content="Enregistrer" IsDefault="True" Click="Enregistrer_Click"
                     Style="{StaticResource MaterialDesignRaisedButton}"
                     materialDesign:ButtonAssist.CornerRadius="6" Padding="16,8"/>
         </StackPanel>

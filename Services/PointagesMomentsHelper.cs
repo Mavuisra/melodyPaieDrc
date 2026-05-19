@@ -1,13 +1,11 @@
 using System.Globalization;
 using System.Text.RegularExpressions;
+using MelodyPaieRDC.Models;
 
 namespace MelodyPaieRDC.Services;
 
 /// <summary>
-/// Découpe les horodatages bruts en « moments » alignés sur <see cref="LtServicesPointageCalcul"/> :
-/// lun–ven : entrée, début pause, fin pause, sortie (les 4 premiers horaires) ;
-/// samedi : entrée = premier, sortie = dernier ;
-/// dimanche : tout est hors journée type.
+/// Découpe les horodatages en moments selon le mode de pointage de l'entreprise (2, 3 ou 4 lectures).
 /// </summary>
 public static class PointagesMomentsHelper
 {
@@ -18,32 +16,45 @@ public static class PointagesMomentsHelper
         DateTime? Sortie,
         IReadOnlyList<DateTime> PointagesSupplementaires);
 
-    public static MomentsDecoupes Decouper(IReadOnlyList<DateTime> pointages, DateTime jour)
+    public static MomentsDecoupes Decouper(IReadOnlyList<DateTime> pointages, DateTime jour, LtServicesRegles? regles = null)
     {
+        var r = regles ?? LtServicesRegles.Defaut;
         var sorted = pointages.OrderBy(x => x).ToList();
         var dow = jour.DayOfWeek;
 
         if (dow == DayOfWeek.Sunday)
             return new MomentsDecoupes(null, null, null, null, sorted);
 
-        if (dow == DayOfWeek.Saturday)
+        if (dow == DayOfWeek.Saturday || (r.UtiliseDeuxPointages && dow is >= DayOfWeek.Monday and <= DayOfWeek.Friday))
+            return DecouperEntreeSortie(sorted);
+
+        if (r.UtiliseTroisPointages && dow is >= DayOfWeek.Monday and <= DayOfWeek.Friday)
         {
-            if (sorted.Count == 0)
-                return new MomentsDecoupes(null, null, null, null, Array.Empty<DateTime>());
-            if (sorted.Count == 1)
-                return new MomentsDecoupes(sorted[0], null, null, null, Array.Empty<DateTime>());
-            var entree = sorted[0];
-            var sortie = sorted[^1];
-            var extras = sorted.Count > 2 ? sorted.Skip(1).Take(sorted.Count - 2).ToList() : new List<DateTime>();
-            return new MomentsDecoupes(entree, null, null, sortie, extras);
+            DateTime? e = sorted.Count > 0 ? sorted[0] : null;
+            DateTime? pause = sorted.Count > 1 ? sorted[1] : null;
+            DateTime? s = sorted.Count > 2 ? sorted[2] : null;
+            var sup = sorted.Count > 3 ? sorted.Skip(3).ToList() : new List<DateTime>();
+            return new MomentsDecoupes(e, pause, null, s, sup);
         }
 
-        DateTime? e = sorted.Count > 0 ? sorted[0] : null;
-        DateTime? dp = sorted.Count > 1 ? sorted[1] : null;
-        DateTime? fp = sorted.Count > 2 ? sorted[2] : null;
-        DateTime? s = sorted.Count > 3 ? sorted[3] : null;
-        var sup = sorted.Count > 4 ? sorted.Skip(4).ToList() : new List<DateTime>();
-        return new MomentsDecoupes(e, dp, fp, s, sup);
+        DateTime? entree = sorted.Count > 0 ? sorted[0] : null;
+        DateTime? debutPause = sorted.Count > 1 ? sorted[1] : null;
+        DateTime? finPause = sorted.Count > 2 ? sorted[2] : null;
+        DateTime? sortie = sorted.Count > 3 ? sorted[3] : null;
+        var extras = sorted.Count > 4 ? sorted.Skip(4).ToList() : new List<DateTime>();
+        return new MomentsDecoupes(entree, debutPause, finPause, sortie, extras);
+    }
+
+    private static MomentsDecoupes DecouperEntreeSortie(List<DateTime> sorted)
+    {
+        if (sorted.Count == 0)
+            return new MomentsDecoupes(null, null, null, null, Array.Empty<DateTime>());
+        if (sorted.Count == 1)
+            return new MomentsDecoupes(sorted[0], null, null, null, Array.Empty<DateTime>());
+        var entree = sorted[0];
+        var sortie = sorted[^1];
+        var extras = sorted.Count > 2 ? sorted.Skip(1).Take(sorted.Count - 2).ToList() : new List<DateTime>();
+        return new MomentsDecoupes(entree, null, null, sortie, extras);
     }
 
     public static string FormaterHhMm(DateTime? dt)
@@ -52,7 +63,6 @@ public static class PointagesMomentsHelper
         return dt.Value.ToString("HH:mm", CultureInfo.CurrentCulture);
     }
 
-    /// <summary>Interprète une saisie type 14:25, 14h25, 9:05 pour le jour donné.</summary>
     public static bool TryParseHeureDuJour(string? text, DateTime jour, out DateTime instant)
     {
         instant = default;

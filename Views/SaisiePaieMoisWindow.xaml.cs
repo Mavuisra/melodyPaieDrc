@@ -1,5 +1,6 @@
 using System.Windows;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
 
 namespace MelodyPaieRDC.Views;
@@ -12,8 +13,13 @@ public partial class SaisiePaieMoisWindow : Window
         var db = new PaieDbContext();
         var vm = new SaisiePaieMoisViewModel(db, periodePaieId);
         DataContext = vm;
-        vm.OnFermer = () => { DialogResult = true; Close(); };
-        vm.OnErreur = msg => MessageBox.Show(this, msg, "Saisie paie", MessageBoxButton.OK, MessageBoxImage.Error);
+        vm.OnFermer = () =>
+        {
+            UiFeedback.Succes("Saisie de paie enregistrée.");
+            DialogResult = true;
+            Close();
+        };
+        vm.OnErreur = msg => UiFeedback.Avertissement(msg);
         Loaded += (_, _) => vm.Charger();
     }
 }

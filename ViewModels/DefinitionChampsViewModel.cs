@@ -22,9 +22,9 @@ public class DefinitionChampsViewModel : INotifyPropertyChanged
         Definitions = new ObservableCollection<DefinitionChampDynamique>();
         EntiteCible = "Employe";
         TypeDonnee = DefinitionChampDynamique.TypeTexte;
-        AjouterCommand = new RelayCommand(_ => Ajouter());
-        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => Selection != null);
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => Selection != null);
+        AjouterCommand = new RelayCommand(_ => Ajouter(), _ => DroitsUi.PeutModifier);
+        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => DroitsUi.PeutModifier && Selection != null);
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => DroitsUi.PeutModifier && Selection != null);
         Charger();
     }
 
@@ -61,6 +61,9 @@ public class DefinitionChampsViewModel : INotifyPropertyChanged
     public ICommand AjouterCommand { get; }
     public ICommand SupprimerCommand { get; }
     public ICommand EnregistrerCommand { get; }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
+
     public Action<string>? OnErreur { get; set; }
 
     private void Charger()

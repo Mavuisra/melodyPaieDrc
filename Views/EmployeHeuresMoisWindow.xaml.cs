@@ -24,6 +24,9 @@ public partial class EmployeHeuresMoisWindow : Window
     {
         _employeId = employeId;
         InitializeComponent();
+        var lectureSeule = !DroitsUi.PeutModifier;
+        HeuresDataGrid.IsReadOnly = lectureSeule;
+        BtnEnregistrer.IsEnabled = !lectureSeule;
         ChargerEmploye();
         ChargerPeriodes();
     }
@@ -36,7 +39,7 @@ public partial class EmployeHeuresMoisWindow : Window
             .FirstOrDefault(e => e.Id == _employeId);
         if (emp == null)
         {
-            MessageBox.Show(this, "Employé introuvable.", "Heures de travail", MessageBoxButton.OK, MessageBoxImage.Warning);
+            UiFeedback.Avertissement("Employé introuvable.");
             Close();
             return;
         }
@@ -116,6 +119,9 @@ public partial class EmployeHeuresMoisWindow : Window
 
     private void Enregistrer_Click(object sender, RoutedEventArgs e)
     {
+        if (!DroitsUi.PeutModifier)
+            return;
+
         if (PeriodeCombo.SelectedItem is not PeriodeOption periode)
             return;
 
@@ -153,13 +159,12 @@ public partial class EmployeHeuresMoisWindow : Window
             }
 
             _db.SaveChanges();
-            MessageBox.Show(this, "Les heures du mois ont été enregistrées.", "Heures de travail",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            UiFeedback.Succes("Heures du mois enregistrées.");
             ChargerHeures(periode);
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, "Heures de travail", MessageBoxButton.OK, MessageBoxImage.Warning);
+            UiFeedback.Avertissement(ex.Message);
         }
     }
 

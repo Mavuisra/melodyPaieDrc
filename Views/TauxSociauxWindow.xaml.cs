@@ -1,5 +1,6 @@
 using System.Windows;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
 
 namespace MelodyPaieRDC.Views;
@@ -12,8 +13,13 @@ public partial class TauxSociauxWindow : Window
         var db = new PaieDbContext();
         var vm = new TauxSociauxViewModel(db);
         DataContext = vm;
-        vm.OnFermer = () => { DialogResult = true; Close(); };
-        vm.OnErreur = msg => MessageBox.Show(msg, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+        vm.OnFermer = () =>
+        {
+            UiFeedback.Succes("Taux sociaux enregistrés.");
+            DialogResult = true;
+            Close();
+        };
+        vm.OnErreur = msg => UiFeedback.Avertissement(msg);
         Loaded += (_, _) => vm.Charger();
     }
 }

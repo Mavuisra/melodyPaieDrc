@@ -28,6 +28,8 @@
     <EmbeddedResource Remove="_archive\**\*" />
     <Page Remove="_archive\**\*" />
     <None Include="_archive\**\*" />
+    <Compile Remove="tools\**\*" />
+    <None Include="tools\**\*" />
   </ItemGroup>
 
   <!-- Projet console .NET Framework sÃ©parÃ© : ne pas compiler ses sources dans MelodyPaieRDC -->

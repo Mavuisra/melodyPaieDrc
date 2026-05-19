@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
+using MelodyPaieRDC.Services;
 
 namespace MelodyPaieRDC.ViewModels;
 
@@ -24,9 +25,11 @@ public class PretsAvancesViewModel : INotifyPropertyChanged
         _employeId = employeId;
         PretsAvances = new ObservableCollection<PretAvance>();
 
-        AjouterCommand = new RelayCommand(_ => Ajouter());
-        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => Selectionne != null && !EmployeDejaPaye);
+        AjouterCommand = new RelayCommand(_ => Ajouter(), _ => DroitsUi.PeutModifier);
+        SupprimerCommand = new RelayCommand(_ => Supprimer(), _ => DroitsUi.PeutModifier && Selectionne != null && !EmployeDejaPaye);
     }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public string NomEmploye { get; set; } = "";
 

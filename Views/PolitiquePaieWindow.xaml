@@ -18,7 +18,7 @@
             <TextBlock TextWrapping="Wrap" Opacity="0.75" Margin="0,6,0,0"
                        Text="Règles de calcul sans modifier le code : jours de référence, présence, rubriques bulletin. Spécifique à l'entreprise courante."/>
         </StackPanel>
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" IsEnabled="{Binding PeutModifier}">
             <StackPanel>
                 <TextBox materialDesign:HintAssist.Hint="Libellé de la politique"
                          Text="{Binding LibellePolitique, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>

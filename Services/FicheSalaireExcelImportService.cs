@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace MelodyPaieRDC.Services;
 
 /// <summary>
-/// Import des lignes « FICHE IMPOTS & COTISATION » (feuille type LTSERVICES) vers employés + contrats + affectations primes/indemnités.
+/// Import des lignes d'une grille paie Excel (feuille « SALAIRE ET TAXE », format type LTSERVICES) : employés + contrats + affectations primes/indemnités. Ne remplace pas une restauration .db.
 /// </summary>
 public sealed class FicheSalaireExcelImportResult
 {

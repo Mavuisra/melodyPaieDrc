@@ -17,7 +17,7 @@
             </Grid.RowDefinitions>
 
             <!-- Bandeau titre avec logo MelodyPaie -->
-            <Border Grid.Row="0" Background="#1E3A5F" CornerRadius="8,8,0,0" Padding="28,32">
+            <Border Grid.Row="0" Background="{DynamicResource BrandPrimaryBrush}" CornerRadius="8,8,0,0" Padding="28,32">
                 <StackPanel HorizontalAlignment="Center">
                     <Border Background="White" CornerRadius="50" Padding="8" Margin="0,0,0,14">
                         <Image Source="pack://application:,,,/MelodyPaieRDC;component/Assets/Icon_MelodyPaie.png"
@@ -59,8 +59,7 @@
                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                 materialDesign:ButtonAssist.CornerRadius="8" Padding="24,10" Margin="0,0,12,0"/>
                         <Button Content="Connexion" IsDefault="True" Click="Connexion_Click"
-                                Style="{StaticResource MaterialDesignRaisedButton}"
-                                Background="#1E3A5F"
+                                Style="{StaticResource BrandRaisedButton}"
                                 materialDesign:ButtonAssist.CornerRadius="8" Padding="24,10"/>
                     </StackPanel>
                 </Grid>

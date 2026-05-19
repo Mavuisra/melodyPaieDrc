@@ -21,7 +21,7 @@ public partial class PaieDbContext
         // Employé : EntrepriseId direct OU rattachement historique département → établissement.
         modelBuilder.Entity<Employe>()
             .HasQueryFilter(e => e.EntrepriseId == TenantId
-                || (e.EntrepriseId <= 0
+                || ((e.EntrepriseId <= 0 || EF.Property<int?>(e, nameof(Employe.EntrepriseId)) == null)
                     && e.Departement != null
                     && e.Departement.Etablissement != null
                     && e.Departement.Etablissement.EntrepriseId == TenantId));
@@ -29,56 +29,56 @@ public partial class PaieDbContext
         modelBuilder.Entity<Contrat>()
             .HasQueryFilter(c => c.Employe != null && (
                 c.Employe.EntrepriseId == TenantId
-                || (c.Employe.EntrepriseId <= 0 && c.Employe.Departement != null
+                || ((c.Employe.EntrepriseId <= 0 || EF.Property<int?>(c.Employe, nameof(Employe.EntrepriseId)) == null) && c.Employe.Departement != null
                     && c.Employe.Departement.Etablissement != null
                     && c.Employe.Departement.Etablissement.EntrepriseId == TenantId)));
 
         modelBuilder.Entity<AyantDroit>()
             .HasQueryFilter(a => a.Employe != null && (
                 a.Employe.EntrepriseId == TenantId
-                || (a.Employe.EntrepriseId <= 0 && a.Employe.Departement != null
+                || ((a.Employe.EntrepriseId <= 0 || EF.Property<int?>(a.Employe, nameof(Employe.EntrepriseId)) == null) && a.Employe.Departement != null
                     && a.Employe.Departement.Etablissement != null
                     && a.Employe.Departement.Etablissement.EntrepriseId == TenantId)));
 
         modelBuilder.Entity<PretAvance>()
             .HasQueryFilter(p => p.Employe != null && (
                 p.Employe.EntrepriseId == TenantId
-                || (p.Employe.EntrepriseId <= 0 && p.Employe.Departement != null
+                || ((p.Employe.EntrepriseId <= 0 || EF.Property<int?>(p.Employe, nameof(Employe.EntrepriseId)) == null) && p.Employe.Departement != null
                     && p.Employe.Departement.Etablissement != null
                     && p.Employe.Departement.Etablissement.EntrepriseId == TenantId)));
 
         modelBuilder.Entity<AbsenceConge>()
             .HasQueryFilter(a => a.Employe != null && (
                 a.Employe.EntrepriseId == TenantId
-                || (a.Employe.EntrepriseId <= 0 && a.Employe.Departement != null
+                || ((a.Employe.EntrepriseId <= 0 || EF.Property<int?>(a.Employe, nameof(Employe.EntrepriseId)) == null) && a.Employe.Departement != null
                     && a.Employe.Departement.Etablissement != null
                     && a.Employe.Departement.Etablissement.EntrepriseId == TenantId)));
 
         modelBuilder.Entity<SaisiePaie>()
             .HasQueryFilter(s => s.Employe != null && (
                 s.Employe.EntrepriseId == TenantId
-                || (s.Employe.EntrepriseId <= 0 && s.Employe.Departement != null
+                || ((s.Employe.EntrepriseId <= 0 || EF.Property<int?>(s.Employe, nameof(Employe.EntrepriseId)) == null) && s.Employe.Departement != null
                     && s.Employe.Departement.Etablissement != null
                     && s.Employe.Departement.Etablissement.EntrepriseId == TenantId)));
 
         modelBuilder.Entity<SuiviJournalier>()
             .HasQueryFilter(s => s.Employe != null && (
                 s.Employe.EntrepriseId == TenantId
-                || (s.Employe.EntrepriseId <= 0 && s.Employe.Departement != null
+                || ((s.Employe.EntrepriseId <= 0 || EF.Property<int?>(s.Employe, nameof(Employe.EntrepriseId)) == null) && s.Employe.Departement != null
                     && s.Employe.Departement.Etablissement != null
                     && s.Employe.Departement.Etablissement.EntrepriseId == TenantId)));
 
         modelBuilder.Entity<AffectationPrimeIndemnite>()
             .HasQueryFilter(a => a.Employe != null && (
                 a.Employe.EntrepriseId == TenantId
-                || (a.Employe.EntrepriseId <= 0 && a.Employe.Departement != null
+                || ((a.Employe.EntrepriseId <= 0 || EF.Property<int?>(a.Employe, nameof(Employe.EntrepriseId)) == null) && a.Employe.Departement != null
                     && a.Employe.Departement.Etablissement != null
                     && a.Employe.Departement.Etablissement.EntrepriseId == TenantId)));
 
         modelBuilder.Entity<EmployeLibelleBulletin>()
             .HasQueryFilter(l => l.Employe != null && (
                 l.Employe.EntrepriseId == TenantId
-                || (l.Employe.EntrepriseId <= 0 && l.Employe.Departement != null
+                || ((l.Employe.EntrepriseId <= 0 || EF.Property<int?>(l.Employe, nameof(Employe.EntrepriseId)) == null) && l.Employe.Departement != null
                     && l.Employe.Departement.Etablissement != null
                     && l.Employe.Departement.Etablissement.EntrepriseId == TenantId)));
 
@@ -88,7 +88,7 @@ public partial class PaieDbContext
         modelBuilder.Entity<BulletinPaie>()
             .HasQueryFilter(b => b.Employe != null && (
                 b.Employe.EntrepriseId == TenantId
-                || (b.Employe.EntrepriseId <= 0 && b.Employe.Departement != null
+                || ((b.Employe.EntrepriseId <= 0 || EF.Property<int?>(b.Employe, nameof(Employe.EntrepriseId)) == null) && b.Employe.Departement != null
                     && b.Employe.Departement.Etablissement != null
                     && b.Employe.Departement.Etablissement.EntrepriseId == TenantId)));
 
@@ -96,7 +96,7 @@ public partial class PaieDbContext
             .HasQueryFilter(d => d.BulletinPaie != null
                                  && d.BulletinPaie.Employe != null && (
                 d.BulletinPaie.Employe.EntrepriseId == TenantId
-                || (d.BulletinPaie.Employe.EntrepriseId <= 0
+                || ((d.BulletinPaie.Employe.EntrepriseId <= 0 || EF.Property<int?>(d.BulletinPaie.Employe, nameof(Employe.EntrepriseId)) == null)
                     && d.BulletinPaie.Employe.Departement != null
                     && d.BulletinPaie.Employe.Departement.Etablissement != null
                     && d.BulletinPaie.Employe.Departement.Etablissement.EntrepriseId == TenantId)));

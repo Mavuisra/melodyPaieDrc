@@ -1,5 +1,6 @@
 using System.Windows;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
 
 namespace MelodyPaieRDC.Views;
@@ -12,7 +13,7 @@ public partial class PrimesIndemnitesEmployeWindow : Window
         var db = new PaieDbContext();
         var vm = new PrimesIndemnitesEmployeViewModel(db, employeId);
         DataContext = vm;
-        vm.OnErreur = msg => MessageBox.Show(msg, "Primes et indemnités", MessageBoxButton.OK, MessageBoxImage.Warning);
+        vm.OnErreur = msg => UiFeedback.Avertissement(msg);
         Loaded += (_, _) =>
         {
             vm.Charger();

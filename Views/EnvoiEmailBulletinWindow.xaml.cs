@@ -112,7 +112,7 @@ public partial class EnvoiEmailBulletinWindow : Window
                 TxtPassword.Password
             );
 
-            MessageBox.Show(this, "Bulletin envoyé par e-mail avec succès.", "Envoi e-mail", MessageBoxButton.OK, MessageBoxImage.Information);
+            UiFeedback.Succes("Bulletin envoyé par e-mail.");
             DialogResult = true;
             Close();
         }

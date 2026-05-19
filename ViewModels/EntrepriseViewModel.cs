@@ -30,10 +30,12 @@ public class EntrepriseViewModel : INotifyPropertyChanged
     public EntrepriseViewModel(PaieDbContext db)
     {
         _db = db;
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer());
-        ChoisirLogoCommand = new RelayCommand(_ => ChoisirLogo());
-        SupprimerLogoCommand = new RelayCommand(_ => SupprimerLogo(), _ => !string.IsNullOrEmpty(Logo));
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => DroitsUi.PeutModifier);
+        ChoisirLogoCommand = new RelayCommand(_ => ChoisirLogo(), _ => DroitsUi.PeutModifier);
+        SupprimerLogoCommand = new RelayCommand(_ => SupprimerLogo(), _ => DroitsUi.PeutModifier && !string.IsNullOrEmpty(Logo));
     }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public int Id { get => _id; set { _id = value; OnPropertyChanged(); } }
     public string RaisonSociale
@@ -170,7 +172,7 @@ public class EntrepriseViewModel : INotifyPropertyChanged
 
         try
         {
-            var ent = _db.Entreprises.Find(Id);
+            Entreprise? ent = _db.Entreprises.Find(Id);
             if (ent != null)
             {
                 ent.RaisonSociale = RaisonSociale.Trim();
@@ -190,7 +192,7 @@ public class EntrepriseViewModel : INotifyPropertyChanged
             }
             else
             {
-                _db.Entreprises.Add(new Entreprise
+                ent = new Entreprise
                 {
                     RaisonSociale = RaisonSociale.Trim(),
                     Nif = string.IsNullOrWhiteSpace(Nif) ? null : Nif.Trim(),
@@ -206,13 +208,16 @@ public class EntrepriseViewModel : INotifyPropertyChanged
                     Logo = string.IsNullOrWhiteSpace(Logo) ? null : Logo.Trim(),
                     CouleurPrincipale = NormaliserCouleurHex(CouleurPrincipale) ?? "#1E3A5F",
                     CouleurSecondaire = NormaliserCouleurHex(CouleurSecondaire)
-                });
+                };
+                _db.Entreprises.Add(ent);
             }
 
             _db.SaveChanges();
-            var first = _db.Entreprises.OrderBy(e => e.Id).FirstOrDefault();
-            if (first != null) Id = first.Id;
+            if (ent != null && ent.Id > 0)
+                Id = ent.Id;
+
             OnEnregistre?.Invoke();
+            AppSessionEvents.NotifierEntrepriseCouranteChanged();
         }
         catch (Exception ex)
         {

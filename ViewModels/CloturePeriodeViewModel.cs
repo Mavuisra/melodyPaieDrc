@@ -32,9 +32,9 @@ public class CloturePeriodeViewModel : INotifyPropertyChanged
         _periodeId = periodeId;
         Controles = new ObservableCollection<ControleClotureLigne>();
         AnalyserCommand = new RelayCommand(_ => Analyser());
-        CloturerCommand = new RelayCommand(_ => Cloturer(false), _ => PeutCloturer && !DejaCloturee);
-        CloturerForcerCommand = new RelayCommand(_ => Cloturer(true), _ => !DejaCloturee);
-        RouvrirCommand = new RelayCommand(_ => Rouvrir(), _ => DejaCloturee);
+        CloturerCommand = new RelayCommand(_ => Cloturer(false), _ => DroitsUi.PeutModifier && PeutCloturer && !DejaCloturee);
+        CloturerForcerCommand = new RelayCommand(_ => Cloturer(true), _ => DroitsUi.PeutModifier && !DejaCloturee);
+        RouvrirCommand = new RelayCommand(_ => Rouvrir(), _ => DroitsUi.PeutModifier && DejaCloturee);
         ChargerPeriode();
         Analyser();
     }
@@ -69,6 +69,8 @@ public class CloturePeriodeViewModel : INotifyPropertyChanged
     public ICommand CloturerCommand { get; }
     public ICommand CloturerForcerCommand { get; }
     public ICommand RouvrirCommand { get; }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public Action? OnClotureEffectuee { get; set; }
     public Action<string>? OnErreur { get; set; }

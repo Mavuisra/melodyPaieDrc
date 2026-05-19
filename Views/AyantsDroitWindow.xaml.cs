@@ -1,5 +1,6 @@
 using System.Windows;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
 
 namespace MelodyPaieRDC.Views;
@@ -12,7 +13,7 @@ public partial class AyantsDroitWindow : Window
         var db = new PaieDbContext();
         var vm = new AyantsDroitViewModel(db, employeId);
         DataContext = vm;
-        vm.OnErreur = msg => MessageBox.Show(msg, "Ayants droit", MessageBoxButton.OK, MessageBoxImage.Warning);
+        vm.OnErreur = msg => UiFeedback.Avertissement(msg);
         vm.OnDemandeMotDePasseAdmin = () =>
         {
             var win = new ConfirmationMotDePasseWindow { Owner = this };

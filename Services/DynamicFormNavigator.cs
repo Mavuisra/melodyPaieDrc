@@ -34,11 +34,7 @@ public static class DynamicFormNavigator
 
         if (entityId <= 0 && !string.Equals(def.EntityType, "Global", StringComparison.OrdinalIgnoreCase))
         {
-            MessageBox.Show(
-                "Sélectionnez d'abord un enregistrement ou créez l'entité principale.",
-                "Formulaire dynamique",
-                MessageBoxButton.OK,
-                MessageBoxImage.Information);
+            UiFeedback.Info("Sélectionnez d'abord un enregistrement ou créez l'entité principale.");
             return false;
         }
 
@@ -58,8 +54,7 @@ public static class DynamicFormNavigator
         var ent = db.Entreprises.AsNoTracking().OrderBy(e => e.Id).FirstOrDefault();
         if (ent == null)
         {
-            MessageBox.Show("Aucune entreprise enregistrée.", "Formulaire dynamique",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            UiFeedback.Info("Aucune entreprise enregistrée.");
             return;
         }
 

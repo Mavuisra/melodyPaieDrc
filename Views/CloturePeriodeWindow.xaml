@@ -6,6 +6,7 @@
         Height="480" Width="640"
         WindowStartupLocation="CenterOwner"
         Background="#F5F5F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
         FontFamily="{materialDesign:MaterialDesignFont}">
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -14,7 +15,7 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
-        <TextBlock Grid.Row="0" Text="{Binding LibellePeriode}" FontSize="18" FontWeight="SemiBold"/>
+        <TextBlock Grid.Row="0" Text="{Binding LibellePeriode}" FontSize="18" Style="{StaticResource BrandHeaderText}"/>
         <TextBlock Grid.Row="1" Text="{Binding Resume}" Margin="0,8,0,12" TextWrapping="Wrap" Foreground="#546E7A"/>
         <DataGrid Grid.Row="2" ItemsSource="{Binding Controles}" AutoGenerateColumns="False" IsReadOnly="True"
                   CanUserAddRows="False" HeadersVisibility="Column">
@@ -32,7 +33,7 @@
             <Button Content="Clôturer (forcer avertissements)" Command="{Binding CloturerForcerCommand}" Margin="0,0,8,0"
                     Style="{StaticResource MaterialDesignOutlinedButton}" Padding="12,8"/>
             <Button Content="Clôturer la période" Command="{Binding CloturerCommand}"
-                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#00695C" Padding="16,10"/>
+                    Style="{StaticResource BrandRaisedButton}" Padding="16,10"/>
         </StackPanel>
     </Grid>
 </Window>

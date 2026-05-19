@@ -15,7 +15,7 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
-            <TextBlock Text="Nouvelle entreprise" FontSize="18" FontWeight="SemiBold" Foreground="#1E3A5F"/>
+            <TextBlock Text="Nouvelle entreprise" FontSize="18" Style="{StaticResource BrandHeaderText}"/>
             <TextBlock Text="Crée un espace client séparé (employés, paie, paramètres). L'assistant de configuration s'ouvrira ensuite."
                        TextWrapping="Wrap" Margin="0,8,0,0" Foreground="#546E7A" FontSize="13"/>
         </StackPanel>
@@ -25,9 +25,8 @@
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
             <Button Content="Annuler" Click="Annuler_Click" Margin="0,0,8,0"
                     Style="{StaticResource MaterialDesignOutlinedButton}" Padding="16,8"/>
-            <Button Content="Créer et configurer" Click="Creer_Click"
-                    Style="{StaticResource MaterialDesignRaisedButton}"
-                    Background="#1E3A5F" BorderBrush="#1E3A5F" Padding="16,8"/>
+            <Button x:Name="BtnCreer" Content="Créer et configurer" Click="Creer_Click"
+                    Style="{StaticResource BrandRaisedButton}" Padding="16,8"/>
         </StackPanel>
     </Grid>
 </Window>

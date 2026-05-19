@@ -49,7 +49,6 @@
         <Border Grid.Row="2" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1">
             <DataGrid x:Name="HeuresDataGrid"
                       AutoGenerateColumns="False"
-                      IsReadOnly="False"
                       CanUserAddRows="False"
                       CanUserDeleteRows="False"
                       HeadersVisibility="Column"
@@ -74,7 +73,7 @@
         </Border>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
-            <Button Content="Enregistrer"
+            <Button x:Name="BtnEnregistrer" Content="Enregistrer"
                     Width="120"
                     Margin="0,0,8,0"
                     Click="Enregistrer_Click"

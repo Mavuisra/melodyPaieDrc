@@ -25,7 +25,8 @@
                        FontSize="12" Foreground="Gray" Margin="0,0,0,12"/>
         </StackPanel>
 
-        <Border Grid.Row="1" Background="White" CornerRadius="8" Padding="12" Margin="0,8,0,12">
+        <Border Grid.Row="1" Background="White" CornerRadius="8" Padding="12" Margin="0,8,0,12"
+                IsEnabled="{Binding PeutModifier}">
             <Border.Effect>
                 <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.1"/>
             </Border.Effect>

@@ -32,11 +32,15 @@ public class EmployeViewModel
         IdsUtilisateursExistants = ConstruireListeIdsUtilisateursExistants();
         EmployesEnregistresResume = ConstruireResumeEmployesEnregistres();
 
-        EnregistrerCommand = new RelayCommand(Enregistrer);
+        EnregistrerCommand = new RelayCommand(Enregistrer, _ => PeutEnregistrer);
         AnnulerCommand = new RelayCommand(Annuler);
         ChargerIdsTerminalCommand = new RelayCommand(_ => ChargerIdsTerminal());
-        AttribuerIdTerminalSelectionneCommand = new RelayCommand(_ => AttribuerIdTerminalSelectionne());
+        AttribuerIdTerminalSelectionneCommand = new RelayCommand(_ => AttribuerIdTerminalSelectionne(), _ => PeutEnregistrer);
     }
+
+    public bool PeutEnregistrer => DroitsUi.PeutModifier;
+
+    public bool FormulaireLectureSeule => !PeutEnregistrer;
 
     public Employe Employe { get; set; }
 

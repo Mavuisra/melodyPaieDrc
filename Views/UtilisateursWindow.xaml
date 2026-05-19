@@ -29,16 +29,16 @@
             </DataGrid.Columns>
         </DataGrid>
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button Content="Ajouter" Click="Ajouter_Click"
+            <Button x:Name="BtnAjouter" Content="Ajouter" Click="Ajouter_Click"
                     Style="{StaticResource MaterialDesignRaisedButton}"
                     materialDesign:ButtonAssist.CornerRadius="6" Padding="16,8" Margin="0,0,8,0"/>
-            <Button Content="Modifier" Click="Modifier_Click"
+            <Button x:Name="BtnModifier" Content="Modifier" Click="Modifier_Click"
                     Style="{StaticResource MaterialDesignOutlinedButton}"
                     materialDesign:ButtonAssist.CornerRadius="6" Padding="16,8" Margin="0,0,8,0"/>
-            <Button Content="Changer mot de passe" Click="ChangerMotDePasse_Click"
+            <Button x:Name="BtnMotDePasse" Content="Changer mot de passe" Click="ChangerMotDePasse_Click"
                     Style="{StaticResource MaterialDesignOutlinedButton}"
                     materialDesign:ButtonAssist.CornerRadius="6" Padding="16,8" Margin="0,0,8,0"/>
-            <Button Content="Supprimer" Click="Supprimer_Click"
+            <Button x:Name="BtnSupprimer" Content="Supprimer" Click="Supprimer_Click"
                     Style="{StaticResource MaterialDesignOutlinedButton}"
                     materialDesign:ButtonAssist.CornerRadius="6" Padding="16,8"/>
         </StackPanel>

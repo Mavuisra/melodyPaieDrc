@@ -26,12 +26,14 @@ public class EtablissementsDepartementsViewModel : INotifyPropertyChanged
         Etablissements = new ObservableCollection<Etablissement>();
         Departements = new ObservableCollection<Departement>();
 
-        AjouterEtablissementCommand = new RelayCommand(_ => AjouterEtablissement());
-        SupprimerEtablissementCommand = new RelayCommand(_ => SupprimerEtablissement(), _ => EtablissementSelectionne != null);
-        AjouterDepartementCommand = new RelayCommand(_ => AjouterDepartement(), _ => EtablissementSelectionne != null);
-        SupprimerDepartementCommand = new RelayCommand(_ => SupprimerDepartement(), _ => DepartementSelectionne != null);
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer());
+        AjouterEtablissementCommand = new RelayCommand(_ => AjouterEtablissement(), _ => DroitsUi.PeutModifier);
+        SupprimerEtablissementCommand = new RelayCommand(_ => SupprimerEtablissement(), _ => DroitsUi.PeutModifier && EtablissementSelectionne != null);
+        AjouterDepartementCommand = new RelayCommand(_ => AjouterDepartement(), _ => DroitsUi.PeutModifier && EtablissementSelectionne != null);
+        SupprimerDepartementCommand = new RelayCommand(_ => SupprimerDepartement(), _ => DroitsUi.PeutModifier && DepartementSelectionne != null);
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => DroitsUi.PeutModifier);
     }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public ObservableCollection<Etablissement> Etablissements { get; }
     public ObservableCollection<Departement> Departements { get; }

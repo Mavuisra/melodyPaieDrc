@@ -11,6 +11,11 @@ public partial class NouvelleEntrepriseWindow : Window
     public NouvelleEntrepriseWindow()
     {
         InitializeComponent();
+        if (!DroitsUi.PeutModifier)
+        {
+            TxtRaisonSociale.IsReadOnly = true;
+            BtnCreer.IsEnabled = false;
+        }
         Loaded += (_, _) => TxtRaisonSociale.Focus();
     }
 
@@ -22,6 +27,9 @@ public partial class NouvelleEntrepriseWindow : Window
 
     private void Creer_Click(object sender, RoutedEventArgs e)
     {
+        if (!DroitsUi.PeutModifier)
+            return;
+
         var nom = TxtRaisonSociale.Text?.Trim() ?? "";
         if (string.IsNullOrWhiteSpace(nom))
         {

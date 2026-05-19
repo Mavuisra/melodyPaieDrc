@@ -18,10 +18,11 @@ public class PathToImageSourceConverter : IValueConverter
 
         try
         {
+            var cacheBust = File.GetLastWriteTimeUtc(path).Ticks;
             var bmp = new BitmapImage();
             bmp.BeginInit();
             bmp.CacheOption = BitmapCacheOption.OnLoad;
-            bmp.UriSource = new Uri(path, UriKind.Absolute);
+            bmp.UriSource = new Uri($"{path}?v={cacheBust}", UriKind.Absolute);
             bmp.EndInit();
             bmp.Freeze();
             return bmp;

@@ -72,7 +72,7 @@
             <Button Content="Réinitialiser défauts" Command="{Binding ReinitialiserCommand}" Margin="0,0,8,0"
                     Style="{StaticResource MaterialDesignOutlinedButton}" Padding="14,8"/>
             <Button Content="Enregistrer" Command="{Binding EnregistrerCommand}"
-                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#1E3A5F" Padding="20,10"/>
+                    Style="{StaticResource BrandRaisedButton}" Padding="20,10"/>
         </StackPanel>
     </Grid>
 </Window>

@@ -1,5 +1,6 @@
 using System.Windows;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
 
 namespace MelodyPaieRDC.Views;
@@ -12,8 +13,7 @@ public partial class ConfigurationExportsPaieWindow : Window
     {
         InitializeComponent();
         var vm = new ConfigurationExportsPaieViewModel(_db);
-        vm.OnEnregistre = () => MessageBox.Show(this, "Configuration enregistrée.", "Exports paie",
-            MessageBoxButton.OK, MessageBoxImage.Information);
+        vm.OnEnregistre = () => UiFeedback.Succes("Configuration des exports enregistrée.");
         DataContext = vm;
     }
 

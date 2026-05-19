@@ -2,6 +2,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Threading;
+using Microsoft.Win32;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Services;
@@ -67,15 +68,32 @@ public partial class App : Application
             {
                 if (args[i] != "--restore-from" || string.IsNullOrWhiteSpace(args[i + 1])) continue;
                 var backupPath = args[i + 1].Trim().Trim('"');
-                if (!File.Exists(backupPath))
+                var validation = DatabaseBackupService.ValiderFichierBackup(backupPath);
+                if (!validation.EstValide)
                 {
-                    MessageBox.Show($"Fichier introuvable : {backupPath}", "Restauration", MessageBoxButton.OK, MessageBoxImage.Warning);
-                    break;
+                    splash?.Close();
+                    MessageBox.Show(validation.MessageErreur ?? "Sauvegarde invalide.", "Restauration",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    Shutdown(1);
+                    return;
                 }
-                if (!Directory.Exists(dataDir))
-                    Directory.CreateDirectory(dataDir);
-                File.Copy(backupPath, dbPath, overwrite: true);
-                MessageBox.Show("Base de données restaurée. L'application va s'ouvrir avec les données de la sauvegarde.", "Restauration", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                try
+                {
+                    var resultat = DatabaseBackupService.RestaurerDepuisBackup(backupPath, dbPath);
+                    DatabaseBackupService.EnregistrerRestaurationPourAffichage(resultat);
+                    StartupLog.Append($"Restauration effectuée depuis {backupPath}");
+                }
+                catch (Exception ex)
+                {
+                    splash?.Close();
+                    StartupLog.Append("Échec restauration", ex);
+                    MessageBox.Show($"Restauration impossible : {ex.Message}", "Restauration",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    Shutdown(1);
+                    return;
+                }
+
                 break;
             }
 
@@ -83,12 +101,34 @@ public partial class App : Application
                 Directory.CreateDirectory(dataDir);
 
             FormDefinitionLoader.AssurerDossierEtModelesParDefaut();
-            AssurerBaseEtDonneesInitiales(dbPath);
+
+            if (!GererBaseCorrompueAuDemarrage(dbPath, ref splash, ref splashStart))
+            {
+                Shutdown(1);
+                return;
+            }
+
+            try
+            {
+                AssurerBaseEtDonneesInitiales(dbPath);
+            }
+            catch (Exception ex) when (DatabaseBackupService.EstErreurBaseCorrompue(ex))
+            {
+                StartupLog.Append("Base corrompue lors de l'initialisation", ex);
+                if (!GererBaseCorrompueAuDemarrage(dbPath, ref splash, ref splashStart))
+                {
+                    Shutdown(1);
+                    return;
+                }
+
+                AssurerBaseEtDonneesInitiales(dbPath);
+            }
+
             StartupLog.Append("Base SQLite initialisée");
 
             // Splash minimum sans Thread.Sleep sur le thread UI (évite « ne répond pas » / gel perçu).
             var elapsed = DateTime.UtcNow - splashStart;
-            var minimum = TimeSpan.FromSeconds(5);
+            var minimum = TimeSpan.FromSeconds(2);
             if (elapsed < minimum)
                 AttendreAvecPompageMessages(minimum - elapsed);
 
@@ -106,6 +146,7 @@ public partial class App : Application
             using (var dbCtx = new PaieDbContext())
             {
                 ContexteEntrepriseService.InitialiserDepuisBase(dbCtx);
+                EntrepriseBrandingService.AppliquerIdentiteVisuelleGlobale();
                 if (ContexteEntrepriseService.EntrepriseCouranteId is int tenantId && tenantId > 0)
                     dbCtx.SetTenant(tenantId);
                 if (ConfigurationEntrepriseService.DoitAfficherAssistantAuDemarrage(dbCtx))
@@ -169,12 +210,141 @@ public partial class App : Application
             splash?.Close();
             StartupLog.Append("Échec démarrage (voir exception)", ex);
             var logHint = StartupLog.CheminFichier();
-            var detail = string.IsNullOrEmpty(logHint)
-                ? ex.StackTrace
-                : $"{ex.StackTrace}\n\nJournal : {logHint}";
-            MessageBox.Show($"Démarrage : {ex.Message}\n\n{detail}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+
+            if (DatabaseBackupService.EstErreurBaseCorrompue(ex))
+            {
+                MessageBox.Show(
+                    "La base de données est endommagée et Melody Paie ne peut pas démarrer.\n\n" +
+                    $"Dossier des données :\n{PaieDbContext.GetDataDirectory()}\n\n" +
+                    "Relancez l'application pour tenter une récupération automatique ou choisir un fichier .db de sauvegarde." +
+                    (string.IsNullOrEmpty(logHint) ? "" : $"\n\nJournal : {logHint}"),
+                    "Base endommagée",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+            else
+            {
+                var detail = string.IsNullOrEmpty(logHint)
+                    ? ex.StackTrace
+                    : $"{ex.StackTrace}\n\nJournal : {logHint}";
+                MessageBox.Show($"Démarrage : {ex.Message}\n\n{detail}", "Erreur", MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+
             Shutdown(1);
         }
+    }
+
+    /// <summary>Base illisible : récupération auto, choix d'un backup, ou arrêt.</summary>
+    private static bool GererBaseCorrompueAuDemarrage(
+        string dbPath,
+        ref Views.SplashScreenWindow? splash,
+        ref DateTime splashStart)
+    {
+        if (!File.Exists(dbPath) || DatabaseBackupService.EstIntegriteValide(dbPath))
+            return true;
+
+        splash?.Close();
+        StartupLog.Append("Détection base SQLite corrompue");
+
+        if (DatabaseBackupService.TenterRecuperationAutomatique(dbPath, out var msgRecup, out var cheminCopieAuto))
+        {
+            MessageBox.Show(msgRecup, "Récupération automatique", MessageBoxButton.OK, MessageBoxImage.Information);
+            splash = new Views.SplashScreenWindow();
+            splash.Show();
+            splashStart = DateTime.UtcNow;
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(cheminCopieAuto) && ProposerRelanceAvecRestauration(cheminCopieAuto))
+            return false;
+
+        var reponse = MessageBox.Show(
+            $"{msgRecup}\n\nVoulez-vous sélectionner un fichier de sauvegarde (.db) maintenant ?",
+            "Base de données endommagée",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+
+        if (reponse != MessageBoxResult.Yes)
+        {
+            MessageBox.Show(
+                $"Relancez Melody Paie pour réessayer.\n\nDossier des données :\n{PaieDbContext.GetDataDirectory()}",
+                "Arrêt",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            return false;
+        }
+
+        var dlg = new OpenFileDialog
+        {
+            Title = "Restaurer Melody Paie depuis une sauvegarde",
+            Filter = "Base SQLite (*.db)|*.db|Tous les fichiers (*.*)|*.*",
+            CheckFileExists = true
+        };
+
+        if (dlg.ShowDialog() != true)
+            return false;
+
+        var validation = DatabaseBackupService.ValiderFichierBackup(dlg.FileName);
+        if (!validation.EstValide)
+        {
+            MessageBox.Show(validation.MessageErreur ?? "Sauvegarde invalide.", "Restauration",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            return false;
+        }
+
+        try
+        {
+            var dataDir = Path.GetDirectoryName(dbPath);
+            if (!string.IsNullOrEmpty(dataDir) && !Directory.Exists(dataDir))
+                Directory.CreateDirectory(dataDir);
+
+            DatabaseBackupService.RestaurerDepuisBackup(dlg.FileName, dbPath);
+            MessageBox.Show(
+                $"Base restaurée depuis :\n{Path.GetFileName(dlg.FileName)}",
+                "Restauration",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+            splash = new Views.SplashScreenWindow();
+            splash.Show();
+            splashStart = DateTime.UtcNow;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            if (ProposerRelanceAvecRestauration(dlg.FileName, ex))
+                return false;
+
+            MessageBox.Show($"Restauration impossible : {ex.Message}", "Erreur",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
+        }
+    }
+
+    private static bool ProposerRelanceAvecRestauration(string cheminBackup, Exception? ex = null)
+    {
+        var detail = ex != null
+            ? DatabaseBackupService.FormaterErreurFichierUtilise(ex)
+            : "Melody va redémarrer et appliquer la sauvegarde.";
+
+        var relancer = MessageBox.Show(
+            $"{detail}\n\nRelancer Melody Paie maintenant pour restaurer automatiquement ?",
+            "Fichier de base verrouillé",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+
+        if (relancer != MessageBoxResult.Yes)
+            return false;
+
+        if (!DatabaseBackupService.RelancerApplicationAvecRestauration(cheminBackup))
+        {
+            MessageBox.Show("Impossible de relancer l'application.", "Erreur",
+                MessageBoxButton.OK, MessageBoxImage.Error);
+            return false;
+        }
+
+        Current.Shutdown(0);
+        return true;
     }
 
     /// <summary>
@@ -239,6 +409,7 @@ public partial class App : Application
         {
             db.SeedSiVide();
             TenantDataBackfill.AppliquerSiNecessaire(db);
+            ReinitialiserTenantApresBackfill(db);
             return;
         }
         catch (SqliteException ex) when (ex.Message.Contains("no such table", StringComparison.OrdinalIgnoreCase))
@@ -271,6 +442,14 @@ public partial class App : Application
         BackfillNumeroBulletinSiNecessaire(db);
         db.SeedSiVide();
         TenantDataBackfill.AppliquerSiNecessaire(db);
+        ReinitialiserTenantApresBackfill(db);
+    }
+
+    private static void ReinitialiserTenantApresBackfill(PaieDbContext db)
+    {
+        ContexteEntrepriseService.InitialiserDepuisBase(db);
+        if (ContexteEntrepriseService.EntrepriseCouranteId is int entrepriseId && entrepriseId > 0)
+            db.SetTenant(entrepriseId);
     }
 
     /// <summary>

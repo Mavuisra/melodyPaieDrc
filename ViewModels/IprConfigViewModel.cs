@@ -4,6 +4,7 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
+using MelodyPaieRDC.Services;
 
 namespace MelodyPaieRDC.ViewModels;
 
@@ -20,10 +21,12 @@ public class IprConfigViewModel : INotifyPropertyChanged
     {
         _db = db;
         Tranches = new ObservableCollection<GrilleIPR>();
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer());
-        AjouterTrancheCommand = new RelayCommand(_ => AjouterTranche());
-        SupprimerTrancheCommand = new RelayCommand(_ => SupprimerTranche(), _ => TrancheSelectionnee != null);
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => DroitsUi.PeutModifier);
+        AjouterTrancheCommand = new RelayCommand(_ => AjouterTranche(), _ => DroitsUi.PeutModifier);
+        SupprimerTrancheCommand = new RelayCommand(_ => SupprimerTranche(), _ => DroitsUi.PeutModifier && TrancheSelectionnee != null);
     }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public ObservableCollection<GrilleIPR> Tranches { get; }
 

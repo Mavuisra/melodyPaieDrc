@@ -1,5 +1,6 @@
 using System.Windows;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
 
 namespace MelodyPaieRDC.Views;
@@ -12,8 +13,7 @@ public partial class ColonnesEmployesWindow : Window
         var vm = new ColonnesEmployesViewModel(new PaieDbContext());
         vm.OnEnregistre = () =>
         {
-            MessageBox.Show(this, "Colonnes enregistrées. Rouvrez le menu Employés pour appliquer.", "Configuration",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            UiFeedback.Succes("Colonnes enregistrées.");
             DialogResult = true;
         };
         DataContext = vm;

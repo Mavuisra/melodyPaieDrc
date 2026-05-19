@@ -37,10 +37,12 @@ public sealed class DynamicFormViewModel : INotifyPropertyChanged
         InitialiserChamps();
         ChargerValeursExistantes();
 
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer());
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => DroitsUi.PeutModifier);
         AnnulerCommand = new RelayCommand(_ => OnAnnuler?.Invoke());
         RechargerMetadonneesCommand = new RelayCommand(_ => RechargerMetadonnees());
     }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public FormDefinition Definition { get; private set; }
     public int EntityId { get; }

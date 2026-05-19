@@ -6,7 +6,10 @@ using System.Linq;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Windows.Threading;
 using Microsoft.Win32;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Helpers;
@@ -14,6 +17,7 @@ using MelodyPaieRDC.ViewModels;
 using MelodyPaieRDC.Models;
 using MelodyPaieRDC.Services;
 using MelodyPaieRDC.Services.Export;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.Views;
@@ -22,6 +26,7 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private SuiviJournalierWindow? _suiviJournalierWindow;
+    private DispatcherTimer? _notificationTimer;
 
     public MainWindow()
     {
@@ -57,12 +62,22 @@ public partial class MainWindow : Window
         _viewModel.OnOuvrirChampsComplementairesEmploye = OuvrirChampsComplementairesEmploye;
         _viewModel.OnOuvrirFormulairesDynamiques = () => DynamicFormNavigator.OuvrirGestionnaireDefinitions(this);
         _viewModel.OnOuvrirChampsComplementairesEntreprise = () => DynamicFormNavigator.OuvrirChampsComplementairesEntreprise(this);
-        _viewModel.OnErreurCalculPaie = msg => MessageBox.Show(msg, "Calcul de paie", MessageBoxButton.OK, MessageBoxImage.Warning);
-        _viewModel.OnSuccessCalculPaie = msg => MessageBox.Show(msg, "Calcul de paie", MessageBoxButton.OK, MessageBoxImage.Information);
-        _viewModel.OnSuccesTauxChange = msg => MessageBox.Show(this, msg, "Taux de change", MessageBoxButton.OK, MessageBoxImage.Information);
-        _viewModel.OnErreurTauxChange = msg => MessageBox.Show(this, msg, "Taux de change", MessageBoxButton.OK, MessageBoxImage.Warning);
-        _viewModel.OnMessageZkSettings = msg => MessageBox.Show(this, msg, "Paramètres ZKTeco", MessageBoxButton.OK, MessageBoxImage.Information);
-        _viewModel.OnErreurZkSettings = msg => MessageBox.Show(this, msg, "Paramètres ZKTeco", MessageBoxButton.OK, MessageBoxImage.Warning);
+        _viewModel.OnErreurCalculPaie = msg => NotifierAvertissement(msg);
+        _viewModel.OnSuccessCalculPaie = msg => AfficherNotification(msg, NotificationKind.Success);
+        _viewModel.OnSuccesTauxChange = msg => AfficherNotification(msg, NotificationKind.Success);
+        _viewModel.OnErreurTauxChange = msg => NotifierAvertissement(msg);
+        _viewModel.OnMessageZkSettings = msg => AfficherNotification(msg, NotificationKind.Success);
+        _viewModel.OnErreurZkSettings = msg => NotifierAvertissement(msg);
+        _viewModel.DemanderConfirmationChangementEntreprise = (_, nouveau) =>
+            MessageBox.Show(this,
+                "Changer d'entreprise recharge les données affichées. Les fenêtres ouvertes peuvent ne plus correspondre.\n\nContinuer ?",
+                "Changer d'entreprise",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) == MessageBoxResult.Yes;
+        _viewModel.OnDemandeDeconnexion = ExecuterDeconnexion;
+        AppNotificationService.NotificationPubliee += OnNotificationService;
+        AppSessionEvents.EntrepriseCouranteChanged += OnEntrepriseCouranteChanged;
+        AppSessionEvents.DonneesMetierModifiees += OnDonneesMetierModifiees;
         _viewModel.OnVoirBulletin = OuvrirBulletin;
         _viewModel.OnTelechargerBulletin = TelechargerBulletinPdf;
         _viewModel.OnTelechargerTousBulletins = TelechargerTousBulletinsPdf;
@@ -84,19 +99,137 @@ public partial class MainWindow : Window
         Loaded += (_, _) =>
         {
             _viewModel.ChargerDonnees();
+            _viewModel.NotifierChangementSessionUtilisateur();
             Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
             ZktecoSynchronisationService.Reconfigurer();
             ConfigurationUiHelper.AppliquerColonnesListeEmployes(GrilleEmployes);
             AfficherTableauDeBordEnPremier();
+            AppliquerIdentiteVisuelleCourante();
+            AfficherBandeauRestaurationSiNecessaire();
             _ = ProposerMiseAJourAuDemarrageAsync();
         };
         _viewModel.PropertyChanged += ViewModelOnPropertyChanged;
+    }
+
+    private void OnNotificationService(string message, NotificationKind kind) =>
+        Dispatcher.Invoke(() => AfficherNotification(message, kind));
+
+    private void AfficherNotification(string message, NotificationKind kind = NotificationKind.Info)
+    {
+        TexteNotification.Text = message;
+        BandeauNotification.Visibility = Visibility.Visible;
+        BandeauNotification.BorderBrush = kind switch
+        {
+            NotificationKind.Success => new SolidColorBrush(Color.FromRgb(0xA5, 0xD6, 0xA7)),
+            NotificationKind.Warning => new SolidColorBrush(Color.FromRgb(0xFF, 0xCC, 0x80)),
+            _ => new SolidColorBrush(Color.FromRgb(0x90, 0xCA, 0xF9))
+        };
+        BandeauNotification.Background = kind switch
+        {
+            NotificationKind.Success => new SolidColorBrush(Color.FromRgb(0xE8, 0xF5, 0xE9)),
+            NotificationKind.Warning => new SolidColorBrush(Color.FromRgb(0xFF, 0xF3, 0xE0)),
+            _ => new SolidColorBrush(Color.FromRgb(0xE3, 0xF2, 0xFD))
+        };
+        IconeNotification.Kind = kind switch
+        {
+            NotificationKind.Success => MaterialDesignThemes.Wpf.PackIconKind.CheckCircleOutline,
+            NotificationKind.Warning => MaterialDesignThemes.Wpf.PackIconKind.AlertOutline,
+            _ => MaterialDesignThemes.Wpf.PackIconKind.InformationOutline
+        };
+
+        _notificationTimer?.Stop();
+        _notificationTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(7) };
+        _notificationTimer.Tick += (_, _) =>
+        {
+            _notificationTimer?.Stop();
+            BandeauNotification.Visibility = Visibility.Collapsed;
+        };
+        _notificationTimer.Start();
+    }
+
+    private void NotifierSucces(string message) => AfficherNotification(message, NotificationKind.Success);
+
+    private void NotifierInfo(string message) => AfficherNotification(message, NotificationKind.Info);
+
+    private void NotifierAvertissement(string message) => AfficherNotification(message, NotificationKind.Warning);
+
+    private void OnEntrepriseCouranteChanged()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            _viewModel.ChargerContexteEntreprise();
+            Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
+            AppliquerIdentiteVisuelleCourante();
+            RafraichirPanneauxPointageEtHeures();
+            _viewModel.RafraichirChecklistMoisPaie();
+        });
+    }
+
+    private void OnDonneesMetierModifiees()
+    {
+        Dispatcher.Invoke(() =>
+        {
+            _viewModel.RafraichirChecklistMoisPaie();
+            if (_viewModel.MenuSelectionne == 0)
+                _viewModel.ChargerTableauDeBord();
+        });
+    }
+
+    private void AppliquerIdentiteVisuelleCourante() =>
+        EntrepriseBrandingService.AppliquerIdentiteVisuelleGlobale();
+
+    private void RafraichirPanneauxPointageEtHeures()
+    {
+        PanneauSuiviJournalier?.RafraichirPourEntrepriseCourante();
+        PanneauHeuresPrestees?.RafraichirPourEntrepriseCourante();
+    }
+
+    private void ExecuterDeconnexion()
+    {
+        var confirmer = MessageBox.Show(this,
+            "Voulez-vous vous déconnecter ?",
+            "Déconnexion",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+        if (confirmer != MessageBoxResult.Yes)
+            return;
+
+        AuthService.Logout();
+        AppNotificationService.NotificationPubliee -= OnNotificationService;
+        AppSessionEvents.EntrepriseCouranteChanged -= OnEntrepriseCouranteChanged;
+        AppSessionEvents.DonneesMetierModifiees -= OnDonneesMetierModifiees;
+        Hide();
+        var login = new LoginWindow();
+        if (login.ShowDialog() == true)
+        {
+            AppNotificationService.NotificationPubliee += OnNotificationService;
+            AppSessionEvents.EntrepriseCouranteChanged += OnEntrepriseCouranteChanged;
+        AppSessionEvents.DonneesMetierModifiees += OnDonneesMetierModifiees;
+            _viewModel.ChargerDonnees();
+            _viewModel.NotifierChangementSessionUtilisateur();
+            Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
+            Show();
+            AfficherNotification($"Bon retour, {AuthService.UtilisateurCourant?.Login ?? "utilisateur"}.", NotificationKind.Success);
+            return;
+        }
+
+        Application.Current.Shutdown();
     }
 
     private void ViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(MainViewModel.MenuSelectionne) && _viewModel.MenuSelectionne == 0)
             AfficherTableauDeBordEnPremier();
+        if (e.PropertyName == nameof(MainViewModel.EntrepriseCouranteLibelle))
+            Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        AppNotificationService.NotificationPubliee -= OnNotificationService;
+        AppSessionEvents.EntrepriseCouranteChanged -= OnEntrepriseCouranteChanged;
+        AppSessionEvents.DonneesMetierModifiees -= OnDonneesMetierModifiees;
+        base.OnClosed(e);
     }
 
     private void AfficherTableauDeBordEnPremier()
@@ -131,10 +264,13 @@ public partial class MainWindow : Window
             if (r.Messages.Count > 25)
                 msg += Environment.NewLine + "…";
             msg += $"{Environment.NewLine}{Environment.NewLine}Créés : {r.EmployesCrees} — Ignorés : {r.LignesIgnorees} — Affectations primes/indemnités : {r.AffectationsCreees}";
-            MessageBox.Show(this, msg, "Import fiche salaire", MessageBoxButton.OK,
-                r.EmployesCrees > 0 ? MessageBoxImage.Information : MessageBoxImage.Warning);
+            if (r.EmployesCrees > 0)
+                NotifierSucces($"Import terminé : {r.EmployesCrees} employé(s) créé(s).");
+            else
+                NotifierAvertissement(msg.Length > 220 ? msg[..220] + "…" : msg);
             _viewModel.ChargerEmployes();
             _viewModel.ChargerStatistiques();
+            AppSessionEvents.NotifierDonneesMetierModifiees();
         }
         catch (Exception ex)
         {
@@ -165,7 +301,7 @@ public partial class MainWindow : Window
         try
         {
             File.WriteAllText(dlg.FileName, contenu, Encoding.UTF8);
-            MessageBox.Show(this, "Fichier enregistré.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Fichier exporté enregistré.");
         }
         catch (Exception ex)
         {
@@ -190,7 +326,7 @@ public partial class MainWindow : Window
             var resume = decl.GetResumePourPeriode(periodeId);
             var pdfService = new ExportPdfService();
             pdfService.ExporterLivrePaiePdf(resume.Bulletins, resume.Mois, resume.Annee, dlg.FileName);
-            MessageBox.Show(this, "Livre de paie exporté en PDF.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Livre de paie exporté en PDF.");
         }
         catch (Exception ex)
         {
@@ -213,7 +349,7 @@ public partial class MainWindow : Window
             using var db = new PaieDbContext();
             var service = new LivrePaieExportService(db);
             service.ExporterExcel(periodeId, dlg.FileName);
-            MessageBox.Show(this, "Livre de paie exporté en Excel.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Livre de paie exporté en Excel.");
         }
         catch (Exception ex)
         {
@@ -236,7 +372,7 @@ public partial class MainWindow : Window
             using var db = new PaieDbContext();
             var service = new RapportPaieExportService(db);
             service.ExporterExcel(periodeId, dlg.FileName);
-            MessageBox.Show(this, "Rapport de paie exporté en Excel.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Rapport de paie exporté en Excel.");
         }
         catch (Exception ex)
         {
@@ -298,14 +434,19 @@ public partial class MainWindow : Window
         {
             Owner = this
         };
-        _suiviJournalierWindow.Closed += (_, _) => _suiviJournalierWindow = null;
+        _suiviJournalierWindow.Closed += (_, _) =>
+        {
+            _suiviJournalierWindow = null;
+            AppSessionEvents.NotifierDonneesMetierModifiees();
+        };
         _suiviJournalierWindow.Show();
     }
 
     private void OuvrirSaisiePaieMois(int periodePaieId)
     {
         var win = new SaisiePaieMoisWindow(periodePaieId) { Owner = this };
-        win.ShowDialog();
+        if (win.ShowDialog() == true)
+            AppSessionEvents.NotifierDonneesMetierModifiees();
     }
 
     private void ExporterDeclarationCnssExcel(int periodeId)
@@ -323,7 +464,7 @@ public partial class MainWindow : Window
             using var db = new PaieDbContext();
             var service = new DeclarationsService(db);
             service.ExporterDeclarationCnssExcel(periodeId, dlg.FileName);
-            MessageBox.Show(this, "Déclaration CNSS exportée en Excel.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Déclaration CNSS exportée en Excel.");
         }
         catch (Exception ex)
         {
@@ -346,7 +487,7 @@ public partial class MainWindow : Window
             using var db = new PaieDbContext();
             var service = new DeclarationsService(db);
             service.ExporterDeclarationIprExcel(periodeId, dlg.FileName);
-            MessageBox.Show(this, "Déclaration IPR exportée en Excel.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Déclaration IPR exportée en Excel.");
         }
         catch (Exception ex)
         {
@@ -358,14 +499,20 @@ public partial class MainWindow : Window
     {
         var win = new EmployeWindow();
         if (win.ShowDialog() == true)
+        {
             _viewModel.ChargerEmployes();
+            AppSessionEvents.NotifierDonneesMetierModifiees();
+        }
     }
 
     private void OuvrirModifierEmploye(int employeId)
     {
         var win = new EmployeWindow(employeId) { Owner = this };
         if (win.ShowDialog() == true)
+        {
             _viewModel.ChargerEmployes();
+            AppSessionEvents.NotifierDonneesMetierModifiees();
+        }
     }
 
     private void OuvrirChampsComplementairesEmploye()
@@ -414,7 +561,10 @@ public partial class MainWindow : Window
     {
         var win = new EtablissementsDepartementsWindow { Owner = this };
         if (win.ShowDialog() == true)
+        {
             _viewModel.ChargerEmployes();
+            AppSessionEvents.NotifierDonneesMetierModifiees();
+        }
     }
 
     private void OuvrirGestionUtilisateurs()
@@ -423,12 +573,19 @@ public partial class MainWindow : Window
         win.ShowDialog();
     }
 
+    private void AfficherBandeauRestaurationSiNecessaire()
+    {
+        var etat = DatabaseBackupService.ConsommerRestaurationEnAttente();
+        if (etat == null) return;
+        NotifierSucces(DatabaseBackupService.FormaterMessageBandeau(etat));
+    }
+
     private void SauvegarderBase()
     {
         var dbPath = PaieDbContext.GetDatabasePath();
         if (!File.Exists(dbPath))
         {
-            MessageBox.Show(this, "Aucun fichier de base trouvé.", "Sauvegarde", MessageBoxButton.OK, MessageBoxImage.Warning);
+            NotifierAvertissement("Aucun fichier de base trouvé.");
             return;
         }
         var defaultName = $"PaieRDC_backup_{DateTime.Now:yyyy-MM-dd_HHmmss}.db";
@@ -441,43 +598,89 @@ public partial class MainWindow : Window
         if (dlg.ShowDialog(this) != true) return;
         try
         {
-            File.Copy(dbPath, dlg.FileName, overwrite: true);
-            MessageBox.Show(this, "Sauvegarde effectuée : " + dlg.FileName, "Sauvegarde", MessageBoxButton.OK, MessageBoxImage.Information);
+            Mouse.OverrideCursor = Cursors.Wait;
+            if (!DatabaseBackupService.EstIntegriteValide(dbPath))
+            {
+                NotifierAvertissement(
+                    "La base actuelle est endommagée. Utilisez une copie de sauvegarde (.db) via « Restaurer » ou contactez le support.");
+                return;
+            }
+
+            SqliteConnection.ClearAllPools();
+            DatabaseBackupService.AssurerSchemaAvantSauvegarde();
+            DatabaseBackupService.ExporterCopieCoherente(dbPath, dlg.FileName);
+            var verification = DatabaseBackupService.ValiderFichierBackup(dlg.FileName);
+            if (!verification.EstValide)
+            {
+                NotifierAvertissement(
+                    $"Fichier créé, mais la vérification a échoué : {verification.MessageErreur}");
+                return;
+            }
+
+            NotifierSucces($"Sauvegarde enregistrée : {Path.GetFileName(dlg.FileName)}");
         }
         catch (Exception ex)
         {
             MessageBox.Show(this, ex.Message, "Erreur sauvegarde", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+        finally
+        {
+            Mouse.OverrideCursor = null;
+        }
     }
 
     private void RestaurerBase()
     {
-        var result = MessageBox.Show(this,
-            "La base actuelle sera remplacée par la sauvegarde. L'application va se fermer puis rouvrir.\n\nContinuer ?",
-            "Restaurer la base",
-            MessageBoxButton.YesNo,
-            MessageBoxImage.Question);
-        if (result != MessageBoxResult.Yes) return;
         var dlg = new OpenFileDialog
         {
             Filter = "Base SQLite (*.db)|*.db|Tous les fichiers (*.*)|*.*",
             Title = "Choisir le fichier de sauvegarde"
         };
         if (dlg.ShowDialog(this) != true) return;
-        if (!File.Exists(dlg.FileName))
+
+        var validation = DatabaseBackupService.ValiderFichierBackup(dlg.FileName);
+        if (!validation.EstValide)
         {
-            MessageBox.Show(this, "Fichier introuvable.", "Restauration", MessageBoxButton.OK, MessageBoxImage.Warning);
+            NotifierAvertissement(validation.MessageErreur ?? "Fichier de sauvegarde invalide.");
             return;
         }
+
+        if (!DatabaseBackupService.TablePresenteDansFichier(dlg.FileName, "ParametresApplication"))
+        {
+            var cont = MessageBox.Show(this,
+                "Cette sauvegarde provient d'une ancienne version (paramètres globaux absents).\n\n" +
+                "La restauration est possible : Melody recréera les paramètres au démarrage.\n\nContinuer ?",
+                "Restaurer la base",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+            if (cont != MessageBoxResult.Yes)
+                return;
+        }
+
+        var horodatage = File.GetLastWriteTime(dlg.FileName);
+        var tailleMo = new FileInfo(dlg.FileName).Length / (1024.0 * 1024.0);
+        var result = MessageBox.Show(this,
+            $"Fichier : {Path.GetFileName(dlg.FileName)}\n" +
+            $"Date : {horodatage:dd/MM/yyyy HH:mm} — {tailleMo:0.##} Mo\n\n" +
+            "La base actuelle sera remplacée. Une copie de sécurité sera créée automatiquement " +
+            $"dans :\n{PaieDbContext.GetDataDirectory()}\n\n" +
+            "L'application va redémarrer.\n\nContinuer ?",
+            "Restaurer la base",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning);
+        if (result != MessageBoxResult.Yes) return;
+
         try
         {
             var args = Environment.GetCommandLineArgs();
             var exe = Environment.ProcessPath ?? (args.Length > 0 ? args[0] : null);
             if (string.IsNullOrEmpty(exe))
             {
-                MessageBox.Show(this, "Impossible de déterminer le chemin de l'application.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(this, "Impossible de déterminer le chemin de l'application.", "Erreur",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = exe,
@@ -489,7 +692,8 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, "Impossible de lancer la restauration : " + ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show(this, "Impossible de lancer la restauration : " + ex.Message, "Erreur",
+                MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 
@@ -522,6 +726,7 @@ public partial class MainWindow : Window
         {
             _viewModel.ChargerPeriodes();
             _viewModel.ChargerDeclarations();
+            AppSessionEvents.NotifierDonneesMetierModifiees();
         }
     }
 
@@ -539,7 +744,7 @@ public partial class MainWindow : Window
         {
             using var db = new PaieDbContext();
             new CnssEDeclarationExportService(db).ExporterExcel(periodeId, dlg.FileName);
-            MessageBox.Show(this, "Export CNSS e-déclaration enregistré.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Export CNSS e-déclaration enregistré.");
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
@@ -560,9 +765,7 @@ public partial class MainWindow : Window
         {
             using var db = new PaieDbContext();
             new FeuillePaieCnssExportService(db).ExporterWord(periodeId, dlg.FileName);
-            MessageBox.Show(this,
-                "Feuille de paie CNSS exportée en Word.\n\nEnregistrez le document en PDF avant de le charger sur edeclaration.cnss.cd.",
-                "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Feuille de paie CNSS exportée en Word. Enregistrez-la en PDF avant e-déclaration.");
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
@@ -581,7 +784,7 @@ public partial class MainWindow : Window
         {
             using var db = new PaieDbContext();
             new DgiIprDeclarationExportService(db).ExporterExcel(periodeId, dlg.FileName);
-            MessageBox.Show(this, "Export DGI IPR enregistré.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Export DGI IPR enregistré.");
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
@@ -600,7 +803,7 @@ public partial class MainWindow : Window
         {
             using var db = new PaieDbContext();
             new LivrePaieReglementaireExportService(db).ExporterPdf(periodeId, dlg.FileName);
-            MessageBox.Show(this, "Livre de paie réglementaire exporté.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Livre de paie réglementaire exporté en PDF.");
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
@@ -619,7 +822,7 @@ public partial class MainWindow : Window
         {
             using var db = new PaieDbContext();
             new LivrePaieReglementaireExportService(db).ExporterExcel(periodeId, dlg.FileName);
-            MessageBox.Show(this, "Livre de paie réglementaire exporté.", "Export", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Livre de paie réglementaire exporté en Excel.");
         }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "Erreur", MessageBoxButton.OK, MessageBoxImage.Error); }
     }
@@ -639,6 +842,11 @@ public partial class MainWindow : Window
     private void OuvrirPeriodesPaie()
     {
         var win = new PeriodesPaieWindow { Owner = this };
+        win.Closed += (_, _) =>
+        {
+            _viewModel.ChargerPeriodes();
+            AppSessionEvents.NotifierDonneesMetierModifiees();
+        };
         win.ShowDialog();
         _viewModel.ChargerPeriodes();
     }
@@ -677,30 +885,29 @@ public partial class MainWindow : Window
     {
         using var db = new PaieDbContext();
         ParametresApplicationHelper.SetForcerAssistantProchainDemarrage(db, true);
-        MessageBox.Show(this,
-            "L'assistant de configuration s'affichera au prochain lancement de l'application, avant la connexion.\n\nFermez Melody Paie RDC puis relancez-la.",
-            "Assistant au prochain démarrage",
-            MessageBoxButton.OK,
-            MessageBoxImage.Information);
+        NotifierInfo("L'assistant s'affichera au prochain démarrage. Fermez puis relancez l'application.");
     }
 
     private void RafraichirApresChangementEntreprise()
     {
         _viewModel.ChargerDonnees();
         Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
+        AppliquerIdentiteVisuelleCourante();
     }
 
     private void OuvrirInfosEntreprise()
     {
         var win = new EntrepriseWindow { Owner = this };
         win.ShowDialog();
+        _viewModel.ChargerContexteEntreprise();
+        AppliquerIdentiteVisuelleCourante();
     }
 
     private void SupprimerBulletinsSelection_Click(object sender, RoutedEventArgs e)
     {
         if (BulletinsGeneresDataGrid.SelectedItems == null || BulletinsGeneresDataGrid.SelectedItems.Count == 0)
         {
-            MessageBox.Show(this, "Sélectionnez au moins un bulletin dans la liste.", "Suppression en masse", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierInfo("Sélectionnez au moins un bulletin dans la liste.");
             return;
         }
 
@@ -711,7 +918,7 @@ public partial class MainWindow : Window
 
         if (selected.Count == 0)
         {
-            MessageBox.Show(this, "Aucun bulletin valide sélectionné.", "Suppression en masse", MessageBoxButton.OK, MessageBoxImage.Warning);
+            NotifierAvertissement("Aucun bulletin valide sélectionné.");
             return;
         }
 
@@ -736,7 +943,7 @@ public partial class MainWindow : Window
             }
             if (supprimes == 0)
             {
-                MessageBox.Show(this, "Les bulletins sélectionnés n'existent plus.", "Suppression en masse", MessageBoxButton.OK, MessageBoxImage.Information);
+                NotifierInfo("Les bulletins sélectionnés n'existent plus.");
                 _viewModel.ChargerTousBulletins();
                 return;
             }
@@ -748,7 +955,7 @@ public partial class MainWindow : Window
             _viewModel.ChargerRapportPaie();
             _viewModel.ChargerBulletinsPeriodeCalculPaie();
 
-            MessageBox.Show(this, $"{supprimes} bulletin(s) supprimé(s) avec succès.", "Suppression en masse", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces($"{supprimes} bulletin(s) supprimé(s).");
         }
         catch (Exception ex)
         {
@@ -771,7 +978,7 @@ public partial class MainWindow : Window
         var bulletin = ChargerBulletinComplet(b.Id);
         if (bulletin == null)
         {
-            MessageBox.Show(this, "Bulletin introuvable.", "Bulletin", MessageBoxButton.OK, MessageBoxImage.Warning);
+            NotifierAvertissement("Bulletin introuvable.");
             return;
         }
         AfficherFenetreBulletin(bulletin);
@@ -782,7 +989,7 @@ public partial class MainWindow : Window
         var bulletin = ChargerBulletinComplet(b.Id);
         if (bulletin == null)
         {
-            MessageBox.Show(this, "Bulletin introuvable.", "Téléchargement", MessageBoxButton.OK, MessageBoxImage.Warning);
+            NotifierAvertissement("Bulletin introuvable.");
             return;
         }
         var dlg = new SaveFileDialog
@@ -796,7 +1003,7 @@ public partial class MainWindow : Window
         {
             var service = new ExportPdfService();
             service.ExporterBulletin(bulletin, dlg.FileName);
-            MessageBox.Show(this, "Bulletin exporté en PDF.", "Téléchargement", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierSucces("Bulletin exporté en PDF.");
         }
         catch (Exception ex)
         {
@@ -808,7 +1015,7 @@ public partial class MainWindow : Window
     {
         if (bulletins == null || bulletins.Count == 0)
         {
-            MessageBox.Show(this, "Aucun bulletin à exporter.", "Export groupé", MessageBoxButton.OK, MessageBoxImage.Information);
+            NotifierInfo("Aucun bulletin à exporter.");
             return;
         }
 
@@ -843,7 +1050,7 @@ public partial class MainWindow : Window
 
             if (erreurs.Count == 0)
             {
-                MessageBox.Show(this, $"{succes} bulletin(s) exporté(s) dans :\n{dlg.FolderName}", "Export groupé", MessageBoxButton.OK, MessageBoxImage.Information);
+                NotifierSucces($"{succes} bulletin(s) exporté(s).");
             }
             else
             {
@@ -851,11 +1058,7 @@ public partial class MainWindow : Window
                 if (erreurs.Count > 10)
                     resumeErreurs += $"{Environment.NewLine}... ({erreurs.Count - 10} autres erreurs)";
 
-                MessageBox.Show(this,
-                    $"{succes} bulletin(s) exporté(s).{Environment.NewLine}{erreurs.Count} erreur(s).{Environment.NewLine}{resumeErreurs}",
-                    "Export groupé",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                NotifierAvertissement($"{succes} bulletin(s) exporté(s), {erreurs.Count} erreur(s).");
             }
         }
         catch (Exception ex)
@@ -941,7 +1144,7 @@ public partial class MainWindow : Window
             try
             {
                 if (ImpressionBulletinService.Imprimer(bulletin, win))
-                    MessageBox.Show(win, "Bulletin envoyé à l'imprimante.", "Impression", MessageBoxButton.OK, MessageBoxImage.Information);
+                    UiFeedback.Succes("Bulletin envoyé à l'imprimante.");
             }
             catch (Exception ex)
             {
@@ -963,7 +1166,7 @@ public partial class MainWindow : Window
                 {
                     var service = new ExportPdfService();
                     service.ExporterBulletin(bulletin, dlg.FileName);
-                    MessageBox.Show(win, "Bulletin exporté en PDF.", "Export PDF", MessageBoxButton.OK, MessageBoxImage.Information);
+                    UiFeedback.Succes("Bulletin exporté en PDF.");
                 }
                 catch (Exception ex)
                 {

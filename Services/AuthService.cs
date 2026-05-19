@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -26,7 +27,15 @@ public static class AuthService
 
     public static bool EstConnecte => _utilisateurCourant != null;
     public static bool EstAdmin => _utilisateurCourant?.Role == Utilisateur.RoleAdmin;
+    public static bool EstGestionnaire =>
+        _utilisateurCourant?.Role == Utilisateur.RoleGestionnaire || EstAdmin;
     public static bool EstLectureSeule => _utilisateurCourant?.Role == Utilisateur.RoleLecture;
+
+    /// <summary>Saisie, suppression, clôture, imports.</summary>
+    public static bool PeutModifierDonnees => EstConnecte && !EstLectureSeule;
+
+    /// <summary>Sauvegarde base, utilisateurs, réinitialisation.</summary>
+    public static bool PeutAdministrerApplication => EstAdmin;
 
     /// <summary>Hash (SHA256) avec salt. Retourne (hashBase64, salt).</summary>
     public static (string Hash, string Salt) HashMotDePasse(string motDePasse)
@@ -81,9 +90,12 @@ public static class AuthService
             return false;
         }
 
-        if (motDePasse.Length < LongueurMotDePasseMin)
+        var longueur = new StringInfo(motDePasse).LengthInTextElements;
+        if (longueur < LongueurMotDePasseMin)
         {
-            messageErreur = $"Le mot de passe doit contenir au moins {LongueurMotDePasseMin} caractères.";
+            messageErreur = longueur == 0
+                ? "Veuillez saisir un mot de passe."
+                : $"Le mot de passe doit contenir au moins {LongueurMotDePasseMin} caractères (actuellement {longueur}).";
             return false;
         }
 
@@ -111,12 +123,14 @@ public static class AuthService
         if (u == null || !u.Actif) return null;
         if (!VerifierMotDePasse(motDePasse ?? "", u.MotDePasseHash, u.Salt)) return null;
         _utilisateurCourant = u;
+        AppSessionEvents.NotifierSessionUtilisateurChanged();
         return u;
     }
 
     public static void Logout()
     {
         _utilisateurCourant = null;
+        AppSessionEvents.NotifierSessionUtilisateurChanged();
     }
 
     /// <summary>Définit la session (après chargement depuis la base, ex. pour affichage).</summary>

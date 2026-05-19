@@ -21,9 +21,9 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
-            <materialDesign:PackIcon Kind="Update" Width="28" Height="28" Foreground="#1E3A5F" Margin="0,0,12,0" VerticalAlignment="Center"/>
+            <materialDesign:PackIcon Kind="Update" Width="28" Height="28" Foreground="{DynamicResource BrandPrimaryBrush}" Margin="0,0,12,0" VerticalAlignment="Center"/>
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Mises à jour de l'application" FontSize="18" FontWeight="SemiBold" Foreground="#1E3A5F"/>
+                <TextBlock Text="Mises à jour de l'application" FontSize="18" Style="{StaticResource BrandHeaderText}"/>
                 <TextBlock Text="{Binding VersionInstallee, StringFormat=Version installée : {0}}" FontSize="12" Foreground="#78909C" Margin="0,4,0,0"/>
             </StackPanel>
         </StackPanel>
@@ -62,8 +62,7 @@
                     Padding="16,10" Margin="0,0,8,0"/>
             <Button Content="Télécharger"
                     Command="{Binding TelechargerCommand}"
-                    Style="{StaticResource MaterialDesignRaisedButton}"
-                    Background="#1E3A5F"
+                    Style="{StaticResource BrandRaisedButton}"
                     materialDesign:ButtonAssist.CornerRadius="8"
                     Padding="16,10" Margin="0,0,8,0"/>
             <Button Content="Installer et quitter"

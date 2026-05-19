@@ -259,12 +259,12 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
     public ICommand EnregistrerMomentsCommand =>
         _enregistrerMomentsCommand ??= new RelayCommand(
             _ => EnregistrerMoments(),
-            _ => DetailJour?.PeutEditerMoments == true);
+            _ => DroitsUi.PeutModifier && DetailJour?.PeutEditerMoments == true);
 
     public ICommand EnregistrerTypeJourCommand =>
         _enregistrerTypeJourCommand ??= new RelayCommand(
             _ => EnregistrerTypeJour(),
-            _ => DetailJour != null && EmployeSelectionne != null && _dateSelectionnee.HasValue);
+            _ => DroitsUi.PeutModifier && DetailJour != null && EmployeSelectionne != null && _dateSelectionnee.HasValue);
 
     public ICommand ActualiserTotauxCommand =>
         _actualiserTotauxCommand ??= new RelayCommand(_ => RafraichirTotaux());
@@ -293,6 +293,14 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
     {
         ChargerEmployes();
         ChargerPeriodes();
+    }
+
+    public void RechargerPourEntrepriseCourante() => RafraichirTotaux();
+
+    public void NotifierDroitsModification()
+    {
+        (EnregistrerMomentsCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (EnregistrerTypeJourCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
     private void ChargerEmployes()
@@ -405,7 +413,8 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
             .FirstOrDefault(s => s.EmployeId == EmployeSelectionne.Id && s.Date.Date == d);
         var pts = PointagesJournalierSerializer.Deserialiser(suivi?.PointagesJson, d);
 
-        var detail = DetailJourEmployeVm.Creer(d, ligne, suivi, pts);
+        var reglesPourDetail = LtServicesReglesProvider.ChargerDepuisDb(_db);
+        var detail = DetailJourEmployeVm.Creer(d, ligne, suivi, pts, reglesPourDetail);
         DetailJour = detail;
         if (!string.IsNullOrWhiteSpace(messageApres))
             detail.DefinirMessageStatut(messageApres);

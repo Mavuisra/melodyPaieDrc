@@ -48,8 +48,12 @@ public class SaisiePaieMoisViewModel : INotifyPropertyChanged
         _db = db;
         _periodePaieId = periodePaieId;
         Lignes = new ObservableCollection<SaisiePaieLigne>();
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => !PeriodeVerrouillee);
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => DroitsUi.PeutModifier && !PeriodeVerrouillee);
     }
+
+    public bool PeutEnregistrer => DroitsUi.PeutModifier && !PeriodeVerrouillee;
+
+    public bool FormulaireLectureSeule => !DroitsUi.PeutModifier || PeriodeVerrouillee;
 
     public bool PeriodeVerrouillee
     {
@@ -98,6 +102,12 @@ public class SaisiePaieMoisViewModel : INotifyPropertyChanged
 
     private void Enregistrer()
     {
+        if (!DroitsUi.PeutModifier)
+        {
+            OnErreur?.Invoke("Votre compte est en lecture seule : modification impossible.");
+            return;
+        }
+
         if (PeriodeVerrouillee)
         {
             OnErreur?.Invoke("La période est clôturée : la saisie de paie est verrouillée.");

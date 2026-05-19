@@ -3,11 +3,23 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:views="clr-namespace:MelodyPaieRDC.Views"
-        Title="Pointage journalier"
-        Height="620" Width="780"
+        Title="Pointage journalier — présence en direct"
+        Height="880" Width="1020"
         WindowStartupLocation="CenterOwner"
         Background="#F5F5F5"
         TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
         FontFamily="{materialDesign:MaterialDesignFont}">
-    <views:SuiviJournalierPanel x:Name="SuiviRoot" Margin="16"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Border Grid.Row="0" Style="{StaticResource BrandHeaderBorder}" CornerRadius="0">
+            <StackPanel>
+                <TextBlock Text="Pointage journalier" FontSize="17" FontWeight="SemiBold" Foreground="White"/>
+                <TextBlock Text="Suivi live du terminal · clic sur une ligne pour le détail mensuel" FontSize="11" Foreground="#B0BEC5" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Border>
+        <views:SuiviJournalierPanel x:Name="SuiviRoot" Grid.Row="1" Margin="16"/>
+    </Grid>
 </Window>

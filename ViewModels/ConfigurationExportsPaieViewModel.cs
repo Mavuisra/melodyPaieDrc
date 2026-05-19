@@ -82,8 +82,8 @@ public class ConfigurationExportsPaieViewModel : INotifyPropertyChanged
         ControlesCloture = new ObservableCollection<ControleClotureItem>();
         ProfilsVirement = new ObservableCollection<string>();
 
-        EnregistrerCommand = new RelayCommand(_ => Enregistrer());
-        ReinitialiserCommand = new RelayCommand(_ => Reinitialiser());
+        EnregistrerCommand = new RelayCommand(_ => Enregistrer(), _ => DroitsUi.PeutModifier);
+        ReinitialiserCommand = new RelayCommand(_ => Reinitialiser(), _ => DroitsUi.PeutModifier);
         ChargerColonnesProfilCommand = new RelayCommand(_ => ChargerColonnesProfil());
 
         Charger();
@@ -128,6 +128,8 @@ public class ConfigurationExportsPaieViewModel : INotifyPropertyChanged
     public ICommand EnregistrerCommand { get; }
     public ICommand ReinitialiserCommand { get; }
     public ICommand ChargerColonnesProfilCommand { get; }
+
+    public bool PeutModifier => DroitsUi.PeutModifier;
 
     public Action? OnEnregistre { get; set; }
 

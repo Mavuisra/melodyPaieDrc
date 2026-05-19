@@ -36,14 +36,14 @@ public partial class FormDefinitionsWindow : Window
     {
         if (FormsGrid.SelectedItem is not FormDefinitionSummary summary)
         {
-            MessageBox.Show("Sélectionnez un formulaire dans la liste.", "Formulaires", MessageBoxButton.OK, MessageBoxImage.Information);
+            UiFeedback.Info("Sélectionnez un formulaire dans la liste.");
             return;
         }
 
         var def = FormDefinitionLoader.ChargerParId(summary.FormId);
         if (def == null)
         {
-            MessageBox.Show("Impossible de charger la définition.", "Formulaires", MessageBoxButton.OK, MessageBoxImage.Warning);
+            UiFeedback.Avertissement("Impossible de charger la définition.");
             return;
         }
 

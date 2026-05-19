@@ -4,11 +4,12 @@
              xmlns:sys="clr-namespace:System;assembly=mscorlib"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:helpers="clr-namespace:MelodyPaieRDC.Helpers"
+             xmlns:models="clr-namespace:MelodyPaieRDC.Models"
              Background="Transparent"
              TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
              FontFamily="{materialDesign:MaterialDesignFont}">
     <UserControl.Resources>
-        <helpers:StringToDecimalConverter x:Key="StringToDecimalConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <x:Array x:Key="TypesJourSuivi" Type="{x:Type sys:String}">
             <sys:String>Normal</sys:String>
@@ -17,343 +18,343 @@
             <sys:String>Préavis</sys:String>
         </x:Array>
     </UserControl.Resources>
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-        </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Background="#EEF4FA" CornerRadius="10" Padding="12,10" Margin="0,0,0,10" BorderBrush="#DDE8F2" BorderThickness="1">
-            <StackPanel>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="0,0,4,8">
+
+            <!-- Contexte : période + employé (sans présélection cachée) -->
+            <Border Background="White" CornerRadius="12" Padding="14,12" Margin="0,0,0,10"
+                    BorderBrush="#E2E8F0" BorderThickness="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="140"/>
+                        <ColumnDefinition Width="*" MinWidth="200"/>
+                        <ColumnDefinition Width="*" MinWidth="180"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                        <TextBlock Text="Période (détail mois)" FontWeight="SemiBold" FontSize="12" Foreground="#37474F"/>
+                        <ComboBox ItemsSource="{Binding PeriodesPaie}"
+                                  SelectedItem="{Binding PeriodeSelectionnee, Mode=TwoWay}"
+                                  Margin="0,6,0,0"
+                                  materialDesign:HintAssist.Hint="Mois / année">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock>
+                                        <Run Text="{Binding Mois, Mode=OneWay}"/>
+                                        <Run Text="/"/>
+                                        <Run Text="{Binding Annee, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
+                        <TextBlock Text="Employé suivi" FontWeight="SemiBold" FontSize="12" Foreground="#37474F"/>
+                        <TextBox Text="{Binding RechercheEmployeText, UpdateSourceTrigger=PropertyChanged}"
+                                 Margin="0,6,0,4"
+                                 materialDesign:HintAssist.Hint="Rechercher matricule / nom"/>
+                        <ComboBox ItemsSource="{Binding Employes}"
+                                  SelectedItem="{Binding EmployeSelectionne, Mode=TwoWay}"
+                                  materialDesign:HintAssist.Hint="Ou choisir dans la liste">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type models:Employe}">
+                                    <TextBlock>
+                                        <Run Text="{Binding Matricule, Mode=OneWay}" FontWeight="SemiBold"/>
+                                        <Run Text=" — "/>
+                                        <Run Text="{Binding Nom, Mode=OneWay}"/>
+                                        <Run Text=" "/>
+                                        <Run Text="{Binding Prenom, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
+                        <TextBlock Text="{Binding ZkConnexionResume}" FontSize="11" Foreground="#546E7A" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding ZkStatutSync}" FontSize="11" Foreground="#78909C" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- PRÉSENCE EN DIRECT (priorité) -->
+            <Border Background="#EEF4FA" CornerRadius="10" Padding="12,10" Margin="0,0,0,8"
+                    BorderBrush="#DDE8F2" BorderThickness="1">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <materialDesign:PackIcon Kind="Fingerprint" Width="20" Height="20" Foreground="#1E3A5F" Margin="0,0,10,0" VerticalAlignment="Center"/>
-                        <TextBlock Text="Présence en direct" FontWeight="SemiBold" FontSize="13" Foreground="#37474F" VerticalAlignment="Center"/>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <materialDesign:PackIcon Kind="Broadcast" Width="22" Height="22"
+                                                     Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                     Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="Présence en direct — aujourd'hui" FontWeight="SemiBold" FontSize="14"
+                                       Foreground="#37474F" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="{Binding PresenceStatut}" Foreground="#546E7A" FontSize="12"
+                                   TextWrapping="Wrap" Margin="0,6,0,0"/>
                     </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal">
-                        <Border Background="#E8F5E9" CornerRadius="8" Padding="10,6" Margin="0,0,8,0" VerticalAlignment="Center">
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Border Background="#E8F5E9" CornerRadius="8" Padding="10,6" Margin="0,0,8,0"
+                                Visibility="{Binding PresenceSurveillanceActive, Converter={StaticResource BooleanToVisibilityConverter}}">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Autorenew" Width="18" Height="18" Foreground="#2E7D32" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                <materialDesign:PackIcon Kind="Autorenew" Width="18" Height="18" Foreground="#2E7D32"
+                                                         Margin="0,0,6,0" VerticalAlignment="Center"/>
                                 <TextBlock FontSize="12" Foreground="#37474F" VerticalAlignment="Center">
-                                    <Run Text="Auto · cycle "/>
-                                    <Run Text="3 s" FontWeight="SemiBold"/>
+                                    <Run Text="Live · "/>
+                                    <Run Text="{Binding IntervalleLiveSecondes, Mode=OneWay}" FontWeight="SemiBold"/>
+                                    <Run Text=" s"/>
                                 </TextBlock>
                             </StackPanel>
                         </Border>
-                        <ProgressBar Width="150" Height="8" Margin="0,12,0,0" IsIndeterminate="{Binding PresenceSynchronisationEnCours}"/>
-                        <Button Content="Importer utilisateurs terminal"
-                                Command="{Binding ImporterUtilisateursTerminalCommand}"
+                        <ProgressBar Width="120" Height="6" VerticalAlignment="Center"
+                                     IsIndeterminate="{Binding PresenceSynchronisationEnCours}"/>
+                        <Button Command="{Binding ImporterUtilisateursTerminalCommand}"
                                 Margin="10,0,0,0"
                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                 materialDesign:ButtonAssist.CornerRadius="8"
-                                Padding="14,6"/>
+                                Padding="12,6"
+                                ToolTip="Comparer les utilisateurs du terminal avec Melody">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="AccountSync" Width="16" Height="16" Margin="0,0,6,0"/>
+                                <TextBlock Text="Sync. utilisateurs" FontSize="12"/>
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </Grid>
-            </StackPanel>
-        </Border>
+            </Border>
 
-        <TextBlock Grid.Row="1" Text="{Binding PresenceStatut}" Foreground="#546E7A" FontSize="13" TextWrapping="Wrap" Margin="0,0,0,10"/>
-
-        <Border Grid.Row="2" Background="White" CornerRadius="12" BorderBrush="#C5D4E8" BorderThickness="1" Padding="0" MinHeight="280"
-                VerticalAlignment="Stretch">
-            <Border.Effect>
-                <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.09" Color="#1E3A5F"/>
-            </Border.Effect>
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="*"/>
-                </Grid.RowDefinitions>
-                <Border Grid.Row="0" Padding="14,12" CornerRadius="12,12,0,0">
-                    <Border.Background>
-                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                            <GradientStop Color="#E8F5E9" Offset="0"/>
-                            <GradientStop Color="#E3F2FD" Offset="1"/>
-                        </LinearGradientBrush>
-                    </Border.Background>
-                    <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                            <materialDesign:PackIcon Kind="ClockOutline" Width="18" Height="18" Foreground="#1565C0" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Synthèse du jour (durées)" FontWeight="SemiBold" FontSize="13" Foreground="#1565C0" VerticalAlignment="Center"/>
+            <Border Background="White" CornerRadius="12" BorderBrush="#C5D4E8" BorderThickness="1" Padding="0"
+                    MinHeight="220" MaxHeight="420" Margin="0,0,0,10">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.09" Color="{DynamicResource BrandPrimaryColor}"/>
+                </Border.Effect>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <Border Grid.Row="0" Padding="14,10" CornerRadius="12,12,0,0">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="#E8F5E9" Offset="0"/>
+                                <GradientStop Color="#E3F2FD" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <StackPanel>
+                            <TextBlock Text="{Binding PresenceResumeDureesAujourdhui}" FontSize="12.5"
+                                       Foreground="#37474F" TextWrapping="Wrap" LineHeight="18"/>
+                            <TextBlock Text="Cliquez une ligne pour suivre le mois de cet employé."
+                                       FontSize="11" Foreground="#1565C0" FontWeight="SemiBold" Margin="0,6,0,0"/>
+                            <TextBlock Text="{Binding PresenceLegendeColonnes}" FontSize="11" Foreground="#78909C"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
                         </StackPanel>
-                        <TextBlock Text="{Binding PresenceResumeDureesAujourdhui}" FontSize="12.5" Foreground="#37474F" TextWrapping="Wrap" LineHeight="18"/>
-                    </StackPanel>
-                </Border>
-                <DataGrid Grid.Row="1" ItemsSource="{Binding PresenceSyntheseEmployes}"
-                          AutoGenerateColumns="False"
-                          CanUserAddRows="False"
-                          CanUserDeleteRows="False"
-                          HeadersVisibility="Column"
-                          Background="Transparent"
-                          RowBackground="#FFFFFF"
-                          AlternatingRowBackground="#F1F8FF"
-                          GridLinesVisibility="Horizontal"
-                          HorizontalGridLinesBrush="#CFD8DC"
-                          RowHeight="40"
-                          BorderThickness="0"
-                          VerticalAlignment="Stretch">
-                    <DataGrid.RowStyle>
-                        <Style TargetType="DataGridRow">
-                            <Setter Property="SnapsToDevicePixels" Value="True"/>
-                            <Style.Triggers>
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#BBDEFB"/>
-                                </Trigger>
-                                <MultiTrigger>
-                                    <MultiTrigger.Conditions>
-                                        <Condition Property="IsSelected" Value="True"/>
-                                        <Condition Property="IsMouseOver" Value="True"/>
-                                    </MultiTrigger.Conditions>
-                                    <Setter Property="Background" Value="#90CAF9"/>
-                                </MultiTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </DataGrid.RowStyle>
-                    <DataGrid.ColumnHeaderStyle>
-                        <Style TargetType="DataGridColumnHeader">
-                            <Setter Property="Background" Value="#1E3A5F"/>
-                            <Setter Property="Foreground" Value="White"/>
-                            <Setter Property="FontWeight" Value="SemiBold"/>
-                            <Setter Property="Padding" Value="12,11"/>
-                            <Setter Property="BorderBrush" Value="#2E4A6F"/>
-                            <Setter Property="BorderThickness" Value="0,0,1,1"/>
-                        </Style>
-                    </DataGrid.ColumnHeaderStyle>
-                    <DataGrid.Columns>
-                        <DataGridTextColumn Header="Jour" Binding="{Binding Jour}" Width="110" IsReadOnly="True"/>
-                        <DataGridTemplateColumn Header="Employé" Width="280" IsReadOnly="True">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="{Binding NomComplet}" FontWeight="SemiBold" FontSize="13" Foreground="#0F172A" VerticalAlignment="Center"/>
-                                        <Border Margin="8,0,0,0" CornerRadius="10" Padding="8,2" BorderThickness="1" VerticalAlignment="Center">
+                    </Border>
+                    <DataGrid x:Name="GrillePresenceSynthese" Grid.Row="1"
+                              ItemsSource="{Binding PresenceSyntheseEmployes}"
+                              SelectionChanged="GrillePresenceSynthese_SelectionChanged"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False" CanUserDeleteRows="False"
+                              SelectionMode="Single" SelectionUnit="FullRow"
+                              HeadersVisibility="Column"
+                              Background="Transparent"
+                              RowBackground="#FFFFFF"
+                              AlternatingRowBackground="#F1F8FF"
+                              GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="#CFD8DC"
+                              RowHeight="40" BorderThickness="0">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow">
+                                <Setter Property="Cursor" Value="Hand"/>
+                                <Style.Triggers>
+                                    <Trigger Property="IsSelected" Value="True">
+                                        <Setter Property="Background" Value="#BBDEFB"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Padding" Value="10,9"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="Employé" Width="*" MinWidth="200" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding NomComplet}" FontWeight="SemiBold" FontSize="13"/>
+                                            <Border Margin="8,0,0,0" CornerRadius="10" Padding="8,2" BorderThickness="1">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#E8F5E9"/>
+                                                        <Setter Property="BorderBrush" Value="#81C784"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding EstRetard}" Value="True">
+                                                                <Setter Property="Background" Value="#FFEBEE"/>
+                                                                <Setter Property="BorderBrush" Value="#E57373"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding IndicateurRetard}" FontSize="10.5" FontWeight="Bold"/>
+                                            </Border>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Entrée" Width="88" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="10" Padding="8,3" Background="#43A047">
+                                            <TextBlock Text="{Binding Entree}" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn x:Name="ColDebutPause" Header="Début pause" Width="88" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="10" Padding="8,3" Background="#FB8C00">
+                                            <TextBlock Text="{Binding DebutPause}" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn x:Name="ColFinPause" Header="Fin pause" Width="88" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="10" Padding="8,3" Background="#1E88E5">
+                                            <TextBlock Text="{Binding FinPause}" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Header="Sortie" Width="88" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="10" Padding="8,3" Background="#8E24AA">
+                                            <TextBlock Text="{Binding Sortie}" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Matricule" Binding="{Binding Matricule}" Width="90" IsReadOnly="True"/>
+                            <DataGridTemplateColumn Header="Statut" Width="140" IsReadOnly="True">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="10" Padding="8,3" Background="#00C853">
                                             <Border.Style>
                                                 <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="#E8F5E9"/>
-                                                    <Setter Property="BorderBrush" Value="#81C784"/>
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding EstRetard}" Value="True">
-                                                            <Setter Property="Background" Value="#FFEBEE"/>
-                                                            <Setter Property="BorderBrush" Value="#E57373"/>
+                                                        <DataTrigger Binding="{Binding Statut}" Value="Non reconnu Melody">
+                                                            <Setter Property="Background" Value="#F44336"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <TextBlock Text="{Binding IndicateurRetard}" FontSize="10.5" FontWeight="Bold">
-                                                <TextBlock.Style>
-                                                    <Style TargetType="TextBlock">
-                                                        <Setter Property="Foreground" Value="#2E7D32"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding EstRetard}" Value="True">
-                                                                <Setter Property="Foreground" Value="#C62828"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </TextBlock.Style>
-                                            </TextBlock>
+                                            <TextBlock Text="{Binding Statut}" FontSize="10" FontWeight="Bold" Foreground="White"/>
                                         </Border>
-                                    </StackPanel>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Entrée" Width="120" IsReadOnly="True">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border CornerRadius="12" Padding="10,4" HorizontalAlignment="Center" Background="#43A047" BorderBrush="#1B5E20" BorderThickness="1">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#43A047"/>
-                                                <Setter Property="BorderBrush" Value="#1B5E20"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding EstRetard}" Value="True">
-                                                        <Setter Property="Background" Value="#E53935"/>
-                                                        <Setter Property="BorderBrush" Value="#B71C1C"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Entree}" Value="—">
-                                                        <Setter Property="Background" Value="#B0BEC5"/>
-                                                        <Setter Property="BorderBrush" Value="#607D8B"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock Text="{Binding Entree}" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Début pause" Width="120" IsReadOnly="True">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border CornerRadius="12" Padding="10,4" HorizontalAlignment="Center" Background="#FB8C00" BorderBrush="#E65100" BorderThickness="1">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#FB8C00"/>
-                                                <Setter Property="BorderBrush" Value="#E65100"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding DebutPause}" Value="—">
-                                                        <Setter Property="Background" Value="#B0BEC5"/>
-                                                        <Setter Property="BorderBrush" Value="#607D8B"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock Text="{Binding DebutPause}" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Fin pause" Width="120" IsReadOnly="True">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border CornerRadius="12" Padding="10,4" HorizontalAlignment="Center" Background="#1E88E5" BorderBrush="#0D47A1" BorderThickness="1">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#1E88E5"/>
-                                                <Setter Property="BorderBrush" Value="#0D47A1"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding FinPause}" Value="—">
-                                                        <Setter Property="Background" Value="#B0BEC5"/>
-                                                        <Setter Property="BorderBrush" Value="#607D8B"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock Text="{Binding FinPause}" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Sortie" Width="120" IsReadOnly="True">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border CornerRadius="12" Padding="10,4" HorizontalAlignment="Center" Background="#8E24AA" BorderBrush="#4A148C" BorderThickness="1">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#8E24AA"/>
-                                                <Setter Property="BorderBrush" Value="#4A148C"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Sortie}" Value="—">
-                                                        <Setter Property="Background" Value="#B0BEC5"/>
-                                                        <Setter Property="BorderBrush" Value="#607D8B"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock Text="{Binding Sortie}" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTemplateColumn Header="Autres" Width="140" IsReadOnly="True">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border CornerRadius="12" Padding="10,4" HorizontalAlignment="Center" Background="#546E7A" BorderBrush="#37474F" BorderThickness="1">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#546E7A"/>
-                                                <Setter Property="BorderBrush" Value="#37474F"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Autres}" Value="—">
-                                                        <Setter Property="Background" Value="#CFD8DC"/>
-                                                        <Setter Property="BorderBrush" Value="#90A4AE"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock Text="{Binding Autres}" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                        <DataGridTextColumn Header="Matricule" Binding="{Binding Matricule}" Width="100" IsReadOnly="True"/>
-                        <DataGridTextColumn Header="Département" Binding="{Binding Departement}" Width="130" IsReadOnly="True"/>
-                        <DataGridTemplateColumn Header="Statut" Width="155" IsReadOnly="True">
-                            <DataGridTemplateColumn.CellTemplate>
-                                <DataTemplate>
-                                    <Border CornerRadius="12" Padding="10,4" HorizontalAlignment="Left">
-                                        <Border.Effect>
-                                            <DropShadowEffect BlurRadius="4" ShadowDepth="1" Opacity="0.18" Color="#000000"/>
-                                        </Border.Effect>
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#90A4AE"/>
-                                                <Setter Property="BorderBrush" Value="#546E7A"/>
-                                                <Setter Property="BorderThickness" Value="1"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Statut}" Value="Reconnu Melody">
-                                                        <Setter Property="Background" Value="#00C853"/>
-                                                        <Setter Property="BorderBrush" Value="#1B5E20"/>
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Statut}" Value="Non reconnu Melody">
-                                                        <Setter Property="Background" Value="#F44336"/>
-                                                        <Setter Property="BorderBrush" Value="#B71C1C"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                        <TextBlock Text="{Binding Statut}" FontSize="11" FontWeight="Bold" Foreground="White"/>
-                                    </Border>
-                                </DataTemplate>
-                            </DataGridTemplateColumn.CellTemplate>
-                        </DataGridTemplateColumn>
-                    </DataGrid.Columns>
-                </DataGrid>
-            </Grid>
-        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
 
-        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,14,0,0">
-            <Button Content="Exporter pointés aujourd'hui (PDF)"
-                    Click="ExporterPdf_Click"
-                    Margin="0,0,8,0"
+            <Button Click="ExporterPdf_Click" HorizontalAlignment="Left" Margin="0,0,0,14"
                     Style="{StaticResource MaterialDesignOutlinedButton}"
-                    materialDesign:ButtonAssist.CornerRadius="8"
-                    Padding="20,10"
-                    ToolTip="Exporte uniquement les personnels qui ont pointé aujourd'hui.">
-                <Button.ContentTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </Button.ContentTemplate>
+                    materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8"
+                    ToolTip="Toutes les personnes ayant pointé aujourd'hui">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" Margin="0,0,8,0"/>
+                    <TextBlock Text="Exporter les pointés du jour (PDF)"/>
+                </StackPanel>
             </Button>
-            <Button Content="PDF tous employés"
-                    Click="ExporterPdfTousEmployes_Click"
-                    Margin="0,0,12,0"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    materialDesign:ButtonAssist.CornerRadius="8"
-                    Padding="14,10"
-                    ToolTip="Un PDF : récap des heures pour tous les employés + une page détail par personne (données enregistrées en base pour la période choisie).">
-                <Button.ContentTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="FileDocumentMultiple" Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </Button.ContentTemplate>
-            </Button>
-            <Button Content="Enregistrer le mois"
-                    Command="{Binding EnregistrerCommand}"
-                    Style="{StaticResource MaterialDesignRaisedButton}"
-                    materialDesign:ButtonAssist.CornerRadius="8"
-                    Padding="20,10">
-                <Button.ContentTemplate>
-                    <DataTemplate>
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </DataTemplate>
-                </Button.ContentTemplate>
-            </Button>
+
+            <!-- Détail mois — visible seulement si employé choisi -->
+            <Border Background="#F8FAFC" CornerRadius="12" Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="1"
+                    Visibility="{Binding AfficherDetailMois, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <materialDesign:PackIcon Kind="CalendarMonth" Width="20" Height="20" Foreground="#0D9488" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding ContexteSaisieLibelle}" FontWeight="SemiBold" FontSize="13" Foreground="#0F766E" VerticalAlignment="Center"/>
+                        <TextBlock Text="{Binding TotalHeuresMoisLibelle}" Margin="16,0,0,0" FontSize="12" Foreground="#64748B" VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="Mis à jour automatiquement après chaque synchro terminal. Les corrections manuelles s’enregistrent avec le bouton ci-dessous."
+                               FontSize="11" Foreground="#78909C" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <DataGrid ItemsSource="{Binding Lignes}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False" CanUserDeleteRows="False"
+                              HeadersVisibility="Column"
+                              MaxHeight="280"
+                              RowHeight="34"
+                              Background="White"
+                              AlternatingRowBackground="#F8FAFC"
+                              GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="#ECEFF1"
+                              BorderBrush="#E2E8F0" BorderThickness="1">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Date" Binding="{Binding DateAffichage}" Width="95" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Jour" Binding="{Binding JourSemaine}" Width="110" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Mode" Binding="{Binding ModeCalculLibelle}" Width="90" IsReadOnly="True"/>
+                            <DataGridTextColumn Header="Heures" Binding="{Binding HeuresPrestees, StringFormat=N2, UpdateSourceTrigger=PropertyChanged}" Width="72"/>
+                            <DataGridComboBoxColumn Header="Type jour" Width="*"
+                                                    ItemsSource="{StaticResource TypesJourSuivi}"
+                                                    SelectedItemBinding="{Binding TypeJour, UpdateSourceTrigger=PropertyChanged}"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                        <Button Command="{Binding RetablirCalculAutomatiqueCommand}"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8" Margin="0,0,8,0"
+                                ToolTip="Recalculer les heures depuis les pointages enregistrés (LT)">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Calculator" Width="18" Height="18" Margin="0,0,6,0"/>
+                                <TextBlock Text="Recalcul auto (LT)"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="ExporterPdfTousEmployes_Click"
+                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8" Margin="0,0,8,0">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileDocumentMultiple" Width="18" Height="18" Margin="0,0,6,0"/>
+                                <TextBlock Text="PDF période (tous)"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding EnregistrerCommand}"
+                                Style="{StaticResource BrandRaisedButton}"
+                                materialDesign:ButtonAssist.CornerRadius="8" Padding="18,10">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" Margin="0,0,8,0"/>
+                                <TextBlock Text="Enregistrer ce mois"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#FFFDE7" CornerRadius="10" Padding="14,12" BorderBrush="#FFF59D" BorderThickness="1"
+                    Margin="0,0,0,4"
+                    Visibility="{Binding AfficherInviteSelectionEmploye, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <StackPanel Orientation="Horizontal">
+                    <materialDesign:PackIcon Kind="GestureTap" Width="22" Height="22" Foreground="#F9A825" Margin="0,0,10,0"/>
+                    <TextBlock TextWrapping="Wrap" Foreground="#5D4037" FontSize="12" VerticalAlignment="Center">
+                        <Run Text="Pour le détail mensuel : cliquez un employé dans le tableau « Présence en direct » ou choisissez-le dans la liste."/>
+                        <LineBreak/>
+                        <Run Text="Les totaux de tous les employés restent dans le menu « Totaux d'heures pour la paie »." FontStyle="Italic"/>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+
+            <TextBlock Text="{Binding MessageVide}" Foreground="#78909C" FontSize="12" TextWrapping="Wrap"
+                       TextAlignment="Center" Margin="12,8"
+                       Visibility="{Binding MessageVide, Converter={StaticResource StringToVisibilityConverter}}"/>
         </StackPanel>
-    </Grid>
+    </ScrollViewer>
 </UserControl>
