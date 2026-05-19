@@ -48,6 +48,8 @@ public static class ParametresApplicationHelper
             row.LtHeureFinPause = global.LtHeureFinPause;
             row.LtHeureFinSemaine = global.LtHeureFinSemaine;
             row.LtHeureFinSamedi = global.LtHeureFinSamedi;
+            row.LtModePointage = global.LtModePointage;
+            row.LtDeductionPauseAutomatique = global.LtDeductionPauseAutomatique;
         }
 
         db.ParametresApplication.Add(row);
@@ -156,6 +158,8 @@ public static class ParametresApplicationHelper
         LtHeureDebutPause = "12:00",
         LtHeureFinPause = "13:00",
         LtHeureFinSemaine = "16:00",
-        LtHeureFinSamedi = "12:30"
+        LtHeureFinSamedi = "12:30",
+        LtModePointage = LtReglesPointageModes.QuatrePointages,
+        LtDeductionPauseAutomatique = true
     };
 }

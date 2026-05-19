@@ -69,6 +69,13 @@ public class ParametresApplication
     [MaxLength(5)]
     public string LtHeureFinSamedi { get; set; } = "12:30";
 
+    /// <summary>Mode de pointage : QUATRE, TROIS ou DEUX (voir LtReglesPointageModes).</summary>
+    [MaxLength(12)]
+    public string LtModePointage { get; set; } = LtReglesPointageModes.QuatrePointages;
+
+    /// <summary>Si vrai, déduit la pause déjeuner sur les journées à 2 ou 3 pointages lorsque la durée le justifie.</summary>
+    public bool LtDeductionPauseAutomatique { get; set; } = true;
+
     /// <summary>Si vrai, l'assistant de configuration s'affiche au prochain démarrage (avant connexion).</summary>
     public bool ForcerAssistantProchainDemarrage { get; set; }
 

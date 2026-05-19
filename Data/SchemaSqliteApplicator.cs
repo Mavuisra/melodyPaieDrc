@@ -548,6 +548,8 @@ public static class SchemaSqliteApplicator
         AddColumnIfMissing("LtHeureFinPause", "ALTER TABLE ParametresApplication ADD COLUMN \"LtHeureFinPause\" TEXT NOT NULL DEFAULT '13:00'");
         AddColumnIfMissing("LtHeureFinSemaine", "ALTER TABLE ParametresApplication ADD COLUMN \"LtHeureFinSemaine\" TEXT NOT NULL DEFAULT '16:00'");
         AddColumnIfMissing("LtHeureFinSamedi", "ALTER TABLE ParametresApplication ADD COLUMN \"LtHeureFinSamedi\" TEXT NOT NULL DEFAULT '12:30'");
+        AddColumnIfMissing("LtModePointage", "ALTER TABLE ParametresApplication ADD COLUMN \"LtModePointage\" TEXT NOT NULL DEFAULT 'QUATRE'");
+        AddColumnIfMissing("LtDeductionPauseAutomatique", "ALTER TABLE ParametresApplication ADD COLUMN \"LtDeductionPauseAutomatique\" INTEGER NOT NULL DEFAULT 1");
     }
 
     /// <summary>

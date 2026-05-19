@@ -19,6 +19,7 @@
         <SolidColorBrush x:Key="SidebarAccentBrush" Color="#4FC3F7"/>
         <SolidColorBrush x:Key="SidebarMutedBrush" Color="#8BA3C4"/>
         <helpers:MenuIndexEqualsConverter x:Key="MenuIndexEqualsConverter"/>
+        <helpers:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
         <!-- Libellé de section (non cliquable) -->
         <Style x:Key="SidebarSectionLabelStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10"/>
@@ -2083,8 +2084,19 @@
                                                     <Separator Margin="0,14,0,12"/>
                                                     <TextBlock Text="Règles de service (pointage automatique et calcul des heures)"
                                                                FontWeight="SemiBold" Margin="0,0,0,8"/>
-                                                    <TextBlock Text="Ces horaires sont utilisés pour attribuer Entrée / Pause / Sortie et pour les calculs de paie + exports PDF."
+                                                    <TextBlock Text="Paramétrage par entreprise : mode de pointage (2, 3 ou 4 lectures) et horaires de service."
                                                                FontSize="11" Foreground="#78909C" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                                    <TextBlock Text="Mode de pointage attendu" FontSize="12" Foreground="#546E7A" Margin="0,0,0,6"/>
+                                                    <ComboBox ItemsSource="{Binding LtModesPointageOptions}"
+                                                              SelectedValue="{Binding LtModePointage, Mode=TwoWay}"
+                                                              SelectedValuePath="Code"
+                                                              DisplayMemberPath="Libelle"
+                                                              Margin="0,0,0,8"/>
+                                                    <TextBlock Text="{Binding LtResumeModePointage}"
+                                                               FontSize="11" Foreground="#607D8B" TextWrapping="Wrap" Margin="0,0,0,10"/>
+                                                    <CheckBox Content="Déduire automatiquement la pause déjeuner (modes 2 et 3 pointages)"
+                                                              IsChecked="{Binding LtDeductionPauseAutomatique, Mode=TwoWay}"
+                                                              Margin="0,0,0,12"/>
                                                     <Grid Margin="0,0,0,8">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*"/>
@@ -2106,7 +2118,8 @@
                                                                  materialDesign:HintAssist.Hint="Fin lun.-ven. (HH:mm)"
                                                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                                                     </Grid>
-                                                    <Grid Margin="0,0,0,10">
+                                                    <Grid Margin="0,0,0,10"
+                                                          Visibility="{Binding AfficherParametresPause, Converter={StaticResource BooleanToVisibilityConverter}}">
                                                         <Grid.ColumnDefinitions>
                                                             <ColumnDefinition Width="*"/>
                                                             <ColumnDefinition Width="10"/>
@@ -2124,6 +2137,12 @@
                                                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                                                         <TextBox Grid.Column="4"
                                                                  Text="{Binding LtHeureFinSamediText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="Fin samedi (HH:mm)"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </Grid>
+                                                    <Grid Margin="0,0,0,10"
+                                                          Visibility="{Binding AfficherParametresPause, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                        <TextBox Text="{Binding LtHeureFinSamediText, UpdateSourceTrigger=PropertyChanged}"
                                                                  materialDesign:HintAssist.Hint="Fin samedi (HH:mm)"
                                                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
                                                     </Grid>

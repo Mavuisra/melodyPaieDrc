@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using MelodyPaieRDC.Models;
 
 namespace MelodyPaieRDC.Services;
 
@@ -50,18 +51,39 @@ public static class LtServicesPointageCalcul
         if (dow == DayOfWeek.Saturday)
             return CalculerSamedi(sorted, r);
 
-        // Lun–Ven : journée type = 4 pointages ; au-delà, seuls les 4 premiers horaires sont pris en compte.
-        if (sorted.Count >= 4)
+        return CalculerJourneeSemaine(sorted, r);
+    }
+
+    private static decimal CalculerJourneeSemaine(List<DateTime> sorted, LtServicesRegles r)
+    {
+        if (sorted.Count < 2)
+            return 0m;
+
+        if (r.UtiliseDeuxPointages)
         {
-            var quatre = sorted.Take(4).ToList();
-            return CalculerJourneeSemaineQuatrePointages(quatre, r);
+            var entree = sorted[0];
+            var sortie = sorted[^1];
+            return CalculerJourneeSemaineDeuxPointages(new List<DateTime> { entree, sortie }, r, r.DeductionPauseAutomatique);
         }
 
+        if (r.UtiliseTroisPointages)
+        {
+            if (sorted.Count >= 3)
+                return CalculerJourneeSemaineTroisPointages(sorted.Take(3).ToList(), r, r.DeductionPauseAutomatique);
+            if (sorted.Count == 2)
+                return CalculerJourneeSemaineDeuxPointages(sorted, r, r.DeductionPauseAutomatique);
+            return 0m;
+        }
+
+        // 4 pointages (défaut)
+        if (sorted.Count >= 4)
+            return CalculerJourneeSemaineQuatrePointages(sorted.Take(4).ToList(), r);
+
         if (sorted.Count == 3)
-            return CalculerJourneeSemaineTroisPointages(sorted, r);
+            return CalculerJourneeSemaineTroisPointages(sorted, r, r.DeductionPauseAutomatique);
 
         if (sorted.Count == 2)
-            return CalculerJourneeSemaineDeuxPointages(sorted, r);
+            return CalculerJourneeSemaineDeuxPointages(sorted, r, r.DeductionPauseAutomatique);
 
         return 0m;
     }
@@ -103,7 +125,7 @@ public static class LtServicesPointageCalcul
         return decimal.Round(matin + apresMidi, 2, MidpointRounding.AwayFromZero);
     }
 
-    private static decimal CalculerJourneeSemaineTroisPointages(List<DateTime> sorted, LtServicesRegles r)
+    private static decimal CalculerJourneeSemaineTroisPointages(List<DateTime> sorted, LtServicesRegles r, bool deductionPause)
     {
         var t1 = sorted[0].TimeOfDay;
         var t3 = AjusterSortieFinSemaine(sorted[2].TimeOfDay, r);
@@ -111,12 +133,12 @@ public static class LtServicesPointageCalcul
         if (t3 <= debut)
             return 0m;
         var brut = (decimal)(t3 - debut).TotalHours;
-        if (brut > 5.5m && t3 > r.HeureDebutPause && debut < r.HeureFinPause)
+        if (deductionPause && brut > 5.5m && t3 > r.HeureDebutPause && debut < r.HeureFinPause)
             brut -= (decimal)r.DureePauseStandard.TotalHours;
         return decimal.Round(Math.Max(0m, brut), 2, MidpointRounding.AwayFromZero);
     }
 
-    private static decimal CalculerJourneeSemaineDeuxPointages(List<DateTime> sorted, LtServicesRegles r)
+    private static decimal CalculerJourneeSemaineDeuxPointages(List<DateTime> sorted, LtServicesRegles r, bool deductionPause)
     {
         var t1 = sorted[0].TimeOfDay;
         var t2 = AjusterSortieFinSemaine(sorted[^1].TimeOfDay, r);
@@ -124,7 +146,7 @@ public static class LtServicesPointageCalcul
         if (t2 <= debut)
             return 0m;
         var brut = (decimal)(t2 - debut).TotalHours;
-        if (brut > 5.5m && t2 > r.HeureDebutPause && debut < r.HeureFinPause)
+        if (deductionPause && brut > 5.5m && t2 > r.HeureDebutPause && debut < r.HeureFinPause)
             brut -= (decimal)r.DureePauseStandard.TotalHours;
         return decimal.Round(Math.Max(0m, brut), 2, MidpointRounding.AwayFromZero);
     }
@@ -213,7 +235,80 @@ public static class LtServicesPointageCalcul
             return list;
         }
 
-        // Lun–Ven
+        if (r.UtiliseDeuxPointages)
+        {
+            for (var i = 0; i < sorted.Count; i++)
+            {
+                var dt = sorted[i];
+                var tod = dt.TimeOfDay;
+                TimeSpan eff;
+                string cle;
+                string lib;
+                if (i == 0)
+                {
+                    eff = AjusterEntreeMatin(tod, r);
+                    cle = "Entree";
+                    lib = "Entrée";
+                }
+                else if (i == sorted.Count - 1)
+                {
+                    eff = AjusterSortieFinSemaine(tod, r);
+                    cle = "Sortie";
+                    lib = "Sortie";
+                }
+                else
+                {
+                    eff = tod;
+                    cle = "Extra";
+                    lib = "Lecture ignorée (mode 2 pointages)";
+                }
+
+                list.Add(new PointageAffichageLtDto(H(dt), H(Combine(jour, eff)), cle, lib));
+            }
+
+            return list;
+        }
+
+        if (r.UtiliseTroisPointages)
+        {
+            for (var i = 0; i < sorted.Count; i++)
+            {
+                var dt = sorted[i];
+                var tod = dt.TimeOfDay;
+                TimeSpan eff;
+                string cle;
+                string lib;
+                switch (i)
+                {
+                    case 0:
+                        eff = AjusterEntreeMatin(tod, r);
+                        cle = "Entree";
+                        lib = "Entrée";
+                        break;
+                    case 1:
+                        eff = tod;
+                        cle = "Pause";
+                        lib = "Pause";
+                        break;
+                    case 2:
+                        eff = AjusterSortieFinSemaine(tod, r);
+                        cle = "Sortie";
+                        lib = "Sortie";
+                        break;
+                    default:
+                        eff = tod;
+                        cle = "Extra";
+                        lib = "Supplémentaire";
+                        break;
+                }
+
+                list.Add(new PointageAffichageLtDto(H(dt), H(Combine(jour, eff)), cle, lib));
+            }
+
+            return list;
+        }
+
+        // Lun–Ven — 4 pointages
         for (var i = 0; i < sorted.Count; i++)
         {
             var dt = sorted[i];

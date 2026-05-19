@@ -2,10 +2,14 @@ using MelodyPaieRDC.Models;
 
 namespace MelodyPaieRDC.Services;
 
-/// <summary>Règles horaires LTservices configurables (issues des paramètres application).</summary>
+/// <summary>Règles horaires et mode de pointage configurables (paramètres par entreprise).</summary>
 public sealed class LtServicesRegles
 {
     public static LtServicesRegles Defaut => new();
+
+    public string ModePointage { get; init; } = LtReglesPointageModes.QuatrePointages;
+
+    public bool DeductionPauseAutomatique { get; init; } = true;
 
     public TimeSpan HeureDebutTravail { get; init; } = new(7, 30, 0);
     public TimeSpan HeureLimiteTolerance { get; init; } = new(7, 40, 0);
@@ -13,6 +17,18 @@ public sealed class LtServicesRegles
     public TimeSpan HeureFinPause { get; init; } = new(13, 0, 0);
     public TimeSpan HeureFinSemaine { get; init; } = new(16, 0, 0);
     public TimeSpan HeureFinSamedi { get; init; } = new(12, 30, 0);
+
+    public int NombrePointagesJourComplet =>
+        LtReglesPointageModes.NombrePointagesJourComplet(ModePointage);
+
+    public bool UtiliseQuatrePointages =>
+        LtReglesPointageModes.Normaliser(ModePointage) == LtReglesPointageModes.QuatrePointages;
+
+    public bool UtiliseTroisPointages =>
+        LtReglesPointageModes.Normaliser(ModePointage) == LtReglesPointageModes.TroisPointages;
+
+    public bool UtiliseDeuxPointages =>
+        LtReglesPointageModes.Normaliser(ModePointage) == LtReglesPointageModes.DeuxPointages;
 
     public TimeSpan DureePauseStandard => HeureFinPause > HeureDebutPause
         ? HeureFinPause - HeureDebutPause
@@ -31,6 +47,8 @@ public sealed class LtServicesRegles
 
         return new LtServicesRegles
         {
+            ModePointage = LtReglesPointageModes.Normaliser(p.LtModePointage),
+            DeductionPauseAutomatique = p.LtDeductionPauseAutomatique,
             HeureDebutTravail = ParseOuDefaut(p.LtHeureDebutTravail, Defaut.HeureDebutTravail),
             HeureLimiteTolerance = ParseOuDefaut(p.LtHeureLimiteTolerance, Defaut.HeureLimiteTolerance),
             HeureDebutPause = ParseOuDefaut(p.LtHeureDebutPause, Defaut.HeureDebutPause),

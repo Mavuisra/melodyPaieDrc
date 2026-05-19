@@ -76,6 +76,8 @@ public class MainViewModel : INotifyPropertyChanged
     private string _ltHeureFinPauseText = "13:00";
     private string _ltHeureFinSemaineText = "16:00";
     private string _ltHeureFinSamediText = "12:30";
+    private string _ltModePointage = LtReglesPointageModes.QuatrePointages;
+    private bool _ltDeductionPauseAutomatique = true;
     private string _dashboardDateDuJour = "";
     private int _dashboardPointesAujourdhui;
     private int _dashboardSansPointageAujourdhui;
@@ -91,6 +93,9 @@ public class MainViewModel : INotifyPropertyChanged
         ContexteEntrepriseService.InitialiserDepuisBase(_db);
         if (ContexteEntrepriseService.EntrepriseCouranteId is int entrepriseId && entrepriseId > 0)
             _db.SetTenant(entrepriseId);
+
+        LtModesPointageOptions = new ObservableCollection<LtModePointageOption>(
+            LtReglesPointageModes.OptionsUi.Select(o => new LtModePointageOption(o.Code, o.Libelle)));
 
         Employes = new ObservableCollection<Employe>();
         PeriodesPaie = new ObservableCollection<PeriodePaie>();
@@ -550,6 +555,49 @@ public class MainViewModel : INotifyPropertyChanged
         set { _ltHeureFinSamediText = value ?? ""; OnPropertyChanged(); }
     }
 
+    public ObservableCollection<LtModePointageOption> LtModesPointageOptions { get; }
+
+    public string LtModePointage
+    {
+        get => _ltModePointage;
+        set
+        {
+            var n = LtReglesPointageModes.Normaliser(value);
+            if (_ltModePointage == n) return;
+            _ltModePointage = n;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(AfficherParametresPause));
+            OnPropertyChanged(nameof(LtResumeModePointage));
+        }
+    }
+
+    public bool LtDeductionPauseAutomatique
+    {
+        get => _ltDeductionPauseAutomatique;
+        set
+        {
+            if (_ltDeductionPauseAutomatique == value) return;
+            _ltDeductionPauseAutomatique = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(AfficherParametresPause));
+        }
+    }
+
+    /// <summary>Affiche les champs pause (obligatoires en mode 4 ; optionnels en mode 2/3 si déduction auto).</summary>
+    public bool AfficherParametresPause =>
+        LtReglesPointageModes.Normaliser(LtModePointage) != LtReglesPointageModes.DeuxPointages
+        || LtDeductionPauseAutomatique;
+
+    public string LtResumeModePointage =>
+        LtReglesPointageModes.Normaliser(LtModePointage) switch
+        {
+            var m when m == LtReglesPointageModes.DeuxPointages =>
+                "2 pointages : seules l'entrée et la sortie comptent pour le calcul.",
+            var m when m == LtReglesPointageModes.TroisPointages =>
+                "3 pointages : entrée, une lecture pause, sortie.",
+            _ => "4 pointages : entrée, début pause, fin pause, sortie."
+        };
+
     public string ZkStatutSync =>
         !_zkDerniereSyncUtc.HasValue
             ? "Dernière synchro : —"
@@ -985,9 +1033,9 @@ public class MainViewModel : INotifyPropertyChanged
             pointes++;
             if (pointages[0].TimeOfDay > reglesLt.HeureLimiteTolerance)
                 retards++;
-            if (pointages.Count >= 4)
+            if (pointages.Count >= reglesLt.NombrePointagesJourComplet)
                 sortiesValidees++;
-            if (pointages.Count == 2)
+            if (reglesLt.UtiliseQuatrePointages && pointages.Count == 2)
                 pausesEnCours++;
         }
 
@@ -1664,6 +1712,8 @@ public class MainViewModel : INotifyPropertyChanged
         _ltHeureFinPauseText = p.LtHeureFinPause;
         _ltHeureFinSemaineText = p.LtHeureFinSemaine;
         _ltHeureFinSamediText = p.LtHeureFinSamedi;
+        _ltModePointage = LtReglesPointageModes.Normaliser(p.LtModePointage);
+        _ltDeductionPauseAutomatique = p.LtDeductionPauseAutomatique;
 
         OnPropertyChanged(nameof(ZkIpText));
         OnPropertyChanged(nameof(ZkPortText));
@@ -1678,6 +1728,10 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(LtHeureFinPauseText));
         OnPropertyChanged(nameof(LtHeureFinSemaineText));
         OnPropertyChanged(nameof(LtHeureFinSamediText));
+        OnPropertyChanged(nameof(LtModePointage));
+        OnPropertyChanged(nameof(LtDeductionPauseAutomatique));
+        OnPropertyChanged(nameof(AfficherParametresPause));
+        OnPropertyChanged(nameof(LtResumeModePointage));
     }
 
     private void EnregistrerParametresZk()
@@ -1831,12 +1885,17 @@ public class MainViewModel : INotifyPropertyChanged
         {
             if (!ValiderFormatHeure(LtHeureDebutTravailText) ||
                 !ValiderFormatHeure(LtHeureLimiteToleranceText) ||
-                !ValiderFormatHeure(LtHeureDebutPauseText) ||
-                !ValiderFormatHeure(LtHeureFinPauseText) ||
                 !ValiderFormatHeure(LtHeureFinSemaineText) ||
                 !ValiderFormatHeure(LtHeureFinSamediText))
             {
                 OnErreurZkSettings?.Invoke("Renseignez les horaires au format HH:mm (ex. 07:30).");
+                return;
+            }
+
+            if (AfficherParametresPause &&
+                (!ValiderFormatHeure(LtHeureDebutPauseText) || !ValiderFormatHeure(LtHeureFinPauseText)))
+            {
+                OnErreurZkSettings?.Invoke("Renseignez les horaires de pause au format HH:mm.");
                 return;
             }
 
@@ -1846,7 +1905,8 @@ public class MainViewModel : INotifyPropertyChanged
                 return;
             }
 
-            if (TimeSpan.Parse(LtHeureFinPauseText) <= TimeSpan.Parse(LtHeureDebutPauseText))
+            if (AfficherParametresPause &&
+                TimeSpan.Parse(LtHeureFinPauseText) <= TimeSpan.Parse(LtHeureDebutPauseText))
             {
                 OnErreurZkSettings?.Invoke("L'heure de fin de pause doit être après l'heure de début de pause.");
                 return;
@@ -1860,10 +1920,12 @@ public class MainViewModel : INotifyPropertyChanged
             p.LtHeureFinPause = NormaliserHeure(LtHeureFinPauseText);
             p.LtHeureFinSemaine = NormaliserHeure(LtHeureFinSemaineText);
             p.LtHeureFinSamedi = NormaliserHeure(LtHeureFinSamediText);
+            p.LtModePointage = LtReglesPointageModes.Normaliser(LtModePointage);
+            p.LtDeductionPauseAutomatique = LtDeductionPauseAutomatique;
             p.DateDerniereModification = DateTime.UtcNow;
             _db.SaveChanges();
             ChargerParametresZk();
-            OnMessageZkSettings?.Invoke("Règles de service enregistrées. Les prochains calculs et exports utiliseront ces horaires.");
+            OnMessageZkSettings?.Invoke("Règles de service enregistrées pour cette entreprise. Les calculs de pointage utiliseront ce mode.");
         }
         catch (Exception ex)
         {
