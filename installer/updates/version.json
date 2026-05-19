@@ -1,8 +1,8 @@
-{
-  "sha256": "FDFD893D8A380146E398C002C430A41FB2822BBEC686D093BF1B5415AED7E85A",
-  "releaseNotes": "Release v1.0.2",
-  "publishedAt": "2026-05-16",
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.2/MelodyPaieRDC_Setup_1.0.2.exe",
-  "version": "1.0.2",
-  "fileName": "MelodyPaieRDC_Setup_1.0.2.exe"
+﻿{
+    "sha256":  "",
+    "version":  "1.0.3",
+    "releaseNotes":  "Correction affichage vide apres restauration backup (EntrepriseId NULL). Sauvegarde/restauration SQLite amelioree, suivi journalier et administration. Retrait import fiche salaire LTS des parametres.",
+    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.3/MelodyPaieRDC_Setup_1.0.3.exe",
+    "publishedAt":  "2026-05-19",
+    "fileName":  "MelodyPaieRDC_Setup_1.0.3.exe"
 }
