@@ -1,8 +1,8 @@
-{
-  "publishedAt": "2026-05-19",
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.3/MelodyPaieRDC_Setup_1.0.3.exe",
-  "fileName": "MelodyPaieRDC_Setup_1.0.3.exe",
-  "version": "1.0.3",
-  "releaseNotes": "Release v1.0.3",
-  "sha256": "550359B5AD9CB8C2680B6F8E1727492B232D157AD54EE0EC4144EB23319CDA60"
+﻿{
+    "sha256":  "",
+    "version":  "1.0.4",
+    "releaseNotes":  "Pointage live (toasts, son, badges menu), barre d\u0027actions refaite, centre de configuration modernise, menu lateral ameliore, demarrage auto Windows et icone barre des taches.",
+    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.4/MelodyPaieRDC_Setup_1.0.4.exe",
+    "publishedAt":  "2026-05-20",
+    "fileName":  "MelodyPaieRDC_Setup_1.0.4.exe"
 }
