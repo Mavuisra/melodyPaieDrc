@@ -131,7 +131,7 @@
             <Setter Property="Padding" Value="10,5"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Height" Value="30"/>
-            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="Template">
@@ -166,7 +166,7 @@
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Height" Value="30"/>
-            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Margin" Value="0,0,6,6"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -202,49 +202,80 @@
         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="0,0,4,8">
 
-            <!-- Filtres + actions — une seule ligne -->
-            <Border CornerRadius="12" Margin="0,0,0,10" BorderBrush="#C7D2FE" BorderThickness="1"
-                    Background="#FFFFFF" Padding="10,8">
+            <!-- Filtres + actions (style cohérent avec bandeau LIVE) -->
+            <Border CornerRadius="12" Margin="0,0,0,10" BorderBrush="#C7D2FE" BorderThickness="1">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                        <GradientStop Color="#FFFFFF" Offset="0"/>
+                        <GradientStop Color="#F8FAFF" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.06" Color="#1E3A5F"/>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.06" Color="#1E3A5F"/>
                 </Border.Effect>
-                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                        <ComboBox Width="108" Height="32" VerticalContentAlignment="Center" Margin="0,0,8,0"
-                                  ItemsSource="{Binding PeriodesPaie}"
-                                  SelectedItem="{Binding PeriodeSelectionnee, Mode=TwoWay}"
-                                  materialDesign:HintAssist.Hint="Période">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock FontSize="12">
-                                        <Run Text="{Binding Mois, Mode=OneWay}"/>
-                                        <Run Text="/"/>
-                                        <Run Text="{Binding Annee, Mode=OneWay}"/>
-                                    </TextBlock>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                        <TextBox Width="130" Height="32" VerticalContentAlignment="Center" Margin="0,0,8,0"
-                                 Text="{Binding RechercheEmployeText, UpdateSourceTrigger=PropertyChanged}"
-                                 materialDesign:HintAssist.Hint="Rechercher"/>
-                        <ComboBox Width="200" Height="32" VerticalContentAlignment="Center" Margin="0,0,12,0"
-                                  ItemsSource="{Binding Employes}"
-                                  SelectedItem="{Binding EmployeSelectionne, Mode=TwoWay}"
-                                  materialDesign:HintAssist.Hint="Employé">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate DataType="{x:Type models:Employe}">
-                                    <TextBlock TextTrimming="CharacterEllipsis" FontSize="12">
-                                        <Run Text="{Binding Matricule, Mode=OneWay}" FontWeight="SemiBold"/>
-                                        <Run Text=" — "/>
-                                        <Run Text="{Binding Nom, Mode=OneWay}"/>
-                                        <Run Text=" "/>
-                                        <Run Text="{Binding Prenom, Mode=OneWay}"/>
-                                    </TextBlock>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                        <Border Width="1" Height="28" Background="#E2E8F0" Margin="0,0,12,0"/>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <StackPanel Margin="14,12">
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MinWidth="160" MaxWidth="220"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="2*" MinWidth="280"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <materialDesign:PackIcon Kind="CalendarMonth" Width="16" Height="16" Foreground="#3B82F6" Margin="0,0,6,0"/>
+                                <TextBlock Text="Période" FontSize="11" FontWeight="SemiBold" Foreground="#64748B"/>
+                            </StackPanel>
+                            <ComboBox ItemsSource="{Binding PeriodesPaie}"
+                                      SelectedItem="{Binding PeriodeSelectionnee, Mode=TwoWay}"
+                                      materialDesign:HintAssist.Hint="Mois / année">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock FontSize="13">
+                                            <Run Text="{Binding Mois, Mode=OneWay}"/>
+                                            <Run Text=" / "/>
+                                            <Run Text="{Binding Annee, Mode=OneWay}"/>
+                                        </TextBlock>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                <materialDesign:PackIcon Kind="AccountSearch" Width="16" Height="16" Foreground="#3B82F6" Margin="0,0,6,0"/>
+                                <TextBlock Text="Employé (clic tableau ou liste)" FontSize="11" FontWeight="SemiBold" Foreground="#64748B"/>
+                            </StackPanel>
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" MinWidth="120"/>
+                                    <ColumnDefinition Width="10"/>
+                                    <ColumnDefinition Width="1.4*" MinWidth="160"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBox Grid.Column="0"
+                                         Text="{Binding RechercheEmployeText, UpdateSourceTrigger=PropertyChanged}"
+                                         materialDesign:HintAssist.Hint="Matricule, nom…"/>
+                                <ComboBox Grid.Column="2"
+                                          ItemsSource="{Binding Employes}"
+                                          SelectedItem="{Binding EmployeSelectionne, Mode=TwoWay}"
+                                          materialDesign:HintAssist.Hint="Sélectionner">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type models:Employe}">
+                                            <TextBlock TextTrimming="CharacterEllipsis" FontSize="13">
+                                                <Run Text="{Binding Matricule, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                <Run Text=" — "/>
+                                                <Run Text="{Binding Nom, Mode=OneWay}"/>
+                                                <Run Text=" "/>
+                                                <Run Text="{Binding Prenom, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </Grid>
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Height="1" Background="#E2E8F0" Margin="0,0,0,10"/>
+                    <TextBlock Text="Actions" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
+                    <WrapPanel>
                         <Button Command="{Binding RafraichirPresenceCommand}"
                                 Style="{StaticResource PointageChipPrimaryStyle}"
                                 ToolTip="Synchroniser le terminal ZKTeco">
@@ -317,9 +348,8 @@
                                 <TextBlock Text="PDF période"/>
                             </StackPanel>
                         </Button>
-                        </StackPanel>
-                    </StackPanel>
-                </ScrollViewer>
+                    </WrapPanel>
+                </StackPanel>
             </Border>
 
             <!-- DASHBOARD LIVE MODERNE -->
