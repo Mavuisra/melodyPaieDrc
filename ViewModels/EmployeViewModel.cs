@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Windows;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Models;
@@ -415,6 +416,9 @@ public class RelayCommand : ICommand
     {
         _execute = execute;
         _canExecute = canExecute;
+        // Lie CanExecute aux Invalidates WPF (sinon les boutons restent grisés après async).
+        CommandManager.RequerySuggested += (_, _) =>
+            CanExecuteChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public bool CanExecute(object? parameter) => _canExecute?.Invoke(parameter) ?? true;

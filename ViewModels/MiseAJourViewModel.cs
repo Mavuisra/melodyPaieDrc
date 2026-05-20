@@ -162,6 +162,10 @@ public class MiseAJourViewModel : INotifyPropertyChanged
         finally
         {
             EstOccupe = false;
+            (TelechargerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (InstallerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (VerifierCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (FermerCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 
@@ -201,6 +205,10 @@ public class MiseAJourViewModel : INotifyPropertyChanged
         finally
         {
             EstOccupe = false;
+            (TelechargerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (InstallerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (VerifierCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (FermerCommand as RelayCommand)?.RaiseCanExecuteChanged();
         }
     }
 

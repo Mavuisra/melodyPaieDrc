@@ -132,6 +132,8 @@ public static class ZktecoSynchronisationService
             var maj = db.ParametresApplication.First(x => x.Id == ParametresApplication.SingletonId);
             maj.ZkDerniereSyncUtc = DateTime.UtcNow;
             db.SaveChanges();
+            if (logs != null && logs.Count > 0)
+                PointageLiveNotificationService.TraiterNouveauxLogs(logs);
             SynchroReussie?.Invoke(maj.ZkDerniereSyncUtc.Value);
             ZkTerminalParametresNotifier.Raise();
             return true;

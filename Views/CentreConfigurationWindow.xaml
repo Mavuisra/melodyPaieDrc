@@ -3,58 +3,291 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Centre de configuration"
-        Height="640" Width="560"
+        Height="680" Width="580"
+        MinHeight="520" MinWidth="480"
         WindowStartupLocation="CenterOwner"
-        Background="#F0F2F5"
+        Background="#F1F5F9"
+        TextElement.Foreground="#0F172A"
         FontFamily="{materialDesign:MaterialDesignFont}">
-    <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="24">
-        <StackPanel>
-            <TextBlock Text="Configuration de l'entreprise" FontSize="22" FontWeight="SemiBold"/>
-            <TextBlock Text="{Binding EntrepriseLibelle}" FontSize="14" Foreground="#546E7A" Margin="0,4,0,16"/>
-            <TextBlock TextWrapping="Wrap" Foreground="#78909C" Margin="0,0,0,20"
-                       Text="Tout se configure ici, sans recompiler l'application : règles de paie, barèmes, colonnes, champs personnalisés, structure."/>
+    <Window.Resources>
+        <Style x:Key="ConfigSectionLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#475569"/>
+            <Setter Property="Margin" Value="4,20,0,10"/>
+        </Style>
 
-            <TextBlock Text="Paie et légal" FontWeight="SemiBold" Margin="0,0,0,8"/>
-            <Button Content="Politique de paie (jours, présence, rubriques)" Click="PolitiquePaie_Click"
-                    Style="{StaticResource BrandRaisedButton}"
-                    HorizontalContentAlignment="Left" Padding="16,12" Margin="0,0,0,6"/>
-            <Button Content="Paramètres IPR" Click="Ipr_Click"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
-            <Button Content="Taux sociaux (CNSS, INPP, ONEM)" Click="TauxSociaux_Click"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
-            <Button Content="Primes et indemnités" Click="Primes_Click"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,16"/>
+        <Style x:Key="ConfigMenuCardButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="12" SnapsToDevicePixels="True">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.08" Color="#0F172A"/>
+                            </Border.Effect>
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#EFF6FF"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#2563EB"/>
+                                <Setter TargetName="Bd" Property="BorderThickness" Value="2"/>
+                                <Setter Property="Foreground" Value="#1D4ED8"/>
+                                <Setter TargetName="Bd" Property="Effect">
+                                    <Setter.Value>
+                                        <DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.16" Color="#2563EB"/>
+                                    </Setter.Value>
+                                </Setter>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#DBEAFE"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.55"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-            <TextBlock Text="Organisation et écrans" FontWeight="SemiBold" Margin="0,0,0,8"/>
-            <Button Content="Informations entreprise" Click="Entreprise_Click"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
-            <Button Content="Établissements et départements" Click="Etablissements_Click"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
-            <Button Content="Colonnes de la liste employés" Click="Colonnes_Click"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
-            <Button Content="Champs personnalisés (sans code)" Click="Champs_Click"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
-            <Button Content="Formulaires dynamiques (JSON avancé)" Click="Formulaires_Click"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
-            <Button Content="Périodes de paie · Calendrier" Click="Periodes_Click"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    HorizontalContentAlignment="Left" Padding="16,10" Margin="0,0,0,6"/>
-            <Button Content="Exports CNSS / DGI / virements / clôture" Click="ExportsPaie_Click"
-                    Style="{StaticResource MaterialDesignRaisedButton}" Background="#00695C"
-                    HorizontalContentAlignment="Left" Padding="16,12" Margin="0,0,0,16"/>
+        <Style x:Key="ConfigMenuCardPrimaryStyle" TargetType="Button" BasedOn="{StaticResource ConfigMenuCardButtonStyle}">
+            <Setter Property="BorderBrush" Value="#93C5FD"/>
+            <Setter Property="Background" Value="#F8FAFC"/>
+        </Style>
 
-            <TextBlock Text="Assistant initial" FontWeight="SemiBold" Margin="0,0,0,8"/>
-            <Button Content="Relancer l'assistant de configuration" Click="Assistant_Click"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    HorizontalContentAlignment="Left" Padding="16,10"/>
-        </StackPanel>
-    </ScrollViewer>
+        <Style x:Key="ConfigMenuCardAccentStyle" TargetType="Button" BasedOn="{StaticResource ConfigMenuCardButtonStyle}">
+            <Setter Property="BorderBrush" Value="#6EE7B7"/>
+            <Setter Property="Background" Value="#ECFDF5"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#D1FAE5"/>
+                    <Setter Property="BorderBrush" Value="#059669"/>
+                    <Setter Property="Foreground" Value="#047857"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#A7F3D0"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- En-tête -->
+        <Border Grid.Row="0" Padding="24,22,24,18" Background="#FFFFFF"
+                BorderBrush="#CBD5E1" BorderThickness="0,0,0,1">
+            <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                    <Border Width="40" Height="40" CornerRadius="10" Margin="0,0,12,0">
+                        <Border.Background>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                                <GradientStop Color="{DynamicResource BrandPrimaryColor}" Offset="0"/>
+                                <GradientStop Color="{DynamicResource BrandSecondaryColor}" Offset="1"/>
+                            </LinearGradientBrush>
+                        </Border.Background>
+                        <materialDesign:PackIcon Kind="TuneVariant" Width="22" Height="22" Foreground="White"
+                                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="Configuration de l'entreprise" FontSize="20" FontWeight="Bold" Foreground="#0F172A"/>
+                        <TextBlock Text="{Binding EntrepriseLibelle}" FontSize="13" Foreground="#334155" Margin="0,2,0,0"/>
+                    </StackPanel>
+                </StackPanel>
+                <TextBlock TextWrapping="Wrap" Foreground="#475569" FontSize="12" LineHeight="18"
+                           Text="Règles de paie, barèmes, colonnes et champs personnalisés — sans recompiler l'application."/>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="20,8,20,20">
+            <StackPanel>
+
+                <TextBlock Text="PAIE ET LÉGAL" Style="{StaticResource ConfigSectionLabelStyle}" Margin="4,8,0,10"/>
+
+                <Button Click="PolitiquePaie_Click" Style="{StaticResource ConfigMenuCardPrimaryStyle}" Padding="14,12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="ScaleBalance" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Politique de paie" FontWeight="Bold" FontSize="13.5"/>
+                            <TextBlock Text="Jours, présence, rubriques" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#94A3B8"/>
+                    </Grid>
+                </Button>
+
+                <Button Click="Ipr_Click" Style="{StaticResource ConfigMenuCardButtonStyle}" Padding="14,11">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="Percent" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="1" Text="Paramètres IPR" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#94A3B8"/>
+                    </Grid>
+                </Button>
+
+                <Button Click="TauxSociaux_Click" Style="{StaticResource ConfigMenuCardButtonStyle}" Padding="14,11">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="AccountGroupOutline" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="1" Text="Taux sociaux (CNSS, INPP, ONEM)" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#94A3B8"/>
+                    </Grid>
+                </Button>
+
+                <Button Click="Primes_Click" Style="{StaticResource ConfigMenuCardButtonStyle}" Padding="14,11" Margin="0,0,0,4">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="CashPlus" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="1" Text="Primes et indemnités" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#94A3B8"/>
+                    </Grid>
+                </Button>
+
+                <TextBlock Text="ORGANISATION ET ÉCRANS" Style="{StaticResource ConfigSectionLabelStyle}"/>
+
+                <Button Click="Entreprise_Click" Style="{StaticResource ConfigMenuCardButtonStyle}" Padding="14,11">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="Domain" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="1" Text="Informations entreprise" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#94A3B8"/>
+                    </Grid>
+                </Button>
+
+                <Button Click="Etablissements_Click" Style="{StaticResource ConfigMenuCardButtonStyle}" Padding="14,11">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="OfficeBuilding" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="1" Text="Établissements et départements" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#94A3B8"/>
+                    </Grid>
+                </Button>
+
+                <Button Click="Colonnes_Click" Style="{StaticResource ConfigMenuCardButtonStyle}" Padding="14,11">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="TableColumn" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="1" Text="Colonnes de la liste employés" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#94A3B8"/>
+                    </Grid>
+                </Button>
+
+                <Button Click="Champs_Click" Style="{StaticResource ConfigMenuCardButtonStyle}" Padding="14,11">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="FormTextbox" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="1" Text="Champs personnalisés (sans code)" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#94A3B8"/>
+                    </Grid>
+                </Button>
+
+                <Button Click="Formulaires_Click" Style="{StaticResource ConfigMenuCardButtonStyle}" Padding="14,11">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="CodeJson" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="1" Text="Formulaires dynamiques (JSON avancé)" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#94A3B8"/>
+                    </Grid>
+                </Button>
+
+                <Button Click="Periodes_Click" Style="{StaticResource ConfigMenuCardButtonStyle}" Padding="14,11">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="CalendarMonth" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="1" Text="Périodes de paie · Calendrier" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#94A3B8"/>
+                    </Grid>
+                </Button>
+
+                <Button Click="ExportsPaie_Click" Style="{StaticResource ConfigMenuCardAccentStyle}" Padding="14,12" Margin="0,0,0,4">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="FileExport" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                            <TextBlock Text="Exports CNSS / DGI / virements / clôture" FontWeight="Bold" FontSize="13.5"/>
+                            <TextBlock Text="Formats et colonnes d'export" FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                        </StackPanel>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#059669"/>
+                    </Grid>
+                </Button>
+
+                <TextBlock Text="ASSISTANT" Style="{StaticResource ConfigSectionLabelStyle}"/>
+
+                <Button Click="Assistant_Click" Style="{StaticResource ConfigMenuCardButtonStyle}" Padding="14,11">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <materialDesign:PackIcon Kind="WizardHat" Width="22" Height="22" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}" Margin="0,0,12,0"/>
+                        <TextBlock Grid.Column="1" Text="Relancer l'assistant de configuration" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
+                        <materialDesign:PackIcon Grid.Column="2" Kind="ChevronRight" Width="20" Height="20" Foreground="#94A3B8"/>
+                    </Grid>
+                </Button>
+
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
 </Window>

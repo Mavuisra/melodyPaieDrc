@@ -109,6 +109,7 @@ public class MainViewModel : INotifyPropertyChanged
         SituationPaieMois = new SituationPaieItem { Libelle = "Aucune période traitée" };
         SituationPaieCumulee = new SituationPaieItem { Libelle = "Depuis le début de l'année" };
         ChecklistMoisPaie = new ObservableCollection<MoisPaieChecklistItem>();
+        PointageLiveNotificationService.EtatChange += NotifierBadgePointageMenu;
 
         static bool PeutMod() => AuthService.PeutModifierDonnees;
         static bool PeutAdmin() => AuthService.PeutAdministrerApplication;
@@ -129,6 +130,8 @@ public class MainViewModel : INotifyPropertyChanged
         {
             var menu = ConvertMenuParameter(p);
             MenuSelectionne = menu;
+            if (menu == 1)
+                PointageLiveNotificationService.ReinitialiserBadge();
             if (menu == 0) { ChargerStatistiques(); ChargerTableauDeBord(); }
             // 1 = Pointage journalier, 2 = Totaux heures (paie)
             if (menu == 4) { ChargerPeriodes(); SelectionnerPremierePeriodeSiVide(); ChargerBulletinsPeriodeCalculPaie(); }
@@ -451,6 +454,16 @@ public class MainViewModel : INotifyPropertyChanged
 
     public string BadgeChecklistLibelle =>
         ChecklistEtapesRestantes > 9 ? "9+" : ChecklistEtapesRestantes.ToString(CultureInfo.InvariantCulture);
+
+    public bool AfficherBadgePointage => PointageLiveNotificationService.AfficherBadge;
+
+    public string BadgePointageLibelle => PointageLiveNotificationService.BadgeLibelle;
+
+    private void NotifierBadgePointageMenu()
+    {
+        OnPropertyChanged(nameof(AfficherBadgePointage));
+        OnPropertyChanged(nameof(BadgePointageLibelle));
+    }
 
     /// <summary>Recalcule la checklist du mois (léger, sans recharger tout le tableau de bord).</summary>
     public void RafraichirChecklistMoisPaie() => ChargerChecklistMoisPaie();

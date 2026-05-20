@@ -173,6 +173,26 @@ public class PresenceEmployeSyntheseLigne
     public string Statut { get; set; } = "";
     public bool EstRetard { get; set; }
     public string IndicateurRetard { get; set; } = "À l'heure";
+
+    public string Initiales
+    {
+        get
+        {
+            var source = string.IsNullOrWhiteSpace(NomComplet) ? Matricule : NomComplet;
+            var parts = (source ?? "").Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length == 0) return "?";
+            if (parts.Length == 1)
+                return parts[0].Length >= 2 ? parts[0][..2].ToUpperInvariant() : parts[0].ToUpperInvariant();
+            return $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[^1][0])}";
+        }
+    }
+}
+
+public class PresenceHoraireBarre
+{
+    public string HeureLabel { get; set; } = "";
+    public int NombrePointages { get; set; }
+    public double Hauteur { get; set; }
 }
 
 public class SuiviJournalierViewModel : INotifyPropertyChanged
@@ -193,7 +213,26 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public static int IntervalleSurveillanceSecondes => (int)IntervalSurveillancePresence.TotalSeconds;
 
     public int IntervalleLiveSecondes => IntervalleSurveillanceSecondes;
-    private readonly HashSet<string> _presenceKeysVus = new(StringComparer.OrdinalIgnoreCase);
+
+    public bool SonPointageActif
+    {
+        get => PointageLiveNotificationService.SonActif;
+        set
+        {
+            if (PointageLiveNotificationService.SonActif == value) return;
+            PointageLiveNotificationService.SonActif = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(SonPointageLibelle));
+        }
+    }
+
+    public string SonPointageLibelle => SonPointageActif ? "Son activé" : "Son coupé";
+
+    public int CompteurPointagesNonLus => PointageLiveNotificationService.NonLus;
+
+    public bool AfficherBadgePointagesNonLus => PointageLiveNotificationService.AfficherBadge;
+
+    public string BadgePointagesNonLusLibelle => PointageLiveNotificationService.BadgeLibelle;
     private readonly Dictionary<string, List<DateTime>> _historiquePointageParUserJour = new(StringComparer.OrdinalIgnoreCase);
     /// <summary>Dernière lecture terminal (jour courant) — inclut les PIN non reconnus en base.</summary>
     private List<(string CodePin, DateTime HorodatageLocal)> _logsTerminalAujourdhui = new();
@@ -204,6 +243,11 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     private string _presenceEnteteColonnePause = "Début pause";
     private bool _presenceAfficherColonnesPause = true;
     private bool _presenceAfficherColonneFinPause = true;
+    private bool _terminalHorsLigne;
+    private string _diagnosticTechniqueTerminal = "";
+    private bool _diagnosticTechniqueVisible;
+    private decimal _heuresMoyennesAujourdhui;
+    private int _retardsAujourdhui;
 
     public SuiviJournalierViewModel(PaieDbContext db)
     {
@@ -221,6 +265,27 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         ChargerLignesCommand = new RelayCommand(_ => ChargerLignes(), _ => EmployeSelectionne != null && PeriodeSelectionnee != null);
         RetablirCalculAutomatiqueCommand = new RelayCommand(_ => RetablirCalculAutomatique(),
             _ => PeutMod() && EmployeSelectionne != null && PeriodeSelectionnee != null);
+        BasculerSonPointageCommand = new RelayCommand(_ => SonPointageActif = !SonPointageActif);
+        ReinitialiserBadgePointageCommand = new RelayCommand(_ =>
+        {
+            PointageLiveNotificationService.ReinitialiserBadge();
+            NotifierBadgePointage();
+        });
+        RafraichirPresenceCommand = new RelayCommand(async _ => await TraiterCyclePresenceAsync().ConfigureAwait(true));
+        BasculerDiagnosticCommand = new RelayCommand(_ => DiagnosticTechniqueVisible = !DiagnosticTechniqueVisible);
+        EffacerEmployeSelectionneCommand = new RelayCommand(_ =>
+        {
+            EmployeSelectionne = null;
+            RechercheEmployeText = "";
+        });
+        ForcerPeriodeMoisCourantCommand = new RelayCommand(_ => ForcerPeriodeMoisCourant());
+        ActualiserListesCommand = new RelayCommand(_ =>
+        {
+            ChargerEmployes();
+            ChargerPeriodes();
+            RafraichirAffichageTerminalDepuisBase();
+        });
+        PointageLiveNotificationService.EtatChange += NotifierBadgePointage;
         ZktecoSynchronisationService.SynchroReussie += OnSynchroZkReussie;
         ZkTerminalParametresNotifier.ParametresModifies += OnZkTerminalParametresModifiesDepuisAutreEcran;
         RafraichirAffichageTerminalDepuisBase();
@@ -231,6 +296,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public ObservableCollection<SuiviJournalierLigne> Lignes { get; }
     public ObservableCollection<PresencePointageLigne> PresencePointages { get; } = new();
     public ObservableCollection<PresenceEmployeSyntheseLigne> PresenceSyntheseEmployes { get; } = new();
+    public ObservableCollection<PresenceHoraireBarre> PresenceParHeure { get; } = new();
 
     /// <summary>Résumé des durées du jour selon les règles LT de l’entreprise.</summary>
     public string PresenceResumeDureesAujourdhui
@@ -285,6 +351,62 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             : PresenceAfficherColonnesPause
                 ? "Mode 3 pointages : entrée, pause, sortie. « Autres » = lectures supplémentaires au-delà des 3."
                 : "Mode 2 pointages : seules les colonnes Entrée et Sortie sont utilisées pour le calcul. « Autres » = 3e lecture et suivantes (hors calcul principal).";
+
+    public bool TerminalHorsLigne
+    {
+        get => _terminalHorsLigne;
+        private set
+        {
+            if (_terminalHorsLigne == value) return;
+            _terminalHorsLigne = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(TerminalEtatTitre));
+            OnPropertyChanged(nameof(TerminalEtatMessageCourt));
+            OnPropertyChanged(nameof(TerminalEtatCouleur));
+        }
+    }
+
+    public string TerminalEtatTitre => TerminalHorsLigne ? "Terminal hors ligne" : "Terminal connecté";
+
+    public string TerminalEtatMessageCourt =>
+        TerminalHorsLigne
+            ? "Impossible de joindre le terminal de pointage."
+            : "Connexion active, synchronisation en temps réel.";
+
+    public string TerminalEtatCouleur => TerminalHorsLigne ? "#E53935" : "#2E7D32";
+
+    public string DiagnosticTechniqueTerminal
+    {
+        get => _diagnosticTechniqueTerminal;
+        private set
+        {
+            if (_diagnosticTechniqueTerminal == value) return;
+            _diagnosticTechniqueTerminal = value ?? "";
+            OnPropertyChanged();
+        }
+    }
+
+    public bool DiagnosticTechniqueVisible
+    {
+        get => _diagnosticTechniqueVisible;
+        set
+        {
+            if (_diagnosticTechniqueVisible == value) return;
+            _diagnosticTechniqueVisible = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(BoutonDiagnosticLibelle));
+        }
+    }
+
+    public string BoutonDiagnosticLibelle => DiagnosticTechniqueVisible ? "Masquer les détails" : "Voir les détails";
+
+    public int NbEmployesPresentsAujourdhui => PresenceSyntheseEmployes.Count;
+
+    public int NbRetardsAujourdhui => _retardsAujourdhui;
+
+    public string HeuresMoyennesAujourdhuiLibelle => _heuresMoyennesAujourdhui <= 0m
+        ? "—"
+        : $"{_heuresMoyennesAujourdhui:N2} h";
 
     public Employe? EmployeSelectionne
     {
@@ -352,6 +474,23 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
 
     /// <summary>Réapplique le calcul LTservices sur toutes les lignes qui ont des horodatages en base.</summary>
     public ICommand RetablirCalculAutomatiqueCommand { get; }
+    public ICommand BasculerSonPointageCommand { get; }
+    public ICommand ReinitialiserBadgePointageCommand { get; }
+    public ICommand RafraichirPresenceCommand { get; }
+    public ICommand BasculerDiagnosticCommand { get; }
+    public ICommand EffacerEmployeSelectionneCommand { get; }
+    public ICommand ForcerPeriodeMoisCourantCommand { get; }
+    public ICommand ActualiserListesCommand { get; }
+
+    private void NotifierBadgePointage()
+    {
+        OnPropertyChanged(nameof(CompteurPointagesNonLus));
+        OnPropertyChanged(nameof(AfficherBadgePointagesNonLus));
+        OnPropertyChanged(nameof(BadgePointagesNonLusLibelle));
+        OnPropertyChanged(nameof(NbEmployesPresentsAujourdhui));
+        OnPropertyChanged(nameof(NbRetardsAujourdhui));
+        OnPropertyChanged(nameof(HeuresMoyennesAujourdhuiLibelle));
+    }
 
     /// <summary>Rafraîchit les commandes après connexion / déconnexion.</summary>
     public void NotifierDroitsModification()
@@ -520,6 +659,8 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         _logsTerminalAujourdhui.Clear();
         RecalculerSynthesePresenceEmployes();
         RecalculerResumeDureesAujourdhui();
+        RecalculerGraphiquePresenceParHeure();
+        NotifierBadgePointage();
 
         _presenceTimer?.Stop();
         _presenceTimer = new DispatcherTimer { Interval = IntervalSurveillancePresence };
@@ -563,7 +704,9 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         {
             if (!ZkTerminalParametresResolver.TryGetConnexion(_db, out _, out _, out _, out _, out _, out var errPre))
             {
-                PresenceStatut = errPre ?? "Configurez le terminal dans Paramètres > ZKTeco.";
+                TerminalHorsLigne = true;
+                DiagnosticTechniqueTerminal = errPre ?? "Configuration terminal incomplète.";
+                PresenceStatut = "Terminal indisponible — vérifiez la connexion.";
                 return;
             }
 
@@ -571,50 +714,37 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             var (ok, logs, err) = await ZktecoSynchronisationService.TrySynchroniserAvecLogsAsync().ConfigureAwait(true);
             if (!ok)
             {
-                PresenceStatut = string.IsNullOrWhiteSpace(err) ? "Échec de la synchronisation." : err;
+                TerminalHorsLigne = true;
+                DiagnosticTechniqueTerminal = string.IsNullOrWhiteSpace(err) ? "Échec de la synchronisation." : err!;
+                PresenceStatut = "Terminal hors ligne — réessayez.";
                 return;
             }
 
+            TerminalHorsLigne = false;
+            DiagnosticTechniqueTerminal = "";
             RafraichirAffichageTerminalDepuisBase();
             if (PeriodeSelectionnee != null)
                 ChargerLignes();
 
             MettreAJourLogsTerminalAujourdhui(logs);
-            var nouveaux = FiltrerNouveauxPourPresence(logs);
+            var nbNouveaux = PointageLiveNotificationService.TraiterNouveauxLogs(logs);
             RecalculerSynthesePresenceEmployes();
             RecalculerResumeDureesAujourdhui();
+            NotifierBadgePointage();
 
             var nbPersonnes = PresenceSyntheseEmployes.Count;
             PresenceStatut = nbPersonnes > 0
-                ? (nouveaux.Count > 0
-                    ? $"{nbPersonnes} personne(s) pointée(s) aujourd'hui — {nouveaux.Count} nouvelle(s) lecture(s)"
+                ? (nbNouveaux > 0
+                    ? $"{nbPersonnes} personne(s) pointée(s) aujourd'hui — {nbNouveaux} nouveau(x) pointage(s)"
                     : $"{nbPersonnes} personne(s) pointée(s) aujourd'hui")
                 : "Surveillance active — en attente de pointage";
+            RecalculerGraphiquePresenceParHeure();
         }
         finally
         {
             Interlocked.Exchange(ref _presenceCycleBusy, 0);
             NotifierPresenceSynchronisationEnCours();
         }
-    }
-
-    private List<(string CodePin, DateTime Horodatage)> FiltrerNouveauxPourPresence(
-        IReadOnlyList<(string CodePin, DateTime Horodatage)>? logs)
-    {
-        var nouveaux = new List<(string CodePin, DateTime Horodatage)>();
-        if (logs == null || logs.Count == 0)
-            return nouveaux;
-
-        foreach (var l in logs.OrderBy(x => x.Horodatage))
-        {
-            var key = $"{NormaliserCleLocal(l.CodePin)}|{l.Horodatage:O}";
-            if (_presenceKeysVus.Contains(key))
-                continue;
-            _presenceKeysVus.Add(key);
-            nouveaux.Add(l);
-        }
-
-        return nouveaux;
     }
 
     private int AjouterPointagesPresence(IEnumerable<(string CodePin, DateTime Horodatage)> pointages)
@@ -677,6 +807,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             .Select(l => (l.CodePin.Trim(), NormaliserHorodatageLocal(l.Horodatage)))
             .Where(l => l.Item2.Date == aujourdhui)
             .ToList();
+        RecalculerGraphiquePresenceParHeure();
     }
 
     private sealed class PresencePersonneJour
@@ -849,6 +980,10 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
                 IndicateurRetard = estRetard ? "En retard" : "À l'heure"
             });
         }
+
+        _retardsAujourdhui = PresenceSyntheseEmployes.Count(x => x.EstRetard);
+        OnPropertyChanged(nameof(NbEmployesPresentsAujourdhui));
+        OnPropertyChanged(nameof(NbRetardsAujourdhui));
     }
 
     private void RecalculerResumeDureesAujourdhui()
@@ -858,11 +993,15 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         if (parPersonne.Count == 0)
         {
             PresenceResumeDureesAujourdhui = "Aujourd’hui — aucun pointage pour le moment.";
+            _heuresMoyennesAujourdhui = 0m;
+            OnPropertyChanged(nameof(HeuresMoyennesAujourdhuiLibelle));
             return;
         }
 
         var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
         var parties = new List<string>();
+        decimal totalHeures = 0m;
+        var nbAvecHeures = 0;
         foreach (var bloc in parPersonne.Values
                      .OrderBy(b => b.Employe != null ? $"{b.Employe!.Nom} {b.Employe.Prenom}" : b.CodeTerminal, StringComparer.CurrentCultureIgnoreCase))
         {
@@ -881,12 +1020,45 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             }
 
             var heures = LtServicesPointageCalcul.CalculerHeuresPrestees(horaires, aujourdhui, reglesLt);
+            if (heures > 0m)
+            {
+                totalHeures += heures;
+                nbAvecHeures++;
+            }
             parties.Add($"{libelle} ({refId}) — {heures.ToString("N2", CultureInfo.CurrentCulture)} h");
         }
 
         PresenceResumeDureesAujourdhui =
             "Durées du jour (calcul selon règles de service) — "
             + string.Join(" · ", parties);
+        _heuresMoyennesAujourdhui = nbAvecHeures == 0 ? 0m : totalHeures / nbAvecHeures;
+        OnPropertyChanged(nameof(HeuresMoyennesAujourdhuiLibelle));
+    }
+
+    private void RecalculerGraphiquePresenceParHeure()
+    {
+        var aujourdHui = DateTime.Today;
+        var groupes = _logsTerminalAujourdhui
+            .Where(x => x.HorodatageLocal.Date == aujourdHui)
+            .GroupBy(x => x.HorodatageLocal.Hour)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        const int debut = 6;
+        const int fin = 20;
+        var max = groupes.Count == 0 ? 1 : groupes.Values.Max();
+        PresenceParHeure.Clear();
+        for (var h = debut; h <= fin; h++)
+        {
+            groupes.TryGetValue(h, out var count);
+            var hauteur = count == 0 ? 6 : 8 + (44d * count / max);
+            PresenceParHeure.Add(new PresenceHoraireBarre
+            {
+                HeureLabel = $"{h:D2}h",
+                NombrePointages = count,
+                Hauteur = hauteur
+            });
+        }
+        OnPropertyChanged(nameof(PresenceParHeure));
     }
 
     private string DeterminerMomentPointageParIntervalle(string codePin, DateTime dateHeure, LtServicesRegles reglesLt)
@@ -1076,6 +1248,18 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
 
         if (PeriodeSelectionnee != null)
             return;
+
+        ForcerPeriodeMoisCourant();
+    }
+
+    /// <summary>Force la période sur le mois calendaire en cours (bouton d'action).</summary>
+    public void ForcerPeriodeMoisCourant()
+    {
+        if (PeriodesPaie.Count == 0)
+        {
+            PeriodeSelectionnee = null;
+            return;
+        }
 
         var now = DateTime.Today;
         PeriodeSelectionnee = PeriodesPaie.FirstOrDefault(p => p.Mois == now.Month && p.Annee == now.Year)

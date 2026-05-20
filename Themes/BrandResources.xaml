@@ -14,7 +14,7 @@
 
     <!-- Barre latérale principale -->
     <SolidColorBrush x:Key="SidebarBrush" Color="#FF152238"/>
-    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#FF243652"/>
+    <SolidColorBrush x:Key="SidebarHoverBrush" Color="#FF2D4568"/>
     <SolidColorBrush x:Key="SidebarSelectedBrush" Color="{StaticResource BrandPrimaryColor}"/>
     <SolidColorBrush x:Key="SidebarAccentBrush" Color="{StaticResource BrandSecondaryColor}"/>
     <SolidColorBrush x:Key="SidebarMutedBrush" Color="#FF8BA3C4"/>

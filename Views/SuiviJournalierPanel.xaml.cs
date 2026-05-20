@@ -45,6 +45,7 @@ public partial class SuiviJournalierPanel : UserControl
                 return;
             if (IsVisible)
             {
+                PointageLiveNotificationService.ReinitialiserBadge();
                 v.DemarrerSurveillancePresenceAutomatique();
                 AppliquerVisibiliteColonnesPresence();
             }

@@ -27,11 +27,14 @@ public partial class MainWindow : Window
     private readonly MainViewModel _viewModel;
     private SuiviJournalierWindow? _suiviJournalierWindow;
     private DispatcherTimer? _notificationTimer;
+    private global::System.Windows.Forms.NotifyIcon? _notifyIcon;
+    private bool _quitterApplicationDemandee;
 
     public MainWindow()
     {
         InitializeComponent();
         ChargerIconeFenetre();
+        InitialiserIconeZoneNotification();
         _viewModel = new MainViewModel();
         _viewModel.OnOuvrirNouvelEmploye = OuvrirNouvelEmploye;
         _viewModel.OnOuvrirModifierEmploye = OuvrirModifierEmploye;
@@ -76,6 +79,7 @@ public partial class MainWindow : Window
                 MessageBoxImage.Question) == MessageBoxResult.Yes;
         _viewModel.OnDemandeDeconnexion = ExecuterDeconnexion;
         AppNotificationService.NotificationPubliee += OnNotificationService;
+        PointageLiveNotificationService.PointageRecu += OnPointageRecu;
         AppSessionEvents.EntrepriseCouranteChanged += OnEntrepriseCouranteChanged;
         AppSessionEvents.DonneesMetierModifiees += OnDonneesMetierModifiees;
         _viewModel.OnVoirBulletin = OuvrirBulletin;
@@ -111,8 +115,71 @@ public partial class MainWindow : Window
         _viewModel.PropertyChanged += ViewModelOnPropertyChanged;
     }
 
+    private void InitialiserIconeZoneNotification()
+    {
+        try
+        {
+            var icone = !string.IsNullOrWhiteSpace(Environment.ProcessPath)
+                ? System.Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath!)
+                : null;
+            if (icone == null)
+                return;
+
+            var menu = new global::System.Windows.Forms.ContextMenuStrip();
+            menu.Items.Add("Ouvrir Melody Paie", null, (_, _) => RestaurerDepuisZoneNotification());
+            menu.Items.Add("Quitter", null, (_, _) => QuitterApplication());
+
+            _notifyIcon = new global::System.Windows.Forms.NotifyIcon
+            {
+                Icon = icone,
+                Text = "Melody Paie RDC",
+                Visible = true,
+                ContextMenuStrip = menu
+            };
+            _notifyIcon.DoubleClick += (_, _) => RestaurerDepuisZoneNotification();
+        }
+        catch
+        {
+            // Ne pas bloquer l'ouverture de l'application.
+        }
+    }
+
+    private void RestaurerDepuisZoneNotification()
+    {
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+        Focus();
+    }
+
+    private void QuitterApplication()
+    {
+        _quitterApplicationDemandee = true;
+        Application.Current.Shutdown();
+    }
+
     private void OnNotificationService(string message, NotificationKind kind) =>
         Dispatcher.Invoke(() => AfficherNotification(message, kind));
+
+    private void OnPointageRecu(PointageRecuEventArgs args)
+    {
+        if (_notifyIcon == null)
+            return;
+
+        try
+        {
+            _notifyIcon.BalloonTipTitle = "Nouveau pointage";
+            _notifyIcon.BalloonTipText = $"{args.NomComplet} — {args.Moment} ({args.HeureAffichage})";
+            _notifyIcon.BalloonTipIcon = args.EstRetard
+                ? global::System.Windows.Forms.ToolTipIcon.Warning
+                : global::System.Windows.Forms.ToolTipIcon.Info;
+            _notifyIcon.ShowBalloonTip(3000);
+        }
+        catch
+        {
+            // Ne pas interrompre l'application si la notification système échoue.
+        }
+    }
 
     private void AfficherNotification(string message, NotificationKind kind = NotificationKind.Info)
     {
@@ -196,6 +263,7 @@ public partial class MainWindow : Window
 
         AuthService.Logout();
         AppNotificationService.NotificationPubliee -= OnNotificationService;
+        PointageLiveNotificationService.PointageRecu -= OnPointageRecu;
         AppSessionEvents.EntrepriseCouranteChanged -= OnEntrepriseCouranteChanged;
         AppSessionEvents.DonneesMetierModifiees -= OnDonneesMetierModifiees;
         Hide();
@@ -213,7 +281,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        Application.Current.Shutdown();
+        QuitterApplication();
     }
 
     private void ViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -224,8 +292,27 @@ public partial class MainWindow : Window
             Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
     }
 
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (_quitterApplicationDemandee)
+        {
+            base.OnClosing(e);
+            return;
+        }
+
+        e.Cancel = true;
+        Hide();
+        base.OnClosing(e);
+    }
+
     protected override void OnClosed(EventArgs e)
     {
+        if (_notifyIcon != null)
+        {
+            _notifyIcon.Visible = false;
+            _notifyIcon.Dispose();
+            _notifyIcon = null;
+        }
         AppNotificationService.NotificationPubliee -= OnNotificationService;
         AppSessionEvents.EntrepriseCouranteChanged -= OnEntrepriseCouranteChanged;
         AppSessionEvents.DonneesMetierModifiees -= OnDonneesMetierModifiees;
@@ -407,7 +494,7 @@ public partial class MainWindow : Window
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
 
-            Application.Current.Shutdown();
+            QuitterApplication();
         }
         catch (Exception ex)
         {
@@ -688,7 +775,7 @@ public partial class MainWindow : Window
                 UseShellExecute = true
             };
             Process.Start(startInfo);
-            Application.Current.Shutdown();
+            QuitterApplication();
         }
         catch (Exception ex)
         {

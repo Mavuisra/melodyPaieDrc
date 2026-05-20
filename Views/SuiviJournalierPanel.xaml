@@ -5,12 +5,191 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:helpers="clr-namespace:MelodyPaieRDC.Helpers"
              xmlns:models="clr-namespace:MelodyPaieRDC.Models"
+             xmlns:views="clr-namespace:MelodyPaieRDC.Views"
              Background="Transparent"
              TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
              FontFamily="{materialDesign:MaterialDesignFont}">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
         <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
+        <Style x:Key="DashboardCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#CBD5E1"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="Margin" Value="0,0,10,10"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.10" Color="#0F172A"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                    <Setter Property="BorderBrush" Value="#2563EB"/>
+                    <Setter Property="BorderThickness" Value="2"/>
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.20" Color="#2563EB"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PresenceRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Style.Triggers>
+                <Trigger Property="AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="#F1F5F9"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#EFF6FF"/>
+                    <Setter Property="BorderBrush" Value="#93C5FD"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#DBEAFE"/>
+                    <Setter Property="BorderBrush" Value="#3B82F6"/>
+                </Trigger>
+                <MultiTrigger>
+                    <MultiTrigger.Conditions>
+                        <Condition Property="IsMouseOver" Value="True"/>
+                        <Condition Property="IsSelected" Value="True"/>
+                    </MultiTrigger.Conditions>
+                    <Setter Property="Background" Value="#BFDBFE"/>
+                </MultiTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PresenceColumnHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#1E3A8A"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="BorderBrush" Value="#1E40AF"/>
+            <Setter Property="BorderThickness" Value="0,0,1,0"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#1D4ED8"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="DetailMoisRowStyle" TargetType="DataGridRow">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Style.Triggers>
+                <Trigger Property="AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="#F8FAFC"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#ECFDF5"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#D1FAE5"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PointageBadgeStyle" TargetType="Border">
+            <Setter Property="MinWidth" Value="24"/>
+            <Setter Property="Height" Value="24"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="Background" Value="#DC2626"/>
+            <Setter Property="BorderBrush" Value="#FFFFFF"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ToolTip" Value="Marquer les pointages comme lus"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.4" Color="#7F1D1D"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#B91C1C"/>
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect BlurRadius="12" ShadowDepth="3" Opacity="0.55" Color="#7F1D1D"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="PointageChipButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="#1E3A5F"/>
+            <Setter Property="BorderBrush" Value="#C7D2FE"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="15" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#EFF6FF"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#3B82F6"/>
+                                <Setter Property="Foreground" Value="#1D4ED8"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PointageChipPrimaryStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="10,5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="15" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrandPrimaryDarkBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="PointageToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource PointageChipButtonStyle}"/>
         <x:Array x:Key="TypesJourSuivi" Type="{x:Type sys:String}">
             <sys:String>Normal</sys:String>
             <sys:String>Congé de circonstance</sys:String>
@@ -19,27 +198,25 @@
         </x:Array>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+    <Grid>
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="0,0,4,8">
 
-            <!-- Contexte : période + employé (sans présélection cachée) -->
-            <Border Background="White" CornerRadius="12" Padding="14,12" Margin="0,0,0,10"
-                    BorderBrush="#E2E8F0" BorderThickness="1">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" MinWidth="140"/>
-                        <ColumnDefinition Width="*" MinWidth="200"/>
-                        <ColumnDefinition Width="*" MinWidth="180"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
-                        <TextBlock Text="Période (détail mois)" FontWeight="SemiBold" FontSize="12" Foreground="#37474F"/>
-                        <ComboBox ItemsSource="{Binding PeriodesPaie}"
+            <!-- Filtres + actions — une seule ligne -->
+            <Border CornerRadius="12" Margin="0,0,0,10" BorderBrush="#C7D2FE" BorderThickness="1"
+                    Background="#FFFFFF" Padding="10,8">
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.06" Color="#1E3A5F"/>
+                </Border.Effect>
+                <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
+                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                        <ComboBox Width="108" Height="32" VerticalContentAlignment="Center" Margin="0,0,8,0"
+                                  ItemsSource="{Binding PeriodesPaie}"
                                   SelectedItem="{Binding PeriodeSelectionnee, Mode=TwoWay}"
-                                  Margin="0,6,0,0"
-                                  materialDesign:HintAssist.Hint="Mois / année">
+                                  materialDesign:HintAssist.Hint="Période">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBlock>
+                                    <TextBlock FontSize="12">
                                         <Run Text="{Binding Mois, Mode=OneWay}"/>
                                         <Run Text="/"/>
                                         <Run Text="{Binding Annee, Mode=OneWay}"/>
@@ -47,18 +224,16 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Margin="0,0,10,0">
-                        <TextBlock Text="Employé suivi" FontWeight="SemiBold" FontSize="12" Foreground="#37474F"/>
-                        <TextBox Text="{Binding RechercheEmployeText, UpdateSourceTrigger=PropertyChanged}"
-                                 Margin="0,6,0,4"
-                                 materialDesign:HintAssist.Hint="Rechercher matricule / nom"/>
-                        <ComboBox ItemsSource="{Binding Employes}"
+                        <TextBox Width="130" Height="32" VerticalContentAlignment="Center" Margin="0,0,8,0"
+                                 Text="{Binding RechercheEmployeText, UpdateSourceTrigger=PropertyChanged}"
+                                 materialDesign:HintAssist.Hint="Rechercher"/>
+                        <ComboBox Width="200" Height="32" VerticalContentAlignment="Center" Margin="0,0,12,0"
+                                  ItemsSource="{Binding Employes}"
                                   SelectedItem="{Binding EmployeSelectionne, Mode=TwoWay}"
-                                  materialDesign:HintAssist.Hint="Ou choisir dans la liste">
+                                  materialDesign:HintAssist.Hint="Employé">
                             <ComboBox.ItemTemplate>
                                 <DataTemplate DataType="{x:Type models:Employe}">
-                                    <TextBlock>
+                                    <TextBlock TextTrimming="CharacterEllipsis" FontSize="12">
                                         <Run Text="{Binding Matricule, Mode=OneWay}" FontWeight="SemiBold"/>
                                         <Run Text=" — "/>
                                         <Run Text="{Binding Nom, Mode=OneWay}"/>
@@ -68,64 +243,244 @@
                                 </DataTemplate>
                             </ComboBox.ItemTemplate>
                         </ComboBox>
-                    </StackPanel>
-                    <StackPanel Grid.Column="2" VerticalAlignment="Center">
-                        <TextBlock Text="{Binding ZkConnexionResume}" FontSize="11" Foreground="#546E7A" TextWrapping="Wrap"/>
-                        <TextBlock Text="{Binding ZkStatutSync}" FontSize="11" Foreground="#78909C" Margin="0,4,0,0"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
-
-            <!-- PRÉSENCE EN DIRECT (priorité) -->
-            <Border Background="#EEF4FA" CornerRadius="10" Padding="12,10" Margin="0,0,0,8"
-                    BorderBrush="#DDE8F2" BorderThickness="1">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <StackPanel>
+                        <Border Width="1" Height="28" Background="#E2E8F0" Margin="0,0,12,0"/>
                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <materialDesign:PackIcon Kind="Broadcast" Width="22" Height="22"
-                                                     Foreground="{DynamicResource BrandPrimaryBrush}"
-                                                     Margin="0,0,10,0" VerticalAlignment="Center"/>
-                            <TextBlock Text="Présence en direct — aujourd'hui" FontWeight="SemiBold" FontSize="14"
-                                       Foreground="#37474F" VerticalAlignment="Center"/>
-                        </StackPanel>
-                        <TextBlock Text="{Binding PresenceStatut}" Foreground="#546E7A" FontSize="12"
-                                   TextWrapping="Wrap" Margin="0,6,0,0"/>
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                        <Border Background="#E8F5E9" CornerRadius="8" Padding="10,6" Margin="0,0,8,0"
-                                Visibility="{Binding PresenceSurveillanceActive, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button Command="{Binding RafraichirPresenceCommand}"
+                                Style="{StaticResource PointageChipPrimaryStyle}"
+                                ToolTip="Synchroniser le terminal ZKTeco">
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Autorenew" Width="18" Height="18" Foreground="#2E7D32"
-                                                         Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock FontSize="12" Foreground="#37474F" VerticalAlignment="Center">
-                                    <Run Text="Live · "/>
-                                    <Run Text="{Binding IntervalleLiveSecondes, Mode=OneWay}" FontWeight="SemiBold"/>
-                                    <Run Text=" s"/>
-                                </TextBlock>
-                            </StackPanel>
-                        </Border>
-                        <ProgressBar Width="120" Height="6" VerticalAlignment="Center"
-                                     IsIndeterminate="{Binding PresenceSynchronisationEnCours}"/>
-                        <Button Command="{Binding ImporterUtilisateursTerminalCommand}"
-                                Margin="10,0,0,0"
-                                Style="{StaticResource MaterialDesignOutlinedButton}"
-                                materialDesign:ButtonAssist.CornerRadius="8"
-                                Padding="12,6"
-                                ToolTip="Comparer les utilisateurs du terminal avec Melody">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="AccountSync" Width="16" Height="16" Margin="0,0,6,0"/>
-                                <TextBlock Text="Sync. utilisateurs" FontSize="12"/>
+                                <materialDesign:PackIcon Kind="CloudSync" Width="15" Height="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Synchroniser"/>
                             </StackPanel>
                         </Button>
+                        <Button Command="{Binding ImporterUtilisateursTerminalCommand}"
+                                Style="{StaticResource PointageChipButtonStyle}"
+                                ToolTip="Importer les utilisateurs du terminal">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="AccountArrowDown" Width="15" Height="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Importer terminal"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding ActualiserListesCommand}"
+                                Style="{StaticResource PointageChipButtonStyle}"
+                                ToolTip="Recharger employés et périodes">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Refresh" Width="15" Height="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Actualiser"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding ForcerPeriodeMoisCourantCommand}"
+                                Style="{StaticResource PointageChipButtonStyle}"
+                                ToolTip="Passer au mois en cours">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="CalendarToday" Width="15" Height="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Mois en cours"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding ChargerLignesCommand}"
+                                Style="{StaticResource PointageChipButtonStyle}"
+                                ToolTip="Afficher le détail mensuel">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="TableEye" Width="15" Height="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Détail mois"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding RetablirCalculAutomatiqueCommand}"
+                                Style="{StaticResource PointageChipButtonStyle}"
+                                ToolTip="Recalcul automatique des heures">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Calculator" Width="15" Height="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Recalcul LT"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Command="{Binding EffacerEmployeSelectionneCommand}"
+                                Style="{StaticResource PointageChipButtonStyle}"
+                                ToolTip="Retirer l'employé sélectionné">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="AccountRemove" Width="15" Height="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="Effacer"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="ExporterPdf_Click"
+                                Style="{StaticResource PointageChipButtonStyle}"
+                                ToolTip="Exporter PDF — pointés aujourd'hui">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FilePdfBox" Width="15" Height="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="PDF jour"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Click="ExporterPdfTousEmployes_Click"
+                                Style="{StaticResource PointageChipButtonStyle}"
+                                ToolTip="Exporter PDF — toute la période">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FileDocumentMultiple" Width="15" Height="15" Margin="0,0,6,0"/>
+                                <TextBlock Text="PDF période"/>
+                            </StackPanel>
+                        </Button>
+                        </StackPanel>
                     </StackPanel>
-                </Grid>
+                </ScrollViewer>
             </Border>
 
-            <Border Background="White" CornerRadius="12" BorderBrush="#C5D4E8" BorderThickness="1" Padding="0"
+            <!-- DASHBOARD LIVE MODERNE -->
+            <Border Background="#EEF2FF" CornerRadius="12" Padding="14,12" Margin="0,0,0,8"
+                    BorderBrush="#C7D2FE" BorderThickness="1">
+                <StackPanel>
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <Ellipse Width="10" Height="10" Fill="#22C55E" Margin="0,0,8,0">
+                                <Ellipse.Triggers>
+                                    <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                 From="1" To="0.35" Duration="0:0:0.8"/>
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Ellipse.Triggers>
+                            </Ellipse>
+                            <TextBlock Text="LIVE" FontWeight="Bold" FontSize="11" Foreground="#15803D" Margin="0,0,10,0"/>
+                            <TextBlock Text="Présence en direct" FontWeight="Bold" FontSize="16" Foreground="#0F172A"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                            <Button Command="{Binding BasculerSonPointageCommand}"
+                                    Style="{StaticResource PointageChipButtonStyle}"
+                                    Margin="0,0,6,0"
+                                    ToolTip="Activer ou couper le son à chaque pointage">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="VolumeHigh" Width="14" Height="14" Margin="0,0,4,0"
+                                                             Visibility="{Binding SonPointageActif, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                                    <materialDesign:PackIcon Kind="VolumeOff" Width="14" Height="14" Margin="0,0,4,0">
+                                        <materialDesign:PackIcon.Style>
+                                            <Style TargetType="materialDesign:PackIcon">
+                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding SonPointageActif}" Value="False">
+                                                        <Setter Property="Visibility" Value="Visible"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </materialDesign:PackIcon.Style>
+                                    </materialDesign:PackIcon>
+                                    <TextBlock Text="{Binding SonPointageLibelle}" FontSize="12"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding RafraichirPresenceCommand}"
+                                    Style="{StaticResource PointageChipButtonStyle}"
+                                    Margin="0,0,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="14" Height="14" Margin="0,0,4,0"/>
+                                    <TextBlock Text="Réessayer" FontSize="12"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding ReinitialiserBadgePointageCommand}"
+                                    Style="{StaticResource MaterialDesignFlatButton}"
+                                    Padding="4,2"
+                                    ToolTip="Marquer comme lu"
+                                    Visibility="{Binding AfficherBadgePointagesNonLus, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <Border Style="{StaticResource PointageBadgeStyle}">
+                                    <TextBlock Text="{Binding BadgePointagesNonLusLibelle}" FontSize="10" FontWeight="Bold"
+                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+
+                    <UniformGrid Columns="4">
+                        <Border Style="{StaticResource DashboardCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Terminal" Foreground="#475569" FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding TerminalEtatTitre}" FontWeight="Bold" FontSize="14" Margin="0,4,0,2" Foreground="#0F172A"/>
+                                <TextBlock Text="{Binding ZkStatutSync}" FontSize="11" Foreground="#334155"/>
+                                <TextBlock Text="{Binding TerminalEtatMessageCourt}" FontSize="11" FontWeight="SemiBold"
+                                           Foreground="{Binding TerminalEtatCouleur}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource DashboardCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Employés pointés" Foreground="#475569" FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding NbEmployesPresentsAujourdhui}" FontSize="28" FontWeight="Bold" Foreground="#047857"/>
+                                <TextBlock Text="Aujourd'hui" FontSize="11" Foreground="#334155"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource DashboardCardStyle}">
+                            <StackPanel>
+                                <TextBlock Text="Temps moyen" Foreground="#475569" FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding HeuresMoyennesAujourdhuiLibelle}" FontSize="28" FontWeight="Bold" Foreground="#1D4ED8"/>
+                                <TextBlock Text="Par employé actif" FontSize="11" Foreground="#334155"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Style="{StaticResource DashboardCardStyle}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="Retards" Foreground="#475569" FontSize="11" FontWeight="SemiBold"/>
+                                <TextBlock Text="{Binding NbRetardsAujourdhui}" FontSize="28" FontWeight="Bold" Foreground="#DC2626"/>
+                                <TextBlock Text="Début de journée" FontSize="11" Foreground="#334155"/>
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="{Binding PresenceStatut}" Foreground="#1E293B" FontSize="12.5" FontWeight="Medium" VerticalAlignment="Center"/>
+                        <Button Command="{Binding BasculerDiagnosticCommand}" Margin="12,0,0,0"
+                                Style="{StaticResource MaterialDesignFlatButton}" Padding="8,2" FontSize="11"
+                                Visibility="{Binding TerminalHorsLigne, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="{Binding BoutonDiagnosticLibelle}"/>
+                        </Button>
+                    </StackPanel>
+                    <Border Background="#FFF5F5" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="10" Padding="10,8"
+                            Visibility="{Binding DiagnosticTechniqueVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="{Binding DiagnosticTechniqueTerminal}" FontSize="11" Foreground="#7F1D1D" TextWrapping="Wrap"/>
+                    </Border>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="14,10" Margin="0,0,0,10">
+                <StackPanel>
+                    <TextBlock Text="Activité par heure (aujourd'hui)" FontWeight="Bold" FontSize="13" Foreground="#0F172A"/>
+                    <ItemsControl ItemsSource="{Binding PresenceParHeure}" Margin="0,8,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <UniformGrid Columns="15"/>
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="2,0">
+                                    <Border Width="16" Height="{Binding Hauteur}" CornerRadius="6,6,2,2" Cursor="Hand">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="Background" Value="#2563EB"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#1D4ED8"/>
+                                                        <Setter Property="Effect">
+                                                            <Setter.Value>
+                                                                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.35" Color="#1E40AF"/>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Trigger>
+                                                    <DataTrigger Binding="{Binding NombrePointages}" Value="0">
+                                                        <Setter Property="Background" Value="#CBD5E1"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                    </Border>
+                                    <TextBlock Text="{Binding HeureLabel}" FontSize="9.5" FontWeight="SemiBold"
+                                               Foreground="#334155" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+
+            <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="0"
                     MinHeight="220" MaxHeight="420" Margin="0,0,0,10">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.09" Color="{DynamicResource BrandPrimaryColor}"/>
@@ -144,10 +499,10 @@
                         </Border.Background>
                         <StackPanel>
                             <TextBlock Text="{Binding PresenceResumeDureesAujourdhui}" FontSize="12.5"
-                                       Foreground="#37474F" TextWrapping="Wrap" LineHeight="18"/>
+                                       Foreground="#1E293B" TextWrapping="Wrap" LineHeight="18" FontWeight="Medium"/>
                             <TextBlock Text="Cliquez une ligne pour suivre le mois de cet employé."
-                                       FontSize="11" Foreground="#1565C0" FontWeight="SemiBold" Margin="0,6,0,0"/>
-                            <TextBlock Text="{Binding PresenceLegendeColonnes}" FontSize="11" Foreground="#78909C"
+                                       FontSize="11.5" Foreground="#1D4ED8" FontWeight="Bold" Margin="0,6,0,0"/>
+                            <TextBlock Text="{Binding PresenceLegendeColonnes}" FontSize="11" Foreground="#475569"
                                        TextWrapping="Wrap" Margin="0,4,0,0"/>
                         </StackPanel>
                     </Border>
@@ -159,35 +514,28 @@
                               SelectionMode="Single" SelectionUnit="FullRow"
                               HeadersVisibility="Column"
                               Background="Transparent"
+                              AlternationCount="2"
                               RowBackground="#FFFFFF"
-                              AlternatingRowBackground="#F1F8FF"
+                              AlternatingRowBackground="#F8FAFC"
                               GridLinesVisibility="Horizontal"
-                              HorizontalGridLinesBrush="#CFD8DC"
-                              RowHeight="40" BorderThickness="0">
+                              HorizontalGridLinesBrush="#CBD5E1"
+                              RowHeight="44" BorderThickness="0">
                         <DataGrid.RowStyle>
-                            <Style TargetType="DataGridRow">
-                                <Setter Property="Cursor" Value="Hand"/>
-                                <Style.Triggers>
-                                    <Trigger Property="IsSelected" Value="True">
-                                        <Setter Property="Background" Value="#BBDEFB"/>
-                                    </Trigger>
-                                </Style.Triggers>
-                            </Style>
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource PresenceRowStyle}"/>
                         </DataGrid.RowStyle>
                         <DataGrid.ColumnHeaderStyle>
-                            <Style TargetType="DataGridColumnHeader">
-                                <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
-                                <Setter Property="Foreground" Value="White"/>
-                                <Setter Property="FontWeight" Value="SemiBold"/>
-                                <Setter Property="Padding" Value="10,9"/>
-                            </Style>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource PresenceColumnHeaderStyle}"/>
                         </DataGrid.ColumnHeaderStyle>
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Header="Employé" Width="*" MinWidth="200" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <TextBlock Text="{Binding NomComplet}" FontWeight="SemiBold" FontSize="13"/>
+                                            <Border Width="28" Height="28" CornerRadius="14" Background="#DBEAFE" Margin="0,0,8,0">
+                                                <TextBlock Text="{Binding Initiales}" Foreground="#1D4ED8" FontWeight="Bold"
+                                                           HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding NomComplet}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
                                             <Border Margin="8,0,0,0" CornerRadius="10" Padding="8,2" BorderThickness="1">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
@@ -210,7 +558,17 @@
                             <DataGridTemplateColumn Header="Entrée" Width="88" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border CornerRadius="10" Padding="8,3" Background="#43A047">
+                                        <Border CornerRadius="10" Padding="8,3" Cursor="Hand">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#15803D"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#166534"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <TextBlock Text="{Binding Entree}" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                                         </Border>
                                     </DataTemplate>
@@ -219,7 +577,17 @@
                             <DataGridTemplateColumn x:Name="ColDebutPause" Header="Début pause" Width="88" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border CornerRadius="10" Padding="8,3" Background="#FB8C00">
+                                        <Border CornerRadius="10" Padding="8,3" Cursor="Hand">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#C2410C"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#9A3412"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <TextBlock Text="{Binding DebutPause}" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                                         </Border>
                                     </DataTemplate>
@@ -228,7 +596,17 @@
                             <DataGridTemplateColumn x:Name="ColFinPause" Header="Fin pause" Width="88" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border CornerRadius="10" Padding="8,3" Background="#1E88E5">
+                                        <Border CornerRadius="10" Padding="8,3" Cursor="Hand">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#1D4ED8"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#1E3A8A"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <TextBlock Text="{Binding FinPause}" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                                         </Border>
                                     </DataTemplate>
@@ -237,7 +615,17 @@
                             <DataGridTemplateColumn Header="Sortie" Width="88" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border CornerRadius="10" Padding="8,3" Background="#8E24AA">
+                                        <Border CornerRadius="10" Padding="8,3" Cursor="Hand">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#7E22CE"/>
+                                                    <Style.Triggers>
+                                                        <Trigger Property="IsMouseOver" Value="True">
+                                                            <Setter Property="Background" Value="#6B21A8"/>
+                                                        </Trigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
                                             <TextBlock Text="{Binding Sortie}" FontSize="11" FontWeight="Bold" Foreground="White" HorizontalAlignment="Center"/>
                                         </Border>
                                     </DataTemplate>
@@ -247,17 +635,34 @@
                             <DataGridTemplateColumn Header="Statut" Width="140" IsReadOnly="True">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border CornerRadius="10" Padding="8,3" Background="#00C853">
+                                        <Border CornerRadius="10" Padding="8,3" Background="#10B981">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding Statut}" Value="Non reconnu Melody">
-                                                            <Setter Property="Background" Value="#F44336"/>
+                                                            <Setter Property="Background" Value="#EF4444"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding EstRetard}" Value="True">
+                                                            <Setter Property="Background" Value="#F59E0B"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <TextBlock Text="{Binding Statut}" FontSize="10" FontWeight="Bold" Foreground="White"/>
+                                            <TextBlock FontSize="10" FontWeight="Bold" Foreground="White">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock">
+                                                        <Setter Property="Text" Value="Présent"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding Statut}" Value="Non reconnu Melody">
+                                                                <Setter Property="Text" Value="Non reconnu"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding EstRetard}" Value="True">
+                                                                <Setter Property="Text" Value="Présent (retard)"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
                                         </Border>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -266,16 +671,6 @@
                     </DataGrid>
                 </Grid>
             </Border>
-
-            <Button Click="ExporterPdf_Click" HorizontalAlignment="Left" Margin="0,0,0,14"
-                    Style="{StaticResource MaterialDesignOutlinedButton}"
-                    materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8"
-                    ToolTip="Toutes les personnes ayant pointé aujourd'hui">
-                <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" Margin="0,0,8,0"/>
-                    <TextBlock Text="Exporter les pointés du jour (PDF)"/>
-                </StackPanel>
-            </Button>
 
             <!-- Détail mois — visible seulement si employé choisi -->
             <Border Background="#F8FAFC" CornerRadius="12" Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="1"
@@ -293,12 +688,20 @@
                               CanUserAddRows="False" CanUserDeleteRows="False"
                               HeadersVisibility="Column"
                               MaxHeight="280"
-                              RowHeight="34"
+                              AlternationCount="2"
+                              RowHeight="36"
                               Background="White"
+                              RowBackground="#FFFFFF"
                               AlternatingRowBackground="#F8FAFC"
                               GridLinesVisibility="Horizontal"
-                              HorizontalGridLinesBrush="#ECEFF1"
-                              BorderBrush="#E2E8F0" BorderThickness="1">
+                              HorizontalGridLinesBrush="#CBD5E1"
+                              BorderBrush="#94A3B8" BorderThickness="1">
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource DetailMoisRowStyle}"/>
+                        </DataGrid.RowStyle>
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource PresenceColumnHeaderStyle}"/>
+                        </DataGrid.ColumnHeaderStyle>
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="Date" Binding="{Binding DateAffichage}" Width="95" IsReadOnly="True"/>
                             <DataGridTextColumn Header="Jour" Binding="{Binding JourSemaine}" Width="110" IsReadOnly="True"/>
@@ -311,8 +714,8 @@
                     </DataGrid>
                     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
                         <Button Command="{Binding RetablirCalculAutomatiqueCommand}"
-                                Style="{StaticResource MaterialDesignOutlinedButton}"
-                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8" Margin="0,0,8,0"
+                                Style="{StaticResource PointageToolbarButtonStyle}"
+                                Padding="14,8" Margin="0,0,8,0"
                                 ToolTip="Recalculer les heures depuis les pointages enregistrés (LT)">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Calculator" Width="18" Height="18" Margin="0,0,6,0"/>
@@ -320,8 +723,8 @@
                             </StackPanel>
                         </Button>
                         <Button Click="ExporterPdfTousEmployes_Click"
-                                Style="{StaticResource MaterialDesignOutlinedButton}"
-                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8" Margin="0,0,8,0">
+                                Style="{StaticResource PointageToolbarButtonStyle}"
+                                Padding="14,8" Margin="0,0,8,0">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FileDocumentMultiple" Width="18" Height="18" Margin="0,0,6,0"/>
                                 <TextBlock Text="PDF période (tous)"/>
@@ -357,4 +760,6 @@
                        Visibility="{Binding MessageVide, Converter={StaticResource StringToVisibilityConverter}}"/>
         </StackPanel>
     </ScrollViewer>
+        <views:PointageLiveToastOverlay Panel.ZIndex="20"/>
+    </Grid>
 </UserControl>

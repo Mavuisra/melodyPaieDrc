@@ -41,6 +41,7 @@ public partial class App : Application
     private void Application_Startup(object sender, StartupEventArgs e)
     {
         StartupLog.Append("Démarrage : Application_Startup (tfm net8-windows, self-contained attendu côté déploiement)");
+        ConfigurerDemarrageAutomatiqueWindows();
 
         // L'app ne s'arrête que lorsque la fenêtre principale (MainWindow) est fermée, pas à la fermeture du login.
         ShutdownMode = ShutdownMode.OnMainWindowClose;
@@ -478,5 +479,32 @@ public partial class App : Application
             }
         }
         db.SaveChanges();
+    }
+
+    /// <summary>
+    /// Enregistre l'application au démarrage de la session Windows courante.
+    /// </summary>
+    private static void ConfigurerDemarrageAutomatiqueWindows()
+    {
+        try
+        {
+            var exePath = Environment.ProcessPath;
+            if (string.IsNullOrWhiteSpace(exePath))
+                return;
+
+            const string runKeyPath = @"Software\Microsoft\Windows\CurrentVersion\Run";
+            using var runKey = Registry.CurrentUser.OpenSubKey(runKeyPath, writable: true);
+            if (runKey == null)
+                return;
+
+            var expectedValue = $"\"{exePath}\"";
+            var currentValue = runKey.GetValue("MelodyPaieRDC") as string;
+            if (!string.Equals(currentValue, expectedValue, StringComparison.Ordinal))
+                runKey.SetValue("MelodyPaieRDC", expectedValue);
+        }
+        catch (Exception ex)
+        {
+            StartupLog.Append("Configuration démarrage automatique impossible", ex);
+        }
     }
 }

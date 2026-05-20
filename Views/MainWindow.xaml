@@ -18,14 +18,56 @@
         <!-- Libellé de section (non cliquable) -->
         <Style x:Key="SidebarSectionLabelStyle" TargetType="TextBlock">
             <Setter Property="FontSize" Value="10"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
-            <Setter Property="Foreground" Value="#5C7A9E"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#94B4D4"/>
             <Setter Property="Margin" Value="24,18,16,6"/>
         </Style>
+
+        <Style x:Key="SidebarBadgeBaseStyle" TargetType="Border">
+            <Setter Property="MinWidth" Value="22"/>
+            <Setter Property="Height" Value="22"/>
+            <Setter Property="CornerRadius" Value="11"/>
+            <Setter Property="Padding" Value="7,2"/>
+            <Setter Property="Margin" Value="8,0,0,0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="#FFFFFF"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.55" Color="#000000"/>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Effect">
+                        <Setter.Value>
+                            <DropShadowEffect BlurRadius="12" ShadowDepth="3" Opacity="0.65" Color="#000000"/>
+                        </Setter.Value>
+                    </Setter>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style x:Key="SidebarBadgeChecklistStyle" TargetType="Border" BasedOn="{StaticResource SidebarBadgeBaseStyle}">
+            <Setter Property="Background" Value="#EA580C"/>
+            <Setter Property="ToolTip" Value="Étapes de démarrage restantes"/>
+        </Style>
+        <Style x:Key="SidebarBadgePointageStyle" TargetType="Border" BasedOn="{StaticResource SidebarBadgeBaseStyle}">
+            <Setter Property="Background" Value="#DC2626"/>
+            <Setter Property="ToolTip" Value="Nouveaux pointages non consultés"/>
+        </Style>
+        <Style x:Key="SidebarBadgeTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#FFFFFF"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
         <!-- Bouton menu : pilule, barre d’accent, état actif renforcé -->
         <Style x:Key="SidebarButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="Transparent"/>
-            <Setter Property="Foreground" Value="#E8EEF5"/>
+            <Setter Property="Foreground" Value="#F1F5F9"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="0"/>
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
@@ -51,10 +93,14 @@
                             </Grid>
                         </Border>
                         <ControlTemplate.Triggers>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1E293B"/>
+                            </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource SidebarHoverBrush}"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
                                 <Setter TargetName="AccentBar" Property="Visibility" Value="Visible"/>
-                                <Setter TargetName="AccentBar" Property="Opacity" Value="0.45"/>
+                                <Setter TargetName="AccentBar" Property="Opacity" Value="0.75"/>
                                 <Setter TargetName="ContentWrap" Property="Padding" Value="18,11,14,11"/>
                             </Trigger>
                             <DataTrigger Value="True">
@@ -69,12 +115,30 @@
                                 <Setter TargetName="ActiveGlow" Property="Opacity" Value="1"/>
                                 <Setter TargetName="AccentBar" Property="Visibility" Value="Visible"/>
                                 <Setter TargetName="AccentBar" Property="Opacity" Value="1"/>
-                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="Foreground" Value="#FFFFFF"/>
                             </DataTrigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <Style x:Key="SidebarLogoutButtonStyle" TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+            <Setter Property="Foreground" Value="#F8FAFC"/>
+            <Setter Property="BorderBrush" Value="#64748B"/>
+            <Setter Property="Padding" Value="10,6"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="materialDesign:ButtonAssist.CornerRadius" Value="8"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#334155"/>
+                    <Setter Property="BorderBrush" Value="#94A3B8"/>
+                    <Setter Property="Foreground" Value="#FFFFFF"/>
+                </Trigger>
+                <Trigger Property="IsPressed" Value="True">
+                    <Setter Property="Background" Value="#1E293B"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
         <!-- Cards KPI premium : design asymétrique avec accents -->
         <Style x:Key="StatCardStyle" TargetType="Border">
@@ -201,12 +265,20 @@
                             <DockPanel LastChildFill="True">
                                 <materialDesign:PackIcon DockPanel.Dock="Left" Kind="ViewDashboard" Width="22" Height="22" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
                                 <TextBlock Text="Tableau de bord" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
-                                <Border DockPanel.Dock="Right" MinWidth="20" Height="20" CornerRadius="10" Padding="6,2"
-                                        Margin="8,0,0,0" VerticalAlignment="Center"
-                                        Background="#FF7043"
+                                <Border DockPanel.Dock="Right"
+                                        Style="{StaticResource SidebarBadgeChecklistStyle}"
                                         Visibility="{Binding AfficherBadgeChecklist, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                    <TextBlock Text="{Binding BadgeChecklistLibelle}" FontSize="10" FontWeight="Bold"
-                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                    <Border.Triggers>
+                                        <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                     From="1" To="0.82" Duration="0:0:1.2"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Border.Triggers>
+                                    <TextBlock Text="{Binding BadgeChecklistLibelle}" Style="{StaticResource SidebarBadgeTextStyle}"/>
                                 </Border>
                             </DockPanel>
                         </Button>
@@ -217,6 +289,21 @@
                             <DockPanel LastChildFill="True">
                                 <materialDesign:PackIcon DockPanel.Dock="Left" Kind="CalendarClock" Width="22" Height="22" VerticalAlignment="Center" Margin="0,0,12,0" Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
                                 <TextBlock Text="Pointage journalier" VerticalAlignment="Center" FontSize="13" FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
+                                <Border DockPanel.Dock="Right"
+                                        Style="{StaticResource SidebarBadgePointageStyle}"
+                                        Visibility="{Binding AfficherBadgePointage, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <Border.Triggers>
+                                        <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                                            <BeginStoryboard>
+                                                <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                                                                     From="1" To="0.78" Duration="0:0:0.9"/>
+                                                </Storyboard>
+                                            </BeginStoryboard>
+                                        </EventTrigger>
+                                    </Border.Triggers>
+                                    <TextBlock Text="{Binding BadgePointageLibelle}" Style="{StaticResource SidebarBadgeTextStyle}"/>
+                                </Border>
                             </DockPanel>
                         </Button>
                         <Button Style="{StaticResource SidebarButtonStyle}" Tag="2" Command="{Binding SelectionnerMenuCommand}" CommandParameter="2">
@@ -277,12 +364,7 @@
                     <StackPanel>
                         <TextBlock Text="{Binding NomUtilisateurConnecte, Mode=OneWay}" FontSize="10" Foreground="#B0C4DE" TextWrapping="Wrap" Margin="0,0,0,8"/>
                         <Button Command="{Binding DeconnecterCommand}"
-                                Style="{StaticResource MaterialDesignOutlinedButton}"
-                                Foreground="White"
-                                BorderBrush="#5A7A9A"
-                                Padding="10,6"
-                                HorizontalAlignment="Stretch"
-                                materialDesign:ButtonAssist.CornerRadius="8">
+                                Style="{StaticResource SidebarLogoutButtonStyle}">
                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <materialDesign:PackIcon Kind="Logout" Width="16" Height="16" Margin="0,0,6,0"/>
                                 <TextBlock Text="Se déconnecter" FontSize="12"/>
