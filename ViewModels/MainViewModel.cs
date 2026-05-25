@@ -2065,6 +2065,7 @@ public class MainViewModel : INotifyPropertyChanged
                 "Règles de service enregistrées pour cette entreprise. Les calculs de pointage utiliseront ce mode." + suffixe;
             AppNotificationService.Succes(msg);
             OnMessageZkSettings?.Invoke(msg);
+            AppSessionEvents.NotifierReglesLtModifiees();
         }
         catch (Exception ex)
         {

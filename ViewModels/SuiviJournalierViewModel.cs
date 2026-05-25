@@ -565,6 +565,15 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             });
     }
 
+    /// <summary>Recharge grilles et synthèse présence après changement du mode de pointage ou des horaires LT.</summary>
+    public void RafraichirApresChangementReglesLt()
+    {
+        RecalculerSynthesePresenceEmployes();
+        RecalculerResumeDureesAujourdhui();
+        if (EmployeSelectionne != null && PeriodeSelectionnee != null)
+            ChargerLignes();
+    }
+
     /// <summary>Relecture des paramètres terminal depuis la base (ex. après modification dans Paramètres).</summary>
     public void RafraichirAffichageTerminalDepuisBase()
     {

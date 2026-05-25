@@ -7,6 +7,8 @@ public static class AppSessionEvents
     public static event Action? SessionUtilisateurChanged;
     /// <summary>Employés, pointages, bulletins, périodes — rafraîchir checklist tableau de bord.</summary>
     public static event Action? DonneesMetierModifiees;
+    /// <summary>Mode de pointage ou horaires LT modifiés — rafraîchir grilles pointage et totaux heures.</summary>
+    public static event Action? ReglesLtModifiees;
 
     public static void NotifierEntrepriseCouranteChanged() =>
         EntrepriseCouranteChanged?.Invoke();
@@ -16,4 +18,7 @@ public static class AppSessionEvents
 
     public static void NotifierDonneesMetierModifiees() =>
         DonneesMetierModifiees?.Invoke();
+
+    public static void NotifierReglesLtModifiees() =>
+        ReglesLtModifiees?.Invoke();
 }
