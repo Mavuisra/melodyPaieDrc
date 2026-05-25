@@ -54,12 +54,14 @@ public partial class SuiviJournalierPanel : UserControl
         };
         AppSessionEvents.EntrepriseCouranteChanged += OnEntrepriseCouranteChanged;
         AppSessionEvents.SessionUtilisateurChanged += OnSessionUtilisateurChanged;
+        AppSessionEvents.ReglesLtModifiees += OnReglesLtModifiees;
         Unloaded += (_, _) =>
         {
             if (DataContext is SuiviJournalierViewModel v)
                 v.ArreterSurveillancePresenceAutomatique();
             AppSessionEvents.EntrepriseCouranteChanged -= OnEntrepriseCouranteChanged;
             AppSessionEvents.SessionUtilisateurChanged -= OnSessionUtilisateurChanged;
+            AppSessionEvents.ReglesLtModifiees -= OnReglesLtModifiees;
         };
     }
 
@@ -73,12 +75,22 @@ public partial class SuiviJournalierPanel : UserControl
         vm.ChargerEmployes();
         vm.ChargerPeriodes();
         vm.RafraichirAffichageTerminalDepuisBase();
+        vm.RafraichirApresChangementReglesLt();
         if (IsVisible)
             vm.DemarrerSurveillancePresenceAutomatique();
     }
 
     private void OnEntrepriseCouranteChanged() =>
         Dispatcher.Invoke(RafraichirPourEntrepriseCourante);
+
+    private void OnReglesLtModifiees() =>
+        Dispatcher.Invoke(() =>
+        {
+            if (DataContext is not SuiviJournalierViewModel vm)
+                return;
+            vm.RafraichirApresChangementReglesLt();
+            AppliquerVisibiliteColonnesPresence();
+        });
 
     private void ViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {

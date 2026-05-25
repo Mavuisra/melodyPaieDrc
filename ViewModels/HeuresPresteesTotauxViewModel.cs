@@ -297,6 +297,17 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
 
     public void RechargerPourEntrepriseCourante() => RafraichirTotaux();
 
+    /// <summary>Recalcule totaux, calendrier et détail jour après changement du mode de pointage LT.</summary>
+    public void RafraichirApresChangementReglesLt()
+    {
+        ChargerTotaux();
+        ConstruireGrilleCalendrier();
+        OnPropertyChanged(nameof(TotalHeuresMoisAfficheLibelle));
+        OnPropertyChanged(nameof(TotalJoursMoisAfficheLibelle));
+        if (_dateSelectionnee.HasValue && EmployeSelectionne != null)
+            RafraichirDetailJour();
+    }
+
     public void NotifierDroitsModification()
     {
         (EnregistrerMomentsCommand as RelayCommand)?.RaiseCanExecuteChanged();

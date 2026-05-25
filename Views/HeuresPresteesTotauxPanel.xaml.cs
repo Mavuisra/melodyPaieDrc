@@ -17,10 +17,12 @@ public partial class HeuresPresteesTotauxPanel : UserControl
         DataContext = _vm;
         AppSessionEvents.EntrepriseCouranteChanged += OnEntrepriseCouranteChanged;
         AppSessionEvents.SessionUtilisateurChanged += OnSessionUtilisateurChanged;
+        AppSessionEvents.ReglesLtModifiees += OnReglesLtModifiees;
         Unloaded += (_, _) =>
         {
             AppSessionEvents.EntrepriseCouranteChanged -= OnEntrepriseCouranteChanged;
             AppSessionEvents.SessionUtilisateurChanged -= OnSessionUtilisateurChanged;
+            AppSessionEvents.ReglesLtModifiees -= OnReglesLtModifiees;
         };
     }
 
@@ -36,4 +38,7 @@ public partial class HeuresPresteesTotauxPanel : UserControl
 
     private void OnEntrepriseCouranteChanged() =>
         Dispatcher.Invoke(RafraichirPourEntrepriseCourante);
+
+    private void OnReglesLtModifiees() =>
+        Dispatcher.Invoke(() => _vm?.RafraichirApresChangementReglesLt());
 }
