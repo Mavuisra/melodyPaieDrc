@@ -1081,6 +1081,9 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             _historiquePointageParUserJour[key] = logsJour;
         }
 
+        if (logsJour.Count > 0 && local - logsJour[^1] < PointagesNettoyageHelper.IntervalleAntiDoublon)
+            return "Lecture en double (ignorée)";
+
         string moment;
         var entreeLabel = t <= reglesLt.HeureLimiteTolerance ? "Entrée" : "Entrée (retard)";
         if (reglesLt.UtiliseDeuxPointages)

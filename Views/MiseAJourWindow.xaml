@@ -9,6 +9,9 @@
         Background="#F5F7FA"
         TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
         FontFamily="{materialDesign:MaterialDesignFont}">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+    </Window.Resources>
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -28,12 +31,28 @@
             </StackPanel>
         </StackPanel>
 
-        <TextBlock Grid.Row="1" Text="URL du manifeste (version.json)" FontSize="12" Foreground="#546E7A" Margin="0,0,0,6"/>
-        <TextBox Grid.Row="2"
-                 Text="{Binding UrlManifeste, UpdateSourceTrigger=PropertyChanged}"
-                 materialDesign:HintAssist.Hint="https://…/updates/version.json"
-                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                 Margin="0,0,0,12"/>
+        <TextBlock Grid.Row="1"
+                   Text="Les mises à jour sont vérifiées automatiquement auprès du serveur officiel Melody Paie RDC."
+                   FontSize="12"
+                   Foreground="#546E7A"
+                   TextWrapping="Wrap"
+                   Margin="0,0,0,8"/>
+
+        <Expander Grid.Row="2"
+                  Header="Options techniques (administrateur)"
+                  Visibility="{Binding AfficherOptionsTechniques, Converter={StaticResource BooleanToVisibilityConverter}}"
+                  Margin="0,0,0,12"
+                  FontSize="12">
+            <StackPanel Margin="0,8,0,0">
+                <TextBlock Text="URL du manifeste (version.json) — réservé au support"
+                           FontSize="11"
+                           Foreground="#78909C"
+                           Margin="0,0,0,6"/>
+                <TextBox Text="{Binding UrlManifeste, UpdateSourceTrigger=PropertyChanged}"
+                         materialDesign:HintAssist.Hint="https://…/updates/version.json"
+                         Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+            </StackPanel>
+        </Expander>
 
         <Border Grid.Row="3" Background="White" CornerRadius="10" BorderBrush="#E4EAF2" BorderThickness="1" Padding="14" Margin="0,0,0,12">
             <Grid>

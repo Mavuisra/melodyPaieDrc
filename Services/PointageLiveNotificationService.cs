@@ -45,6 +45,7 @@ public static class PointageLiveNotificationService
 {
     private static readonly HashSet<string> KeysVus = new(StringComparer.OrdinalIgnoreCase);
     private static readonly Dictionary<string, int> CompteurJourParUser = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, DateTime> DernierPointageAccepteParUser = new(StringComparer.OrdinalIgnoreCase);
     private static int _nonLus;
     private static string _suffixeJourCourant = "";
     private static bool _amorcageJourEffectue;
@@ -119,6 +120,9 @@ public static class PointageLiveNotificationService
                 continue;
 
             var moment = DeterminerMoment(codePin, local, regles);
+            if (moment == "Lecture en double (ignorée)")
+                continue;
+
             var emp = ResoudreEmploye(map, codePin);
             var estRetard = moment.StartsWith("Entrée", StringComparison.OrdinalIgnoreCase)
                             && moment.Contains("retard", StringComparison.OrdinalIgnoreCase);
@@ -222,6 +226,7 @@ public static class PointageLiveNotificationService
         _suffixeJourCourant = suffixe;
         KeysVus.Clear();
         CompteurJourParUser.Clear();
+        DernierPointageAccepteParUser.Clear();
         _amorcageJourEffectue = false;
     }
 
@@ -234,6 +239,10 @@ public static class PointageLiveNotificationService
     private static string DeterminerMoment(string codePin, DateTime local, LtServicesRegles regles)
     {
         var key = $"{NormaliserCle(codePin)}|{local:yyyyMMdd}";
+        if (DernierPointageAccepteParUser.TryGetValue(key, out var dernier)
+            && local - dernier < PointagesNettoyageHelper.IntervalleAntiDoublon)
+            return "Lecture en double (ignorée)";
+
         if (!CompteurJourParUser.TryGetValue(key, out var count))
             count = 0;
 
@@ -273,6 +282,7 @@ public static class PointageLiveNotificationService
         }
 
         CompteurJourParUser[key] = count + 1;
+        DernierPointageAccepteParUser[key] = local;
         return moment;
     }
 

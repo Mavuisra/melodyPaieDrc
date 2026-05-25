@@ -65,6 +65,9 @@ public class MiseAJourViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>URL du manifeste réservée au support (rôle Admin).</summary>
+    public bool AfficherOptionsTechniques => AuthService.PeutAdministrerApplication;
+
     public double Progression
     {
         get => _progression;
@@ -130,11 +133,19 @@ public class MiseAJourViewModel : INotifyPropertyChanged
 
         try
         {
-            UpdateConfigHelper.Sauvegarder(new UpdateConfigDto
+            var config = UpdateConfigHelper.Charger();
+            var urlManifeste = AfficherOptionsTechniques
+                ? UrlManifeste.Trim()
+                : (config.ManifestUrl ?? ApplicationUpdateDefaults.ManifestUrlParDefaut);
+
+            if (AfficherOptionsTechniques)
             {
-                ManifestUrl = UrlManifeste.Trim(),
-                VerifierAuDemarrage = UpdateConfigHelper.Charger().VerifierAuDemarrage
-            });
+                UpdateConfigHelper.Sauvegarder(new UpdateConfigDto
+                {
+                    ManifestUrl = urlManifeste,
+                    VerifierAuDemarrage = config.VerifierAuDemarrage
+                });
+            }
 
             Statut = "Vérification en cours…";
             var result = await ApplicationUpdateService.VerifierAsync(_cts.Token).ConfigureAwait(true);
