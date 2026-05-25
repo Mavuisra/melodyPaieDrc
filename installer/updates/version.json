@@ -1,7 +1,7 @@
 ﻿{
     "sha256":  "",
     "version":  "1.0.5",
-    "releaseNotes":  "Pointage: anti double-appui, propagation mode LT, reinitialisation mot de passe support.",
+    "releaseNotes":  "Pointage anti double-appui, propagation mode LT vers totaux heures, outil reinitialisation mot de passe (support).",
     "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.5/MelodyPaieRDC_Setup_1.0.5.exe",
     "publishedAt":  "2026-05-25",
     "fileName":  "MelodyPaieRDC_Setup_1.0.5.exe"
