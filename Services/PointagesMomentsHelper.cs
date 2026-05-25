@@ -19,30 +19,40 @@ public static class PointagesMomentsHelper
     public static MomentsDecoupes Decouper(IReadOnlyList<DateTime> pointages, DateTime jour, LtServicesRegles? regles = null)
     {
         var r = regles ?? LtServicesRegles.Defaut;
-        var sorted = pointages.OrderBy(x => x).ToList();
+        var brut = pointages.OrderBy(x => x).ToList();
+        var sorted = PointagesNettoyageHelper.SelectionnerPourCalcul(brut, jour, r).ToList();
+        var ignores = brut.Where(t => !sorted.Contains(t)).ToList();
         var dow = jour.DayOfWeek;
 
         if (dow == DayOfWeek.Sunday)
-            return new MomentsDecoupes(null, null, null, null, sorted);
+            return new MomentsDecoupes(null, null, null, null, brut);
 
+        MomentsDecoupes decoupe;
         if (dow == DayOfWeek.Saturday || (r.UtiliseDeuxPointages && dow is >= DayOfWeek.Monday and <= DayOfWeek.Friday))
-            return DecouperEntreeSortie(sorted);
-
-        if (r.UtiliseTroisPointages && dow is >= DayOfWeek.Monday and <= DayOfWeek.Friday)
+            decoupe = DecouperEntreeSortie(sorted);
+        else if (r.UtiliseTroisPointages && dow is >= DayOfWeek.Monday and <= DayOfWeek.Friday)
         {
             DateTime? e = sorted.Count > 0 ? sorted[0] : null;
             DateTime? pause = sorted.Count > 1 ? sorted[1] : null;
             DateTime? s = sorted.Count > 2 ? sorted[2] : null;
             var sup = sorted.Count > 3 ? sorted.Skip(3).ToList() : new List<DateTime>();
-            return new MomentsDecoupes(e, pause, null, s, sup);
+            decoupe = new MomentsDecoupes(e, pause, null, s, sup);
+        }
+        else
+        {
+            DateTime? entree = sorted.Count > 0 ? sorted[0] : null;
+            DateTime? debutPause = sorted.Count > 1 ? sorted[1] : null;
+            DateTime? finPause = sorted.Count > 2 ? sorted[2] : null;
+            DateTime? sortie = sorted.Count > 3 ? sorted[3] : null;
+            var extras = sorted.Count > 4 ? sorted.Skip(4).ToList() : new List<DateTime>();
+            decoupe = new MomentsDecoupes(entree, debutPause, finPause, sortie, extras);
         }
 
-        DateTime? entree = sorted.Count > 0 ? sorted[0] : null;
-        DateTime? debutPause = sorted.Count > 1 ? sorted[1] : null;
-        DateTime? finPause = sorted.Count > 2 ? sorted[2] : null;
-        DateTime? sortie = sorted.Count > 3 ? sorted[3] : null;
-        var extras = sorted.Count > 4 ? sorted.Skip(4).ToList() : new List<DateTime>();
-        return new MomentsDecoupes(entree, debutPause, finPause, sortie, extras);
+        if (ignores.Count == 0)
+            return decoupe;
+
+        var tousExtras = ignores.Concat(decoupe.PointagesSupplementaires).OrderBy(t => t).ToList();
+        return decoupe with { PointagesSupplementaires = tousExtras };
     }
 
     private static MomentsDecoupes DecouperEntreeSortie(List<DateTime> sorted)

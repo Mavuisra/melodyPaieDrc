@@ -42,7 +42,7 @@ public static class LtServicesPointageCalcul
         if (pointagesJour == null || pointagesJour.Count == 0)
             return 0m;
 
-        var sorted = pointagesJour.OrderBy(t => t).ToList();
+        var sorted = PointagesNettoyageHelper.SelectionnerPourCalcul(pointagesJour, jour, r).ToList();
         var dow = jour.DayOfWeek;
 
         if (dow == DayOfWeek.Sunday)
@@ -182,17 +182,21 @@ public static class LtServicesPointageCalcul
         LtServicesRegles? regles = null)
     {
         var r = regles ?? LtServicesRegles.Defaut;
-        var sorted = pointagesJour.OrderBy(t => t).ToList();
+        var brut = pointagesJour.OrderBy(t => t).ToList();
+        var retenus = PointagesNettoyageHelper.SelectionnerPourCalcul(brut, jour, r).ToList();
+        var retenusSet = new HashSet<DateTime>(retenus);
         var cul = CultureInfo.CurrentCulture;
         string H(DateTime d) => d.ToString("HH:mm", cul);
 
         static DateTime Combine(DateTime day, TimeSpan tod) => day.Date + tod;
 
         var dow = jour.DayOfWeek;
-        var list = new List<PointageAffichageLtDto>(sorted.Count);
+        var list = new List<PointageAffichageLtDto>(brut.Count);
 
-        if (sorted.Count == 0)
+        if (brut.Count == 0)
             return list;
+
+        var sorted = retenus;
 
         if (dow == DayOfWeek.Sunday)
         {
@@ -348,6 +352,11 @@ public static class LtServicesPointageCalcul
             list.Add(new PointageAffichageLtDto(H(dt), H(Combine(jour, eff)), cle, lib));
         }
 
-        return list;
+        foreach (var dt in brut.Where(t => !retenusSet.Contains(t)))
+            list.Add(new PointageAffichageLtDto(H(dt), "—", "Doublon", "Lecture en double (ignorée)"));
+
+        return brut
+            .Select(dt => list.First(d => d.HeureBruteHhMm == H(dt)))
+            .ToList();
     }
 }

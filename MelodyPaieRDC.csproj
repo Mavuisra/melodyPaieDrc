@@ -15,9 +15,9 @@
     <AssemblyName>MelodyPaieRDC</AssemblyName>
     <Company>Impact Entreprises</Company>
     <Product>Melody Paie RDC</Product>
-    <Version>1.0.4</Version>
-    <AssemblyVersion>1.0.4.0</AssemblyVersion>
-    <FileVersion>1.0.4.0</FileVersion>
+    <Version>1.0.5</Version>
+    <AssemblyVersion>1.0.5.0</AssemblyVersion>
+    <FileVersion>1.0.5.0</FileVersion>
     <ApplicationIcon>Assets\Icon_MelodyPaie_Installer.ico</ApplicationIcon>
     <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
@@ -117,6 +117,7 @@
   </ItemGroup>
 
 </Project>
+
 
 
 
