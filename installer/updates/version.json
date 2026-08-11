@@ -1,8 +1,8 @@
 {
   "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.7/MelodyPaieRDC_Setup_1.0.7.exe",
+  "version": "1.0.7",
   "releaseNotes": "Release v1.0.7",
   "publishedAt": "2026-08-11",
-  "fileName": "MelodyPaieRDC_Setup_1.0.7.exe",
-  "version": "1.0.7",
-  "sha256": "487E960B3BD042049194CE495EC1BAED73A8A1F285EAE59FB91E85B567A21861"
+  "sha256": "2734F1F0256956177748E8AC3C04C501F99AFF8A11009B4FBC76A24CA3BBCFC0",
+  "fileName": "MelodyPaieRDC_Setup_1.0.7.exe"
 }
