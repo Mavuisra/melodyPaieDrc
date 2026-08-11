@@ -1,8 +1,8 @@
-﻿{
-    "sha256":  "",
-    "version":  "1.0.6",
-    "releaseNotes":  "Politique paie parametrable (periode decalee, samedi, retards), UI employes refondue, bandeau succes apres operations, tests paie.",
-    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.6/MelodyPaieRDC_Setup_1.0.6.exe",
-    "publishedAt":  "2026-08-11",
-    "fileName":  "MelodyPaieRDC_Setup_1.0.6.exe"
+{
+  "sha256": "C16AB9C0D65C42461AC4DE7630F81A47484796B28717D668E634A5EDEC934569",
+  "publishedAt": "2026-08-11",
+  "releaseNotes": "Release v1.0.6",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.6/MelodyPaieRDC_Setup_1.0.6.exe",
+  "version": "1.0.6",
+  "fileName": "MelodyPaieRDC_Setup_1.0.6.exe"
 }
