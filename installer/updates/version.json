@@ -1,8 +1,8 @@
 {
-  "sha256": "",
-  "publishedAt": "2026-08-11",
-  "releaseNotes": "Mises a jour depuis Parametres : verification automatique, telechargement avec barre de progression, installation silencieuse et relance de l application.",
   "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.7/MelodyPaieRDC_Setup_1.0.7.exe",
+  "releaseNotes": "Release v1.0.7",
+  "publishedAt": "2026-08-11",
+  "fileName": "MelodyPaieRDC_Setup_1.0.7.exe",
   "version": "1.0.7",
-  "fileName": "MelodyPaieRDC_Setup_1.0.7.exe"
+  "sha256": "487E960B3BD042049194CE495EC1BAED73A8A1F285EAE59FB91E85B567A21861"
 }
