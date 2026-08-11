@@ -3,6 +3,7 @@ using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Helpers;
@@ -191,7 +192,7 @@ public static class ApplicationUpdateService
         return EvaluerManifeste(manifest, installee);
     }
 
-    private static UpdateCheckResult EvaluerManifeste(UpdateManifest? manifest, Version installee)
+    internal static UpdateCheckResult EvaluerManifeste(UpdateManifest? manifest, Version installee)
     {
         if (manifest == null || string.IsNullOrWhiteSpace(manifest.Version))
         {
@@ -358,7 +359,71 @@ public static class ApplicationUpdateService
         }
     }
 
-    private static string ObtenirNomFichierInstallateur(UpdateManifest manifest, Uri uri)
+    public static string ObtenirCheminExecutableCourant()
+    {
+        try
+        {
+            var chemin = Environment.ProcessPath;
+            if (!string.IsNullOrWhiteSpace(chemin) && File.Exists(chemin))
+                return chemin;
+        }
+        catch
+        {
+            // ignore
+        }
+
+        return Path.Combine(AppContext.BaseDirectory, "MelodyPaieRDC.exe");
+    }
+
+    /// <summary>
+    /// Lance l'installateur en mode silencieux puis relance l'application (script PowerShell détaché).
+    /// </summary>
+    public static bool LancerMiseAJourSilencieuseEtRelancer(string cheminInstallateur, out string message)
+    {
+        message = "";
+        if (string.IsNullOrWhiteSpace(cheminInstallateur) || !File.Exists(cheminInstallateur))
+        {
+            message = "Fichier d'installation introuvable.";
+            return false;
+        }
+
+        try
+        {
+            var exePath = ObtenirCheminExecutableCourant();
+            Directory.CreateDirectory(DossierTelechargements);
+            var scriptPath = Path.Combine(DossierTelechargements, "apply-update.ps1");
+
+            var script = new StringBuilder();
+            script.AppendLine("$ErrorActionPreference = 'SilentlyContinue'");
+            script.AppendLine($"$installer = '{EchapperPourPowerShell(cheminInstallateur)}'");
+            script.AppendLine($"$exe = '{EchapperPourPowerShell(exePath)}'");
+            script.AppendLine("$p = Start-Process -FilePath $installer -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/CLOSEAPPLICATIONS','/NORESTART' -PassThru -Wait");
+            script.AppendLine("if ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010) {");
+            script.AppendLine("  Start-Sleep -Seconds 2");
+            script.AppendLine("  if (Test-Path -LiteralPath $exe) { Start-Process -FilePath $exe }");
+            script.AppendLine("}");
+
+            File.WriteAllText(scriptPath, script.ToString(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{scriptPath}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true
+            });
+
+            message = "Mise à jour en cours. L'application va redémarrer.";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            message = $"Impossible de lancer la mise à jour : {ex.Message}";
+            return false;
+        }
+    }
+
+    internal static string ObtenirNomFichierInstallateur(UpdateManifest manifest, Uri uri)
     {
         if (!string.IsNullOrWhiteSpace(manifest.FileName))
         {
@@ -374,4 +439,7 @@ public static class ApplicationUpdateService
         var version = manifest.Version.Replace('.', '_');
         return $"MelodyPaieRDC_Setup_{version}.exe";
     }
+
+    private static string EchapperPourPowerShell(string valeur) =>
+        valeur.Replace("'", "''", StringComparison.Ordinal);
 }

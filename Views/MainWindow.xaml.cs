@@ -72,6 +72,8 @@ public partial class MainWindow : Window
         _viewModel.OnRestaurerBase = RestaurerBase;
         _viewModel.OnReinitialiserApplication = ReinitialiserApplication;
         _viewModel.OnVerifierMiseAJour = () => MiseAJourWindow.Afficher(this);
+        _viewModel.OnDemarrerMiseAJourAutomatique = DemarrerMiseAJourAutomatique;
+        _viewModel.MiseAJourParametres.DemarrerMiseAJourAutomatique = DemarrerMiseAJourAutomatique;
         _viewModel.OnOuvrirCalendrierTravail = OuvrirCalendrierTravail;
         _viewModel.OnOuvrirSaisiePaieMois = OuvrirSaisiePaieMois;
         _viewModel.OnOuvrirSuiviJournalier = OuvrirSuiviJournalier;
@@ -1431,16 +1433,48 @@ public partial class MainWindow : Window
 
             var reponse = MessageBox.Show(
                 this,
-                $"{result.Message}\n\nOuvrir l'assistant de téléchargement maintenant ?",
+                $"{result.Message}\n\nOuvrir les paramètres pour télécharger la mise à jour ?",
                 "Mise à jour disponible",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Information);
             if (reponse == MessageBoxResult.Yes)
-                MiseAJourWindow.Afficher(this);
+            {
+                _viewModel.MenuSelectionne = 6;
+                await _viewModel.MiseAJourParametres.VerifierAuChargementAsync();
+            }
         }
         catch
         {
             // Ne pas bloquer le démarrage si le serveur de mises à jour est injoignable.
         }
+    }
+
+    private void DemarrerMiseAJourAutomatique(UpdateManifest manifest)
+    {
+        if (MessageBox.Show(
+                this,
+                "Melody Paie RDC va se fermer pour installer la mise à jour.\n\n" +
+                "Une barre de progression s'affichera pendant le téléchargement. " +
+                "L'application redémarrera automatiquement à la fin.\n\n" +
+                "Vos données (base SQLite dans AppData) seront conservées.\n\nContinuer ?",
+                "Télécharger et installer",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question) != MessageBoxResult.Yes)
+            return;
+
+        _suiviJournalierWindow?.Close();
+        _suiviJournalierWindow = null;
+        Hide();
+
+        var progress = new UpdateProgressWindow(manifest);
+        progress.Closed += (_, _) =>
+        {
+            if (!progress.Succes)
+            {
+                Show();
+                Activate();
+            }
+        };
+        progress.Show();
     }
 }

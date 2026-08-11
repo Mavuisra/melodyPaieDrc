@@ -117,6 +117,8 @@ public class MainViewModel : INotifyPropertyChanged
         ChecklistMoisPaie = new ObservableCollection<MoisPaieChecklistItem>();
         PointageLiveNotificationService.EtatChange += NotifierBadgePointageMenu;
 
+        MiseAJourParametres = new ParametresMiseAJourViewModel();
+
         static bool PeutMod() => AuthService.PeutModifierDonnees;
         static bool PeutAdmin() => AuthService.PeutAdministrerApplication;
 
@@ -182,6 +184,7 @@ public class MainViewModel : INotifyPropertyChanged
             {
                 ChargerTauxChangeDepuisDb();
                 ChargerParametresZk();
+                _ = MiseAJourParametres.VerifierAuChargementAsync();
             }
         });
         OuvrirParametresIprCommand = new RelayCommand(_ => OnOuvrirParametresIpr?.Invoke());
@@ -1912,6 +1915,9 @@ public class MainViewModel : INotifyPropertyChanged
     public Action? OnRestaurerBase { get; set; }
     public Action? OnReinitialiserApplication { get; set; }
     public Action? OnVerifierMiseAJour { get; set; }
+    public Action<Models.UpdateManifest>? OnDemarrerMiseAJourAutomatique { get; set; }
+
+    public ParametresMiseAJourViewModel MiseAJourParametres { get; }
 
     public string VersionApplication =>
         ApplicationUpdateService.FormaterVersion(ApplicationUpdateService.ObtenirVersionInstallee());
