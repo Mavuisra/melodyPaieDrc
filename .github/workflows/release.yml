@@ -67,8 +67,15 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add MelodyPaieRDC.csproj installer/MelodyPaieRDC.iss installer/updates/version.json
           if (git diff --cached --quiet) { exit 0 }
+          git stash push -m "release-prep" -- MelodyPaieRDC.csproj installer/MelodyPaieRDC.iss installer/updates/version.json
+          git fetch origin main
+          git checkout main
+          git pull origin main --rebase
+          git stash pop
+          git add MelodyPaieRDC.csproj installer/MelodyPaieRDC.iss installer/updates/version.json
+          if (git diff --cached --quiet) { exit 0 }
           git commit -m "chore(release): prepare ${{ steps.ver.outputs.version }}"
-          git push origin HEAD:main
+          git push origin main
           git tag -f "${{ steps.ver.outputs.tag }}"
           git push origin "${{ steps.ver.outputs.tag }}" --force
 
@@ -131,8 +138,38 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          $manifestPath = Join-Path $env:GITHUB_WORKSPACE "installer/updates/version.json"
+          if (-not (Test-Path -LiteralPath $manifestPath)) {
+            throw "Manifeste introuvable: $manifestPath"
+          }
+          $manifestContent = Get-Content -Raw -LiteralPath $manifestPath
+
+          git fetch origin main
+          git checkout main
           git pull origin main --rebase
+
+          [IO.File]::WriteAllText($manifestPath, $manifestContent)
+
           git add installer/updates/version.json
-          git diff --cached --quiet && exit 0
+          if (git diff --cached --quiet) {
+            Write-Host "Aucun changement dans version.json — rien a pousser."
+            exit 0
+          }
+
           git commit -m "chore(release): manifest ${{ steps.ver.outputs.version }}"
-          git push origin HEAD:main
+
+          $maxAttempts = 5
+          for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {
+            try {
+              git pull origin main --rebase
+              git push origin main
+              Write-Host "Manifeste pousse sur main (tentative $attempt)."
+              exit 0
+            }
+            catch {
+              if ($attempt -eq $maxAttempts) { throw }
+              Write-Host "Push refuse, nouvelle tentative dans 5 s ($attempt/$maxAttempts)..."
+              Start-Sleep -Seconds 5
+            }
+          }
