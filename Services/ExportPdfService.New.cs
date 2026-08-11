@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 using Microsoft.EntityFrameworkCore;
 using QuestPDF.Fluent;
@@ -20,6 +21,14 @@ public sealed record SuiviJournalierPdfLigne(
     string ModeCalcul,
     decimal HeuresPrestees,
     string TypeJour);
+
+/// <summary>Ligne récapitulatif heures travaillées (page Heures).</summary>
+public sealed record HeuresTotauxEmployePdfLigne(
+    string Matricule,
+    string NomComplet,
+    string? Departement,
+    decimal TotalHeures,
+    decimal TotalJoursEquivalent);
 
 /// <summary>Bloc employé pour export PDF multi-employés.</summary>
 public sealed record SuiviJournalierPdfEmployeBloc(
@@ -41,13 +50,41 @@ public sealed record PresencePdfLigne(
     string Autres,
     string Statut);
 
+/// <summary>Ligne PDF rapport journalier des mouvements (arrivée / sortie).</summary>
+public sealed record MouvementJourPdfLigne(
+    string Jour,
+    string Matricule,
+    string NomComplet,
+    string Departement,
+    string Arrivee,
+    string Sortie,
+    string StatutRetard,
+    string DureeRetard);
+
+/// <summary>Ligne PDF rapport des retards du jour.</summary>
+public sealed record RetardPdfLigne(
+    string Jour,
+    string Matricule,
+    string NomComplet,
+    string Departement,
+    string HeureEntree,
+    string DureeRetard,
+    string TauxHoraire,
+    string CoutRetard,
+    string HeureLimite);
+
 public class ExportPdfService
 {
-    private const string DefaultPrimary = "#1E3A5F";
-    private const string DefaultSecondary = "#00A6B8";
+    private const string DefaultPrimary = "#047857";
+    private const string DefaultSecondary = "#34D399";
     private const string BorderColor = "#DCE3EC";
     private const string HeaderOnPrimary = "#FFFFFF";
     private const string Muted = "#64748B";
+
+    static ExportPdfService()
+    {
+        QuestPDF.Settings.License = LicenseType.Community;
+    }
 
     private sealed record BrandingInfo(
         string? RaisonSociale,
@@ -78,6 +115,35 @@ public class ExportPdfService
         {
             TryGenerateDebugLayoutPdf(document, cheminFichier);
             BuildFallbackBulletinDocument(bulletin, branding).GeneratePdf(cheminFichier);
+        }
+    }
+
+    /// <summary>
+    /// Exporte les bulletins en format A5, deux par feuille A4 (découpe au milieu).
+    /// </summary>
+    public void ExporterBulletinsFeuilleA4(IEnumerable<BulletinPaie> bulletins, string cheminFichier)
+    {
+        ArgumentNullException.ThrowIfNull(bulletins);
+        var liste = bulletins
+            .OrderBy(x => x.PeriodePaie?.Annee)
+            .ThenBy(x => x.PeriodePaie?.Mois)
+            .ThenBy(x => x.Employe?.Matricule)
+            .ToList();
+        if (liste.Count == 0)
+            throw new InvalidOperationException("Aucun bulletin à exporter.");
+
+        var branding = LoadBranding();
+        var layouts = liste.Select(PrepareBulletinLayout).ToList();
+        var document = BuildBulletinsDeuxParA4Document(layouts, branding);
+
+        try
+        {
+            document.GeneratePdf(cheminFichier);
+        }
+        catch (Exception ex) when (IsLayoutConstraintException(ex))
+        {
+            TryGenerateDebugLayoutPdf(document, cheminFichier);
+            throw new InvalidOperationException("Impossible de générer la feuille A4 (2 bulletins A5). Réduisez le nombre de lignes ou contactez le support.", ex);
         }
     }
 
@@ -154,6 +220,90 @@ public class ExportPdfService
             var total = employes.Sum(e => e.Lignes.Sum(l => l.HeuresPrestees));
             BuildFallbackSuiviJournalierTousDocumentBranded(branding, mois, annee, employes.Count, total).GeneratePdf(cheminFichier);
         }
+    }
+
+    /// <summary>Export PDF du récapitulatif des heures travaillées par employé (période de paie).</summary>
+    public void ExporterTotauxHeuresEmployesPdf(
+        IReadOnlyList<HeuresTotauxEmployePdfLigne> lignes,
+        int mois,
+        int annee,
+        decimal totalHeures,
+        decimal totalJoursEquivalent,
+        string cheminFichier)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(cheminFichier);
+        if (lignes == null || lignes.Count == 0)
+            throw new ArgumentException("Aucun employé à exporter.", nameof(lignes));
+
+        var branding = LoadBranding();
+        var liste = lignes.OrderBy(l => l.Matricule, StringComparer.OrdinalIgnoreCase).ToList();
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(18);
+                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(9f));
+                var sousTitre = $"Période {mois:D2}/{annee} — {liste.Count} employé(s)";
+                page.Header().Element(h => ComposeHeaderBand(h, branding, "HEURES TRAVAILLÉES — RÉCAPITULATIF", sousTitre));
+
+                page.Content().Column(col =>
+                {
+                    col.Spacing(10);
+                    col.Item().Text("Totaux issus du suivi journalier (pointages LT / saisie) — même calcul que la page Heures.")
+                        .FontSize(8).FontColor(Muted);
+                    col.Item().Border(1).BorderColor(BorderColor).Table(t =>
+                    {
+                        t.ColumnsDefinition(c =>
+                        {
+                            c.ConstantColumn(28);
+                            c.ConstantColumn(72);
+                            c.RelativeColumn(2.2f);
+                            c.RelativeColumn(1.5f);
+                            c.ConstantColumn(72);
+                            c.ConstantColumn(72);
+                        });
+
+                        t.Header(h =>
+                        {
+                            HeaderCell(h.Cell(), "N°", branding.PrimaryHex, true);
+                            HeaderCell(h.Cell(), "Matricule", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Employé", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Département", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Total h.", branding.PrimaryHex, true);
+                            HeaderCell(h.Cell(), "Jours équiv.", branding.PrimaryHex, true);
+                        });
+
+                        var n = 1;
+                        foreach (var l in liste)
+                        {
+                            var bg = n % 2 == 0 ? "#F8FAFC" : "#FFFFFF";
+                            DataCell(t.Cell(), n.ToString(CultureInfo.InvariantCulture), bg, true);
+                            DataCell(t.Cell(), Clip(l.Matricule, 20), bg);
+                            DataCell(t.Cell(), Clip(l.NomComplet, 60), bg);
+                            DataCell(t.Cell(), Clip(l.Departement ?? "—", 40), bg);
+                            DataCell(t.Cell(), l.TotalHeures.ToString("N2", CultureInfo.InvariantCulture), bg, true);
+                            DataCell(t.Cell(), l.TotalJoursEquivalent.ToString("N2", CultureInfo.InvariantCulture), bg, true);
+                            n++;
+                        }
+
+                        t.Cell().ColumnSpan(4).Background("#EEF2F7").Padding(6).Text("TOTAL GÉNÉRAL").Bold().FontColor(branding.PrimaryHex);
+                        t.Cell().Background("#EEF2F7").Padding(6).AlignRight().Text(totalHeures.ToString("N2", CultureInfo.InvariantCulture)).Bold().FontColor(branding.PrimaryHex);
+                        t.Cell().Background("#EEF2F7").Padding(6).AlignRight().Text(totalJoursEquivalent.ToString("N2", CultureInfo.InvariantCulture)).Bold().FontColor(branding.PrimaryHex);
+                    });
+                });
+
+                page.Footer().AlignCenter().Text(t =>
+                {
+                    t.Span("Melody Paie RDC — ").FontSize(8).FontColor(Muted);
+                    t.CurrentPageNumber().FontSize(8).FontColor(Muted);
+                    t.Span(" / ").FontSize(8).FontColor(Muted);
+                    t.TotalPages().FontSize(8).FontColor(Muted);
+                });
+            });
+        });
+
+        document.GeneratePdf(cheminFichier);
     }
 
     /// <summary>Export PDF journalier des pointés du jour en synthèse moments par employé.</summary>
@@ -247,6 +397,633 @@ public class ExportPdfService
             TryGenerateDebugLayoutPdf(document, cheminFichier);
             BuildFallbackSuiviJournalierTousDocumentBranded(branding, mois, annee, lignes.Count, 0m).GeneratePdf(cheminFichier);
         }
+    }
+
+    /// <summary>Export PDF rapport journalier des mouvements (arrivée / sortie).</summary>
+    public void ExporterMouvementsJourPdf(
+        IReadOnlyList<MouvementJourPdfLigne> lignes,
+        DateTime jour,
+        string? titreAgent,
+        string heureLimiteTolerance,
+        string cheminFichier)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(cheminFichier);
+        if (lignes == null || lignes.Count == 0)
+            throw new ArgumentException("Aucune ligne de mouvement à exporter.", nameof(lignes));
+
+        var branding = LoadBranding();
+        var titre = string.IsNullOrWhiteSpace(titreAgent)
+            ? "RAPPORT JOURNALIER DES MOUVEMENTS"
+            : "MOUVEMENTS DU JOUR — AGENT";
+        var sousTitre = string.IsNullOrWhiteSpace(titreAgent)
+            ? $"Date {jour:dd/MM/yyyy} — {lignes.Count} agent(s) — limite {heureLimiteTolerance}"
+            : $"{titreAgent} — {jour:dd/MM/yyyy} — limite {heureLimiteTolerance}";
+
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(18);
+                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(9f));
+
+                ComposeHeaderBand(page.Header(), branding, titre, sousTitre);
+
+                page.Content().Column(col =>
+                {
+                    col.Spacing(8);
+                    col.Item().Text("Entrees et sorties enregistrees — retards calcules automatiquement apres l'heure limite.")
+                        .FontSize(7.5f).FontColor(Muted);
+
+                    col.Item().Border(1).BorderColor(BorderColor).Table(t =>
+                    {
+                        t.ColumnsDefinition(c =>
+                        {
+                            c.ConstantColumn(68);
+                            c.RelativeColumn(2f);
+                            c.RelativeColumn(1.3f);
+                            c.ConstantColumn(72);
+                            c.ConstantColumn(72);
+                            c.ConstantColumn(88);
+                            c.ConstantColumn(72);
+                        });
+
+                        t.Header(h =>
+                        {
+                            HeaderCell(h.Cell(), "Mat.", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Employe", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Departement", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Arrivee", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Sortie", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Statut", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Retard", branding.PrimaryHex);
+                        });
+
+                        var i = 0;
+                        foreach (var l in lignes)
+                        {
+                            var bg = i++ % 2 == 0 ? "#FFFFFF" : "#F8FAFC";
+                            DataCell(t.Cell(), Clip(l.Matricule, 18), bg);
+                            DataCell(t.Cell(), Clip(l.NomComplet, 56), bg);
+                            DataCell(t.Cell(), Clip(l.Departement, 34), bg);
+                            DataCell(t.Cell(), Clip(l.Arrivee, 16), bg);
+                            DataCell(t.Cell(), Clip(l.Sortie, 16), bg);
+                            DataCell(t.Cell(), Clip(l.StatutRetard, 18), bg);
+                            DataCell(t.Cell(), Clip(l.DureeRetard, 16), bg);
+                        }
+                    });
+                });
+
+                page.Footer().AlignCenter().Text(t =>
+                {
+                    t.Span("Melody Paie RDC - Page ").FontSize(8).FontColor(Muted);
+                    t.CurrentPageNumber().FontSize(8).FontColor(Muted);
+                    t.Span(" / ").FontSize(8).FontColor(Muted);
+                    t.TotalPages().FontSize(8).FontColor(Muted);
+                });
+            });
+        });
+
+        try
+        {
+            document.GeneratePdf(cheminFichier);
+        }
+        catch (Exception ex) when (IsLayoutConstraintException(ex))
+        {
+            TryGenerateDebugLayoutPdf(document, cheminFichier);
+            BuildFallbackMouvementsJourDocument(branding, lignes, jour, titreAgent, heureLimiteTolerance)
+                .GeneratePdf(cheminFichier);
+        }
+    }
+    public void ExporterRetardsJourPdf(
+        IReadOnlyList<RetardPdfLigne> lignes,
+        DateTime jour,
+        string heureLimiteTolerance,
+        string totalUsd,
+        string totalCdf,
+        string cheminFichier)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(cheminFichier);
+        if (lignes == null || lignes.Count == 0)
+            throw new ArgumentException("Aucun retard a exporter.", nameof(lignes));
+
+        var branding = LoadBranding();
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(18);
+                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(9f));
+
+                ComposeHeaderBand(page.Header(), branding, "GESTION DES RETARDS",
+                    $"Date {jour:dd/MM/yyyy} — {lignes.Count} retard(s) — limite {heureLimiteTolerance}");
+
+                page.Content().Column(col =>
+                {
+                    col.Spacing(8);
+                    col.Item().Text("Cout estime = duree du retard x taux horaire du contrat actif.")
+                        .FontSize(7.5f).FontColor(Muted);
+
+                    col.Item().Border(1).BorderColor(BorderColor).Table(t =>
+                    {
+                        t.ColumnsDefinition(c =>
+                        {
+                            c.ConstantColumn(68);
+                            c.RelativeColumn(2f);
+                            c.RelativeColumn(1.2f);
+                            c.ConstantColumn(72);
+                            c.ConstantColumn(72);
+                            c.ConstantColumn(88);
+                            c.ConstantColumn(88);
+                        });
+
+                        t.Header(h =>
+                        {
+                            HeaderCell(h.Cell(), "Mat.", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Employe", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Departement", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Entree", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Duree", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Taux/h", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Cout", branding.PrimaryHex);
+                        });
+
+                        var i = 0;
+                        foreach (var l in lignes)
+                        {
+                            var bg = i++ % 2 == 0 ? "#FFFFFF" : "#F8FAFC";
+                            DataCell(t.Cell(), Clip(l.Matricule, 18), bg);
+                            DataCell(t.Cell(), Clip(l.NomComplet, 56), bg);
+                            DataCell(t.Cell(), Clip(l.Departement, 30), bg);
+                            DataCell(t.Cell(), Clip(l.HeureEntree, 16), bg);
+                            DataCell(t.Cell(), Clip(l.DureeRetard, 16), bg);
+                            DataCell(t.Cell(), Clip(l.TauxHoraire, 20), bg);
+                            DataCell(t.Cell(), Clip(l.CoutRetard, 20), bg);
+                        }
+                    });
+
+                    col.Item().PaddingTop(8).Row(r =>
+                    {
+                        r.RelativeItem().Text($"Total estime USD : {totalUsd}").FontSize(9).SemiBold();
+                        r.RelativeItem().AlignRight().Text($"Total estime CDF : {totalCdf}").FontSize(9).SemiBold();
+                    });
+                });
+
+                page.Footer().AlignCenter().Text(t =>
+                {
+                    t.Span("Melody Paie RDC - Page ").FontSize(8).FontColor(Muted);
+                    t.CurrentPageNumber().FontSize(8).FontColor(Muted);
+                    t.Span(" / ").FontSize(8).FontColor(Muted);
+                    t.TotalPages().FontSize(8).FontColor(Muted);
+                });
+            });
+        });
+
+        try
+        {
+            document.GeneratePdf(cheminFichier);
+        }
+        catch (Exception ex) when (IsLayoutConstraintException(ex))
+        {
+            TryGenerateDebugLayoutPdf(document, cheminFichier);
+            BuildFallbackRetardsJourDocument(branding, lignes, jour, heureLimiteTolerance, totalUsd, totalCdf)
+                .GeneratePdf(cheminFichier);
+        }
+    }
+
+    /// <summary>Export PDF d'un contrat de travail (fiche récapitulative).</summary>
+    public void ExporterContratPdf(int contratId, string cheminFichier, PaieDbContext? dbExistant = null)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(cheminFichier);
+
+        var possedeDb = dbExistant != null;
+        var db = dbExistant ?? new PaieDbContext();
+        try
+        {
+            var contrat = db.Contrats
+                .Include(c => c.Employe)
+                .ThenInclude(e => e!.Departement)
+                .Include(c => c.CategorieProfessionnelle)
+                .FirstOrDefault(c => c.Id == contratId)
+                ?? throw new InvalidOperationException("Contrat introuvable.");
+
+            var employe = contrat.Employe
+                ?? throw new InvalidOperationException("Employé introuvable pour ce contrat.");
+
+            var entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseIdEmploye(db, employe.Id);
+            var politique = new PolitiquePaieService(db).Charger(entrepriseId);
+            contrat.JoursReferencePaie = politique.JoursReferencePaie;
+            contrat.HeuresParJour = politique.HeuresParJour;
+
+            var branding = LoadBranding();
+            var nomComplet = Clip($"{employe.Nom} {employe.Postnom} {employe.Prenom}".Trim(), 120);
+            var departement = Clip(employe.Departement?.NomDepartement ?? "—", 80);
+            var categorie = Clip(contrat.CategorieProfessionnelle?.Libelle ?? "—", 80);
+            var dateFin = contrat.DateFin.HasValue
+                ? contrat.DateFin.Value.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture)
+                : "Indéterminée (CDI)";
+            var preavisMontant = decimal.Round(contrat.SalaireBase * contrat.PreavisMoisBase, 2, MidpointRounding.AwayFromZero);
+            var indemniteMontant = decimal.Round(contrat.SalaireBase * contrat.IndemniteLicenciementMoisBase, 2, MidpointRounding.AwayFromZero);
+            var generation = DateTime.Now.ToString("dd/MM/yyyy HH:mm", CultureInfo.InvariantCulture);
+
+            var document = Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(22);
+                    page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(9.5f));
+
+                    ComposeHeaderBand(page.Header(), branding, "CONTRAT DE TRAVAIL", $"Type {contrat.TypeContrat}");
+
+                    page.Content().Column(col =>
+                    {
+                        col.Spacing(10);
+
+                        col.Item().Text("Fiche récapitulative du contrat de travail")
+                            .FontSize(10).SemiBold().FontColor(branding.PrimaryHex);
+
+                        col.Item().Border(1).BorderColor(BorderColor).Padding(10).Column(info =>
+                        {
+                            info.Item().Text("Informations employé").SemiBold().FontColor(branding.PrimaryHex);
+                            info.Item().PaddingTop(4).Text($"Matricule : {Clip(employe.Matricule, 40)}");
+                            info.Item().Text($"Nom complet : {nomComplet}");
+                            info.Item().Text($"Département : {departement}");
+                            if (!string.IsNullOrWhiteSpace(employe.NumCnss))
+                                info.Item().Text($"N° CNSS : {Clip(employe.NumCnss, 40)}");
+                        });
+
+                        col.Item().Border(1).BorderColor(BorderColor).Table(t =>
+                        {
+                            t.ColumnsDefinition(c =>
+                            {
+                                c.RelativeColumn(1.4f);
+                                c.RelativeColumn();
+                            });
+
+                            t.Header(h =>
+                            {
+                                HeaderCell(h.Cell(), "Élément du contrat", branding.PrimaryHex);
+                                HeaderCell(h.Cell(), "Valeur", branding.PrimaryHex);
+                            });
+
+                            void Ligne(string libelle, string valeur, int i)
+                            {
+                                var bg = i % 2 == 0 ? "#FFFFFF" : "#F8FAFC";
+                                DataCell(t.Cell(), libelle, bg);
+                                DataCell(t.Cell(), valeur, bg);
+                            }
+
+                            var i = 0;
+                            Ligne("Type de contrat", contrat.TypeContrat, i++);
+                            Ligne("Date de début", contrat.DateDebut.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture), i++);
+                            Ligne("Date de fin", dateFin, i++);
+                            Ligne("Catégorie professionnelle", categorie, i++);
+                            Ligne("Salaire de base mensuel", $"{FormatMoney(contrat.SalaireBase)} {contrat.DeviseBase}", i++);
+                            Ligne($"Salaire journalier (/{contrat.JoursReferencePaie:0.##} j)", $"{FormatMoney(contrat.SalaireJour)} {contrat.DeviseBase}", i++);
+                            Ligne($"Salaire horaire (/{contrat.HeuresParJour:0.##} h)", $"{FormatMoney(contrat.SalaireHeure)} {contrat.DeviseBase}", i++);
+                            Ligne("Majoration heures supplémentaires", $"{contrat.TauxMajorationHeuresSup:N0} %", i++);
+                            Ligne("Majoration travail de nuit", $"{contrat.TauxMajorationNuit:N0} %", i++);
+                            Ligne("Majoration jours fériés", $"{contrat.TauxMajorationJourFerie:N0} %", i++);
+                            Ligne("Préavis (base mois de salaire)", $"{contrat.PreavisMoisBase:N2} mois — {FormatMoney(preavisMontant)} {contrat.DeviseBase}", i++);
+                            Ligne("Indemnité licenciement (base)", $"{contrat.IndemniteLicenciementMoisBase:N2} mois — {FormatMoney(indemniteMontant)} {contrat.DeviseBase}", i++);
+                        });
+
+                        col.Item().Text("Document généré à partir des données enregistrées dans Melody Paie RDC. " +
+                                       "Les montants de préavis et d'indemnité sont indicatifs et doivent être validés conformément au Code du travail et aux accords applicables.")
+                            .FontSize(8f).FontColor(Muted).Italic();
+                    });
+
+                    page.Footer().AlignCenter().Text(t =>
+                    {
+                        t.Span($"Généré le {generation} — Melody Paie RDC — Page ").FontSize(8).FontColor(Muted);
+                        t.CurrentPageNumber().FontSize(8).FontColor(Muted);
+                    });
+                });
+            });
+
+            document.GeneratePdf(cheminFichier);
+        }
+        finally
+        {
+            if (!possedeDb)
+                db.Dispose();
+        }
+    }
+
+    /// <summary>Rapport personnalisé : situation mensuelle d'un agent.</summary>
+    public void ExporterRapportAgentSituationPdf(
+        SituationPaieAgentLigne ligne,
+        int mois,
+        int annee,
+        string cheminFichier)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(cheminFichier);
+        ArgumentNullException.ThrowIfNull(ligne);
+
+        var branding = LoadBranding();
+        var periode = $"{mois:D2}/{annee}";
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(22);
+                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(9.5f));
+
+                ComposeHeaderBand(page.Header(), branding, "SITUATION MENSUELLE AGENT", $"Periode {periode}");
+
+                page.Content().Column(col =>
+                {
+                    col.Spacing(10);
+                    col.Item().Border(1).BorderColor(BorderColor).Padding(10).Column(info =>
+                    {
+                        info.Item().Text($"Matricule : {Clip(ligne.Matricule, 40)}").SemiBold();
+                        info.Item().Text($"Nom : {Clip(ligne.NomComplet, 120)}");
+                        info.Item().Text($"Departement : {Clip(ligne.Departement, 80)}");
+                        info.Item().Text($"Heures prestees (periode) : {ligne.TotalHeuresLibelle}").FontColor(branding.PrimaryHex);
+                        info.Item().Text(ligne.StatutBulletinLibelle).FontSize(8.5f).FontColor(Muted);
+                    });
+
+                    col.Item().Border(1).BorderColor(BorderColor).Table(t =>
+                    {
+                        t.ColumnsDefinition(c =>
+                        {
+                            c.RelativeColumn(1.4f);
+                            c.RelativeColumn();
+                        });
+
+                        t.Header(h =>
+                        {
+                            HeaderCell(h.Cell(), "Rubrique", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Montant (USD)", branding.PrimaryHex, true);
+                        });
+
+                        void Ligne(string libelle, decimal montant, int i)
+                        {
+                            var bg = i % 2 == 0 ? "#FFFFFF" : "#F8FAFC";
+                            DataCell(t.Cell(), libelle, bg);
+                            DataCell(t.Cell(), FormatMoney(montant), bg, true);
+                        }
+
+                        var i = 0;
+                        Ligne("Salaire (brut periode)", ligne.Salaire, i++);
+                        Ligne("Quinzaine / acomptes", ligne.Quinzaine, i++);
+                        Ligne("Retenue (CNSS + INPP)", ligne.Retenue, i++);
+                        Ligne("Impôt (IPR net)", ligne.Impot, i++);
+                        Ligne("Retards / sanctions", ligne.Retards, i++);
+                        Ligne("Prêts / avances", ligne.Prets, i++);
+                        t.Cell().Background("#ECFDF5").Padding(6).Text("Solde à payer").Bold().FontColor(branding.PrimaryHex);
+                        t.Cell().Background("#ECFDF5").Padding(6).AlignRight().Text(FormatMoney(ligne.SoldeAPayer)).Bold().FontColor(branding.PrimaryHex);
+                    });
+
+                    if (!ligne.AvecBulletin)
+                    {
+                        col.Item().Text("Bulletin non genere : lancez le calcul de paie (menu Calcul) pour completer les montants.")
+                            .FontSize(8.5f).FontColor(Muted);
+                    }
+                });
+
+                page.Footer().AlignCenter().Text(t =>
+                {
+                    t.Span("Page ").FontSize(8).FontColor(Muted);
+                    t.CurrentPageNumber().FontSize(8).FontColor(Muted);
+                });
+            });
+        });
+
+        document.GeneratePdf(cheminFichier);
+    }
+
+    /// <summary>Rapport périodique des quinzaines (acomptes sur salaire).</summary>
+    public void ExporterRapportQuinzainesPdf(
+        IReadOnlyList<SituationPaieAgentLigne> lignes,
+        int mois,
+        int annee,
+        string cheminFichier)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(cheminFichier);
+        if (lignes == null || lignes.Count == 0)
+            throw new ArgumentException("Aucune ligne a exporter.", nameof(lignes));
+
+        var branding = LoadBranding();
+        var periode = $"{mois:D2}/{annee}";
+        var totalQuinz = lignes.Sum(l => l.Quinzaine);
+        var totalSolde = lignes.Sum(l => l.SoldeAPayer);
+
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(18);
+                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(8.5f));
+
+                ComposeHeaderBand(page.Header(), branding, "RAPPORT DES QUINZAINES", $"Periode {periode}");
+
+                page.Content().Column(col =>
+                {
+                    col.Spacing(8);
+                    col.Item().Text("Acomptes sur salaire verses en cours de mois (rubrique ACOMPTES_SALAIRE).")
+                        .FontSize(8f).FontColor(Muted);
+
+                    col.Item().Border(1).BorderColor(BorderColor).Table(t =>
+                    {
+                        t.ColumnsDefinition(c =>
+                        {
+                            c.ConstantColumn(72);
+                            c.RelativeColumn(2f);
+                            c.RelativeColumn(1.2f);
+                            c.ConstantColumn(88);
+                            c.ConstantColumn(88);
+                            c.ConstantColumn(88);
+                        });
+
+                        t.Header(h =>
+                        {
+                            HeaderCell(h.Cell(), "Matricule", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Employe", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Departement", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Salaire brut", branding.PrimaryHex, true);
+                            HeaderCell(h.Cell(), "Quinzaine", branding.PrimaryHex, true);
+                            HeaderCell(h.Cell(), "Solde a payer", branding.PrimaryHex, true);
+                        });
+
+                        var idx = 0;
+                        foreach (var l in lignes)
+                        {
+                            var bg = idx++ % 2 == 0 ? "#FFFFFF" : "#F8FAFC";
+                            DataCell(t.Cell(), Clip(l.Matricule, 20), bg);
+                            DataCell(t.Cell(), Clip(l.NomComplet, 48), bg);
+                            DataCell(t.Cell(), Clip(l.Departement, 36), bg);
+                            DataCell(t.Cell(), FormatMoney(l.Salaire), bg, true);
+                            DataCell(t.Cell(), FormatMoney(l.Quinzaine), bg, true);
+                            DataCell(t.Cell(), FormatMoney(l.SoldeAPayer), bg, true);
+                        }
+
+                        t.Cell().ColumnSpan(3).Background("#EEF2F7").Padding(6).Text("TOTAL").Bold();
+                        t.Cell().Background("#EEF2F7").Padding(6).AlignRight().Text(FormatMoney(lignes.Sum(x => x.Salaire))).Bold();
+                        t.Cell().Background("#EEF2F7").Padding(6).AlignRight().Text(FormatMoney(totalQuinz)).Bold().FontColor(branding.PrimaryHex);
+                        t.Cell().Background("#EEF2F7").Padding(6).AlignRight().Text(FormatMoney(totalSolde)).Bold();
+                    });
+                });
+            });
+        });
+
+        document.GeneratePdf(cheminFichier);
+    }
+
+    /// <summary>Rapport mensuel des salaires (situation complete par agent).</summary>
+    public void ExporterRapportMensuelSalairesPdf(
+        IReadOnlyList<SituationPaieAgentLigne> lignes,
+        int mois,
+        int annee,
+        string cheminFichier)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(cheminFichier);
+        if (lignes == null || lignes.Count == 0)
+            throw new ArgumentException("Aucune ligne a exporter.", nameof(lignes));
+
+        var branding = LoadBranding();
+        var periode = $"{mois:D2}/{annee}";
+
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(14);
+                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(7.5f));
+
+                ComposeHeaderBand(page.Header(), branding, "RAPPORT MENSUEL DES SALAIRES", $"Periode {periode}");
+
+                page.Content().Column(col =>
+                {
+                    col.Spacing(6);
+                    col.Item().Border(1).BorderColor(BorderColor).Table(t =>
+                    {
+                        t.ColumnsDefinition(c =>
+                        {
+                            c.ConstantColumn(58);
+                            c.RelativeColumn(1.6f);
+                            c.ConstantColumn(52);
+                            c.ConstantColumn(58);
+                            c.ConstantColumn(52);
+                            c.ConstantColumn(52);
+                            c.ConstantColumn(48);
+                            c.ConstantColumn(48);
+                            c.ConstantColumn(48);
+                            c.ConstantColumn(58);
+                        });
+
+                        t.Header(h =>
+                        {
+                            HeaderCell(h.Cell(), "Mat.", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Employe", branding.PrimaryHex);
+                            HeaderCell(h.Cell(), "Heures", branding.PrimaryHex, true);
+                            HeaderCell(h.Cell(), "Salaire", branding.PrimaryHex, true);
+                            HeaderCell(h.Cell(), "Quinz.", branding.PrimaryHex, true);
+                            HeaderCell(h.Cell(), "Reten.", branding.PrimaryHex, true);
+                            HeaderCell(h.Cell(), "IPR", branding.PrimaryHex, true);
+                            HeaderCell(h.Cell(), "Retards", branding.PrimaryHex, true);
+                            HeaderCell(h.Cell(), "Prets", branding.PrimaryHex, true);
+                            HeaderCell(h.Cell(), "Solde", branding.PrimaryHex, true);
+                        });
+
+                        var idx = 0;
+                        foreach (var l in lignes)
+                        {
+                            var bg = idx++ % 2 == 0 ? "#FFFFFF" : "#F8FAFC";
+                            DataCell(t.Cell(), Clip(l.Matricule, 14), bg);
+                            DataCell(t.Cell(), Clip(l.NomComplet, 36), bg);
+                            DataCell(t.Cell(), l.TotalHeures.ToString("N1", CultureInfo.InvariantCulture), bg, true);
+                            DataCell(t.Cell(), FormatMoney(l.Salaire), bg, true);
+                            DataCell(t.Cell(), FormatMoney(l.Quinzaine), bg, true);
+                            DataCell(t.Cell(), FormatMoney(l.Retenue), bg, true);
+                            DataCell(t.Cell(), FormatMoney(l.Impot), bg, true);
+                            DataCell(t.Cell(), FormatMoney(l.Retards), bg, true);
+                            DataCell(t.Cell(), FormatMoney(l.Prets), bg, true);
+                            DataCell(t.Cell(), FormatMoney(l.SoldeAPayer), bg, true);
+                        }
+
+                        t.Cell().ColumnSpan(2).Background("#EEF2F7").Padding(5).Text("TOTAL").Bold();
+                        t.Cell().Background("#EEF2F7").Padding(5).AlignRight().Text(lignes.Sum(x => x.TotalHeures).ToString("N1", CultureInfo.InvariantCulture)).Bold();
+                        t.Cell().Background("#EEF2F7").Padding(5).AlignRight().Text(FormatMoney(lignes.Sum(x => x.Salaire))).Bold();
+                        t.Cell().Background("#EEF2F7").Padding(5).AlignRight().Text(FormatMoney(lignes.Sum(x => x.Quinzaine))).Bold();
+                        t.Cell().Background("#EEF2F7").Padding(5).AlignRight().Text(FormatMoney(lignes.Sum(x => x.Retenue))).Bold();
+                        t.Cell().Background("#EEF2F7").Padding(5).AlignRight().Text(FormatMoney(lignes.Sum(x => x.Impot))).Bold();
+                        t.Cell().Background("#EEF2F7").Padding(5).AlignRight().Text(FormatMoney(lignes.Sum(x => x.Retards))).Bold();
+                        t.Cell().Background("#EEF2F7").Padding(5).AlignRight().Text(FormatMoney(lignes.Sum(x => x.Prets))).Bold();
+                        t.Cell().Background("#EEF2F7").Padding(5).AlignRight().Text(FormatMoney(lignes.Sum(x => x.SoldeAPayer))).Bold().FontColor(branding.PrimaryHex);
+                    });
+
+                    col.Item().Text($"{lignes.Count(l => l.AvecBulletin)} bulletin(s) sur {lignes.Count} employe(s).")
+                        .FontSize(8f).FontColor(Muted);
+                });
+            });
+        });
+
+        document.GeneratePdf(cheminFichier);
+    }
+
+    private static IDocument BuildFallbackMouvementsJourDocument(
+        BrandingInfo b,
+        IReadOnlyList<MouvementJourPdfLigne> lignes,
+        DateTime jour,
+        string? titreAgent,
+        string heureLimiteTolerance)
+    {
+        var titre = string.IsNullOrWhiteSpace(titreAgent) ? "Mouvements du jour" : $"Mouvements — {titreAgent}";
+        return Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Margin(24);
+                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(10));
+                page.Content().Column(col =>
+                {
+                    col.Spacing(6);
+                    col.Item().Text(titre).Bold();
+                    col.Item().Text($"{jour:dd/MM/yyyy} — limite {heureLimiteTolerance}");
+                    foreach (var l in lignes)
+                    {
+                        col.Item().Text(
+                            $"{l.Matricule} | {l.NomComplet} | arr. {l.Arrivee} | sort. {l.Sortie} | {l.StatutRetard}");
+                    }
+                });
+            });
+        });
+    }
+
+    private static IDocument BuildFallbackRetardsJourDocument(
+        BrandingInfo b,
+        IReadOnlyList<RetardPdfLigne> lignes,
+        DateTime jour,
+        string heureLimiteTolerance,
+        string totalUsd,
+        string totalCdf)
+    {
+        return Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Margin(24);
+                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(10));
+                page.Content().Column(col =>
+                {
+                    col.Spacing(6);
+                    col.Item().Text("Retards du jour").Bold();
+                    col.Item().Text($"{jour:dd/MM/yyyy} — limite {heureLimiteTolerance}");
+                    foreach (var l in lignes)
+                    {
+                        col.Item().Text(
+                            $"{l.NomComplet} | {l.DureeRetard} | {l.TauxHoraire} | {l.CoutRetard}");
+                    }
+                    col.Item().Text($"Total USD : {totalUsd} | Total CDF : {totalCdf}").SemiBold();
+                });
+            });
+        });
     }
 
     private static IDocument BuildSuiviJournalierDocument(
@@ -586,138 +1363,259 @@ public class ExportPdfService
         });
     }
 
-    private static IDocument BuildBulletinDocument(BulletinPaie bulletin, BrandingInfo b)
+    private sealed record BulletinLayoutData(
+        BulletinPaie Bulletin,
+        List<BulletinDetail> DetailsUtiles,
+        string EmployeeName,
+        decimal TotalBrut,
+        decimal RetenuesLegales,
+        decimal RetenuesDiverses,
+        decimal RetenuesTotales,
+        decimal SalaireMensuelUsd,
+        decimal SalaireMensuelCdf,
+        BulletinSynthesePaie Synthese);
+
+    private static BulletinLayoutData PrepareBulletinLayout(BulletinPaie bulletin)
     {
         var details = bulletin.Details?.ToList() ?? new List<BulletinDetail>();
         var detailsUtiles = details
             .Where(d =>
                 Math.Abs(d.Gain) > 0.0001m ||
                 Math.Abs(d.Retenue) > 0.0001m ||
-                (!string.IsNullOrWhiteSpace(d.Libelle) && d.Libelle.Contains("Absence", StringComparison.OrdinalIgnoreCase)))
+                (!string.IsNullOrWhiteSpace(d.Libelle) && (
+                    d.Libelle.Contains("Absence", StringComparison.OrdinalIgnoreCase) ||
+                    d.Libelle.Contains("Suspension", StringComparison.OrdinalIgnoreCase) ||
+                    d.Libelle.Contains("Heures sup", StringComparison.OrdinalIgnoreCase))))
             .ToList();
         var employeeName = Clip($"{bulletin.Employe?.Nom} {bulletin.Employe?.Postnom} {bulletin.Employe?.Prenom}".Trim(), 90);
         var totalBrut = bulletin.TotalGainImposable + bulletin.TotalGainNonImposable;
-        var retenuesDiverses = details.Sum(d => d.Retenue);
         var retenuesLegales = bulletin.MontantIprNet + bulletin.CotisationCnssOuvrier + bulletin.CotisationInpp;
-        var retenuesTotales = retenuesLegales + retenuesDiverses;
         var totalGains = bulletin.TotalGainImposable + bulletin.TotalGainNonImposable;
-        var netRecompose = decimal.Round(totalGains - retenuesTotales, 2, MidpointRounding.AwayFromZero);
+        var retenuesDiverses = decimal.Round(
+            Math.Max(0m, totalGains - bulletin.NetAPayer - retenuesLegales),
+            2,
+            MidpointRounding.AwayFromZero);
+        var retenuesTotales = retenuesLegales + retenuesDiverses;
         var (salaireMensuelUsd, salaireMensuelCdf) = ResolveSalaireMensuelDepuisContrat(bulletin);
+        var synthese = BulletinSyntheseHelper.Construire(bulletin);
+
+        return new BulletinLayoutData(
+            bulletin,
+            detailsUtiles,
+            employeeName,
+            totalBrut,
+            retenuesLegales,
+            retenuesDiverses,
+            retenuesTotales,
+            salaireMensuelUsd,
+            salaireMensuelCdf,
+            synthese);
+    }
+
+    private static IDocument BuildBulletinDocument(BulletinPaie bulletin, BrandingInfo b)
+    {
+        var layout = PrepareBulletinLayout(bulletin);
 
         return Document.Create(container =>
         {
             container.Page(page =>
             {
-                page.Size(PageSizes.A4);
-                page.Margin(22);
-                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(9));
+                page.Size(PageSizes.A5);
+                page.MarginVertical(10);
+                page.MarginHorizontal(12);
+                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(7.5f));
+                page.Content().Element(content => ComposeBulletinBody(content, layout, b, ultraCompact: false));
+            });
+        });
+    }
 
-                page.Header().Element(header =>
+    private static IDocument BuildBulletinsDeuxParA4Document(List<BulletinLayoutData> layouts, BrandingInfo b)
+    {
+        return Document.Create(container =>
+        {
+            for (var i = 0; i < layouts.Count; i += 2)
+            {
+                var first = layouts[i];
+                var second = i + 1 < layouts.Count ? layouts[i + 1] : null;
+
+                container.Page(page =>
                 {
-                    ComposeHeaderBand(
-                        header,
-                        b,
-                        "BULLETIN DE PAIE",
-                        $"Periode {bulletin.PeriodePaie?.Mois:D2}/{bulletin.PeriodePaie?.Annee}");
-                });
+                    page.Size(PageSizes.A4);
+                    page.Margin(8);
+                    page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(7f));
 
-                page.Content().Column(col =>
-                {
-                    col.Spacing(10);
-
-                    col.Item().Border(1).BorderColor(BorderColor).Padding(8).Table(t =>
+                    page.Content().Column(col =>
                     {
-                        t.ColumnsDefinition(c =>
+                        col.Spacing(0);
+                        col.Item().Height(148, Unit.Millimetre)
+                            .Element(slot => ComposeBulletinBody(slot, first, b, ultraCompact: true));
+
+                        col.Item().PaddingVertical(1).AlignCenter()
+                            .Text("— — — — — — — — — — — — — — — — — — — —")
+                            .FontSize(5.5f).FontColor(Muted);
+
+                        if (second != null)
                         {
-                            c.RelativeColumn();
-                            c.RelativeColumn();
-                        });
-
-                        AddInfoCell(t, "Employe", employeeName);
-                        AddInfoCell(t, "Matricule", bulletin.Employe?.Matricule ?? "—");
-                        AddInfoCell(t, "Departement", Clip(bulletin.Employe?.Departement?.NomDepartement, 50));
-                        AddInfoCell(t, "Date emission", bulletin.DateGeneration.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture));
-                        AddInfoCell(t, "Numero bulletin", bulletin.NumeroBulletin ?? "—");
-                        AddInfoCell(t, "CNSS salarie", bulletin.Employe?.NumCnss ?? "—");
-                    });
-
-                    // Salaire mensuel affiché en haut, plus discret (demande utilisateur).
-                    col.Item().Border(1).BorderColor("#DCE8FF").Background("#F5F9FF").Padding(8).Row(r =>
-                    {
-                        r.RelativeItem().Text("Salaire mensuel").SemiBold().FontSize(9).FontColor("#1E3A5F");
-                        r.ConstantItem(170).AlignRight().Text($"{FormatMoney(salaireMensuelUsd)} USD")
-                            .SemiBold().FontSize(12).FontColor("#0D47A1");
-                        r.ConstantItem(190).AlignRight().Text($"{FormatMoney(salaireMensuelCdf)} CDF")
-                            .SemiBold().FontSize(12).FontColor("#0B8043");
-                    });
-
-                    col.Item().Text("Elements de paie").FontSize(10).SemiBold().FontColor(b.PrimaryHex);
-                    col.Item().Border(1).BorderColor(BorderColor).Table(t =>
-                    {
-                        t.ColumnsDefinition(c =>
-                        {
-                            c.RelativeColumn(2.8f);
-                            c.RelativeColumn(1.2f);
-                            c.RelativeColumn(1.2f);
-                        });
-
-                        t.Header(h =>
-                        {
-                            HeaderCell(h.Cell(), "Rubrique", b.PrimaryHex);
-                            HeaderCell(h.Cell(), "Quantite", b.PrimaryHex, true);
-                            HeaderCell(h.Cell(), "Montant", b.PrimaryHex, true);
-                        });
-
-                        var i = 0;
-                        foreach (var d in detailsUtiles)
-                        {
-                            var bg = i++ % 2 == 0 ? "#FFFFFF" : "#F8FAFC";
-                            DataCell(t.Cell(), Clip(d.Libelle, 80), bg);
-
-                            var quantite = d.BaseCalcul > 0 && d.Taux > 0
-                                ? $"{d.BaseCalcul:N2} x {d.Taux:N2}"
-                                : d.Taux > 0
-                                    ? $"{d.Taux:N2}"
-                                    : "—";
-                            DataCell(t.Cell(), quantite, bg, true);
-
-                            var montant = d.Gain > 0
-                                ? $"+ {FormatMoney(d.Gain)}"
-                                : $"- {FormatMoney(d.Retenue)}";
-                            DataCell(t.Cell(), montant, bg, true);
+                            col.Item().Height(148, Unit.Millimetre)
+                                .Element(slot => ComposeBulletinBody(slot, second, b, ultraCompact: true));
                         }
                     });
+                });
+            }
+        });
+    }
 
-                    col.Item().Border(1).BorderColor(BorderColor).Padding(8).Column(s =>
-                    {
-                        s.Spacing(4);
-                        SummaryLine(s, "Total gains imposables", bulletin.TotalGainImposable);
-                        SummaryLine(s, "Total gains non imposables", bulletin.TotalGainNonImposable);
-                        SummaryLine(s, "Total brut", totalBrut);
-                        SummaryLine(s, "IPR net", bulletin.MontantIprNet);
-                        SummaryLine(s, "CNSS ouvrier", bulletin.CotisationCnssOuvrier);
-                        SummaryLine(s, "INPP", bulletin.CotisationInpp);
-                        SummaryLine(s, "Retenues diverses", retenuesDiverses);
-                        SummaryLine(s, "Total retenues (legales + diverses)", retenuesTotales);
+    private static void ComposeBulletinBody(IContainer container, BulletinLayoutData layout, BrandingInfo b, bool ultraCompact)
+    {
+        var bulletin = layout.Bulletin;
+        var subtitle = $"Periode {bulletin.PeriodePaie?.Mois:D2}/{bulletin.PeriodePaie?.Annee}";
+        var spacing = ultraCompact ? 4f : 6f;
+        var netFontSize = ultraCompact ? 16f : 22f;
+        var netLabelSize = ultraCompact ? 8f : 10f;
+        var libelleMax = ultraCompact ? 55 : 80;
 
-                        // Net à payer très remarquable en fin de bulletin.
-                        s.Item().PaddingTop(10).Background("#0D47A1").Padding(12).Column(net =>
-                        {
-                            var memeDevise = Math.Abs(bulletin.NetAPayer - bulletin.NetAPayerDeviseLocale) < 0.01m;
-                            var suffix = memeDevise ? " CDF" : " USD";
-                            net.Item().AlignCenter().Text("NET A PAYER").Bold().FontSize(12).FontColor("#E3F2FD");
-                            net.Item().AlignCenter().Text($"{FormatMoney(bulletin.NetAPayer)}{suffix}")
-                                .Bold().FontSize(28).FontColor("#FFFFFF");
-                        });
-                    });
+        container.Column(col =>
+        {
+            col.Spacing(spacing);
+
+            col.Item().Element(header =>
+            {
+                if (ultraCompact)
+                    ComposeHeaderBandCompact(header, b, "BULLETIN DE PAIE", subtitle);
+                else
+                    ComposeHeaderBandCompact(header, b, "BULLETIN DE PAIE", subtitle, medium: true);
+            });
+
+            col.Item().Border(1).BorderColor(BorderColor).Padding(ultraCompact ? 4 : 6).Table(t =>
+            {
+                t.ColumnsDefinition(c =>
+                {
+                    c.RelativeColumn();
+                    c.RelativeColumn();
                 });
 
-                page.Footer().AlignCenter().Text(t =>
+                AddInfoCell(t, "Employe", layout.EmployeeName, ultraCompact);
+                AddInfoCell(t, "Matricule", bulletin.Employe?.Matricule ?? "—", ultraCompact);
+                AddInfoCell(t, "Departement", Clip(bulletin.Employe?.Departement?.NomDepartement, ultraCompact ? 35 : 50), ultraCompact);
+                AddInfoCell(t, "Date emission", bulletin.DateGeneration.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture), ultraCompact);
+                AddInfoCell(t, "Numero bulletin", bulletin.NumeroBulletin ?? "—", ultraCompact);
+                AddInfoCell(t, "CNSS salarie", bulletin.Employe?.NumCnss ?? "—", ultraCompact);
+            });
+
+            col.Item().Border(1).BorderColor("#DCE8FF").Background("#F5F9FF").Padding(ultraCompact ? 4 : 6).Row(r =>
+            {
+                r.RelativeItem().Text("Salaire mensuel").SemiBold().FontSize(ultraCompact ? 7f : 8f).FontColor("#1E3A5F");
+                r.ConstantItem(ultraCompact ? 95 : 120).AlignRight().Text($"{FormatMoney(layout.SalaireMensuelUsd)} USD")
+                    .SemiBold().FontSize(ultraCompact ? 8f : 10f).FontColor("#0D47A1");
+                r.ConstantItem(ultraCompact ? 95 : 120).AlignRight().Text($"{FormatMoney(layout.SalaireMensuelCdf)} CDF")
+                    .SemiBold().FontSize(ultraCompact ? 8f : 10f).FontColor("#0B8043");
+            });
+
+            col.Item().Text("Elements de paie").FontSize(ultraCompact ? 7.5f : 8.5f).SemiBold().FontColor(b.PrimaryHex);
+            col.Item().Border(1).BorderColor(BorderColor).Table(t =>
+            {
+                t.ColumnsDefinition(c =>
                 {
-                    t.Span("Melody Paie RDC - Page ").FontSize(8).FontColor(Muted);
-                    t.CurrentPageNumber().FontSize(8).FontColor(Muted);
-                    t.Span(" / ").FontSize(8).FontColor(Muted);
-                    t.TotalPages().FontSize(8).FontColor(Muted);
+                    c.RelativeColumn(2.8f);
+                    c.RelativeColumn(1.2f);
+                    c.RelativeColumn(1.2f);
+                });
+
+                t.Header(h =>
+                {
+                    HeaderCell(h.Cell(), "Rubrique", b.PrimaryHex, ultraCompact: ultraCompact);
+                    HeaderCell(h.Cell(), "Quantite", b.PrimaryHex, true, ultraCompact);
+                    HeaderCell(h.Cell(), "Montant", b.PrimaryHex, true, ultraCompact);
+                });
+
+                var i = 0;
+                foreach (var d in layout.DetailsUtiles)
+                {
+                    var bg = i++ % 2 == 0 ? "#FFFFFF" : "#F8FAFC";
+                    DataCell(t.Cell(), Clip(d.Libelle, libelleMax), bg, ultraCompact: ultraCompact);
+
+                    var quantite = d.BaseCalcul > 0 && d.Taux > 0
+                        ? $"{d.BaseCalcul:N2} x {d.Taux:N2}"
+                        : d.Taux > 0
+                            ? $"{d.Taux:N2}"
+                            : "—";
+                    DataCell(t.Cell(), quantite, bg, true, ultraCompact);
+
+                    var montant = d.Gain > 0.0001m
+                        ? $"+ {FormatMoney(d.Gain)}"
+                        : d.Retenue > 0.0001m
+                            ? $"- {FormatMoney(d.Retenue)}"
+                            : d.BaseCalcul > 0.0001m
+                                ? FormatMoney(d.BaseCalcul)
+                                : "—";
+                    DataCell(t.Cell(), montant, bg, true, ultraCompact);
+                }
+            });
+
+            col.Item().Border(1).BorderColor(BorderColor).Padding(ultraCompact ? 4 : 6).Column(s =>
+            {
+                s.Spacing(ultraCompact ? 2 : 3);
+                var syn = layout.Synthese;
+
+                s.Item().Text("Synthese de paie").FontSize(ultraCompact ? 7.5f : 8.5f).SemiBold().FontColor(b.PrimaryHex);
+                SummaryLine(s, "Montant total (brut)", syn.MontantTotal, ultraCompact);
+                SummaryLine(s, "Quinzaine / acomptes", syn.Quinzaine, ultraCompact);
+                SummaryLine(s, "Pret / avances", syn.Pret, ultraCompact);
+                SummaryLine(s, "Retenue (CNSS + INPP)", syn.RetenueSociale, ultraCompact);
+                SummaryLine(s, "Impot (IPR net)", syn.Impot, ultraCompact);
+                if (syn.Sanctions > 0.0001m)
+                    SummaryLine(s, "Sanctions / retards", syn.Sanctions, ultraCompact);
+                if (syn.AutresRetenues > 0.0001m)
+                    SummaryLine(s, "Autres retenues", syn.AutresRetenues, ultraCompact);
+
+                s.Item().PaddingTop(ultraCompact ? 2 : 4).Text(Clip(syn.FormuleSolde, ultraCompact ? 90 : 120))
+                    .FontSize(ultraCompact ? 5.5f : 6.5f).FontColor(Muted);
+
+                s.Item().PaddingTop(ultraCompact ? 4 : 6).Background("#0D47A1").Padding(ultraCompact ? 6 : 8).Column(net =>
+                {
+                    var memeDevise = Math.Abs(bulletin.NetAPayer - bulletin.NetAPayerDeviseLocale) < 0.01m;
+                    var suffix = memeDevise ? " CDF" : " USD";
+                    net.Item().AlignCenter().Text("SOLDE A PAYER").Bold().FontSize(netLabelSize).FontColor("#E3F2FD");
+                    net.Item().AlignCenter().Text($"{FormatMoney(syn.Solde)}{suffix}")
+                        .Bold().FontSize(netFontSize).FontColor("#FFFFFF");
+                });
+            });
+        });
+    }
+
+    private static void ComposeHeaderBandCompact(IContainer container, BrandingInfo b, string title, string subtitle, bool medium = false)
+    {
+        var logoSize = medium ? 40f : 32f;
+        var logoHeight = medium ? 28f : 22f;
+        var raisonSize = medium ? 10f : 8.5f;
+        var titleSize = medium ? 10f : 8.5f;
+
+        container.Column(col =>
+        {
+            col.Item().Background(b.PrimaryHex).Padding(medium ? 6 : 4).Row(row =>
+            {
+                if (!string.IsNullOrWhiteSpace(b.LogoPath))
+                {
+                    try
+                    {
+                        row.ConstantItem(logoSize).Height(logoHeight).Image(b.LogoPath).FitArea();
+                    }
+                    catch
+                    {
+                    }
+                }
+
+                row.RelativeItem().Column(c =>
+                {
+                    c.Item().Text(Clip(b.RaisonSociale ?? "Entreprise", medium ? 100 : 70)).FontSize(raisonSize).Bold().FontColor(HeaderOnPrimary);
+                    if (!string.IsNullOrWhiteSpace(b.Adresse))
+                        c.Item().Text(Clip(b.Adresse, medium ? 120 : 80)).FontSize(medium ? 6.5f : 6f).SemiBold().FontColor("#C7D5E8");
+                });
+
+                row.ConstantItem(medium ? 130 : 95).AlignRight().Column(c =>
+                {
+                    c.Item().Text(title).Bold().FontSize(titleSize).FontColor(HeaderOnPrimary);
+                    c.Item().Text(subtitle).SemiBold().FontSize(medium ? 7.5f : 7f).FontColor("#C7D5E8");
                 });
             });
         });
@@ -824,9 +1722,9 @@ public class ExportPdfService
         {
             container.Page(page =>
             {
-                page.Size(PageSizes.A4);
-                page.Margin(24);
-                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(9));
+                page.Size(PageSizes.A5);
+                page.Margin(16);
+                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(8));
 
                 page.Content().Column(col =>
                 {
@@ -960,67 +1858,74 @@ public class ExportPdfService
         });
     }
 
-    private static void AddInfoCell(TableDescriptor table, string label, string value)
+    private static void AddInfoCell(TableDescriptor table, string label, string value, bool compact = false)
     {
-        table.Cell().Padding(5).BorderBottom(0.5f).BorderColor(BorderColor).Text($"{label} : {Clip(value, 110)}").FontSize(8.5f);
+        var fontSize = compact ? 6.5f : 7.5f;
+        table.Cell().Padding(compact ? 3 : 4).BorderBottom(0.5f).BorderColor(BorderColor)
+            .Text($"{label} : {Clip(value, compact ? 70 : 110)}").FontSize(fontSize);
     }
 
-    private static void HeaderCell(IContainer cell, string text, string backgroundHex, bool right = false)
+    private static void HeaderCell(IContainer cell, string text, string backgroundHex, bool right = false, bool ultraCompact = false)
     {
+        var fontSize = ultraCompact ? 6f : 7f;
+        var padding = ultraCompact ? 3f : 4f;
         if (right)
         {
             cell.Background(backgroundHex)
-                .Padding(6)
+                .Padding(padding)
                 .BorderBottom(1)
                 .BorderColor(backgroundHex)
                 .AlignRight()
                 .Text(text)
                 .SemiBold()
                 .FontColor(HeaderOnPrimary)
-                .FontSize(8);
+                .FontSize(fontSize);
         }
         else
         {
             cell.Background(backgroundHex)
-                .Padding(6)
+                .Padding(padding)
                 .BorderBottom(1)
                 .BorderColor(backgroundHex)
                 .Text(text)
                 .SemiBold()
                 .FontColor(HeaderOnPrimary)
-                .FontSize(8);
+                .FontSize(fontSize);
         }
     }
 
-    private static void DataCell(IContainer cell, string text, string bgHex, bool right = false)
+    private static void DataCell(IContainer cell, string text, string bgHex, bool right = false, bool ultraCompact = false)
     {
+        var fontSize = ultraCompact ? 6f : 7f;
+        var padding = ultraCompact ? 2f : 3f;
         if (right)
         {
             cell.Background(bgHex)
-                .Padding(5)
+                .Padding(padding)
                 .BorderBottom(0.5f)
                 .BorderColor(BorderColor)
                 .AlignRight()
                 .Text(text)
-                .FontSize(8);
+                .FontSize(fontSize);
         }
         else
         {
             cell.Background(bgHex)
-                .Padding(5)
+                .Padding(padding)
                 .BorderBottom(0.5f)
                 .BorderColor(BorderColor)
                 .Text(text)
-                .FontSize(8);
+                .FontSize(fontSize);
         }
     }
 
-    private static void SummaryLine(ColumnDescriptor column, string label, decimal value)
+    private static void SummaryLine(ColumnDescriptor column, string label, decimal value, bool compact = false)
     {
+        var fontSize = compact ? 6.5f : 7.5f;
         column.Item().Row(r =>
         {
-            r.RelativeItem().Text(label).FontSize(8.5f);
-            r.ConstantItem(170).AlignRight().Text(FormatMoney(value)).FontSize(8.5f).SemiBold();
+            r.RelativeItem().Text(label).FontSize(fontSize);
+            r.ConstantItem(compact ? 90 : 120).AlignRight().Text(FormatMoney(value)).FontSize(fontSize).SemiBold();
         });
     }
 

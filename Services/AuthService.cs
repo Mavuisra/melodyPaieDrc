@@ -52,8 +52,16 @@ public static class AuthService
         if (string.IsNullOrEmpty(motDePasse) || string.IsNullOrEmpty(hashBase64) || string.IsNullOrEmpty(salt))
             return false;
         var computed = ComputeHash(motDePasse, salt);
-        var stored = Convert.FromBase64String(hashBase64);
-        return computed.Length == stored.Length && CryptographicOperations.FixedTimeEquals(computed, stored);
+        try
+        {
+            var stored = Convert.FromBase64String(hashBase64);
+            return computed.Length == stored.Length && CryptographicOperations.FixedTimeEquals(computed, stored);
+        }
+        catch (FormatException)
+        {
+            // Donnée corrompue en base : on refuse l'authentification sans planter l'application.
+            return false;
+        }
     }
 
     private static byte[] ComputeHash(string motDePasse, string salt)
@@ -119,7 +127,9 @@ public static class AuthService
     {
         if (string.IsNullOrWhiteSpace(login)) return null;
         using var db = new PaieDbContext();
-        var u = db.Utilisateurs.FirstOrDefault(x => x.Login == login.Trim());
+        var loginNorm = login.Trim();
+        var u = db.Utilisateurs.AsEnumerable()
+            .FirstOrDefault(x => string.Equals(x.Login, loginNorm, StringComparison.OrdinalIgnoreCase));
         if (u == null || !u.Actif) return null;
         if (!VerifierMotDePasse(motDePasse ?? "", u.MotDePasseHash, u.Salt)) return null;
         _utilisateurCourant = u;

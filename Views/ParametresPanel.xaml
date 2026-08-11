@@ -1,0 +1,881 @@
+<UserControl x:Class="MelodyPaieRDC.Views.ParametresPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             xmlns:helpers="clr-namespace:MelodyPaieRDC.Helpers"
+             FontFamily="Segoe UI">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <helpers:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
+        <helpers:StringToDecimalConverter x:Key="StringToDecimalConverter"/>
+
+        <Style x:Key="SettingsPrimaryButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.18" Color="#047857"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrandPrimaryDarkBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.5"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsTileButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#0F172A"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="Medium"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Margin" Value="0,0,10,10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="12" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F0FDF4"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrandSecondaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#DCFCE7"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsSubtleButtonStyle" TargetType="Button" BasedOn="{StaticResource SettingsTileButtonStyle}">
+            <Setter Property="Background" Value="#F8FAFC"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="FontWeight" Value="Normal"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+        </Style>
+
+        <Style x:Key="SettingsSoftActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="#374151"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="Margin" Value="0,0,0,10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="12" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F8FAFC"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#CBD5E1"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsCentreHubButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="16,14"/>
+            <Setter Property="FontSize" Value="12.5"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                            <Border.Effect>
+                                <DropShadowEffect BlurRadius="14" ShadowDepth="3" Opacity="0.16" Color="#0F172A"/>
+                            </Border.Effect>
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1E293B"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsInsetCardBorderStyle" TargetType="Border">
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="BorderBrush" Value="#D1FAE5"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="18"/>
+            <Setter Property="Margin" Value="0,0,0,16"/>
+            <Setter Property="Background" Value="#FFFFFF"/>
+        </Style>
+
+        <Style x:Key="SettingsFieldLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="Margin" Value="0,0,0,6"/>
+        </Style>
+
+        <Style x:Key="SettingsSectionTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#0F172A"/>
+        </Style>
+
+        <Style x:Key="SettingsGroupLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="Margin" Value="0,4,0,10"/>
+        </Style>
+
+        <Style x:Key="SettingsChipButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#FFFFFF"/>
+            <Setter Property="Foreground" Value="#065F46"/>
+            <Setter Property="BorderBrush" Value="#A7F3D0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,7"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="17" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#ECFDF5"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsChipPrimaryStyle" TargetType="Button" BasedOn="{StaticResource SettingsPrimaryButtonStyle}">
+            <Setter Property="Height" Value="34"/>
+            <Setter Property="Padding" Value="14,7"/>
+            <Setter Property="HorizontalAlignment" Value="Left"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="17" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrandPrimaryDarkBrush}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsDangerActionButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="12,10"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Stretch"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="10" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.92"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsPanelCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="18" ShadowDepth="2" Opacity="0.07" Color="#0F172A"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsTabItemStyle" TargetType="TabItem">
+            <Setter Property="Foreground" Value="#64748B"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="14,8"/>
+            <Setter Property="Margin" Value="0,0,6,0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="10" Padding="{TemplateBinding Padding}" Margin="{TemplateBinding Margin}">
+                            <ContentPresenter x:Name="Header" ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#ECFDF5"/>
+                                <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F8FAFC"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SettingsTabControlStyle" TargetType="TabControl">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <Border Grid.Row="0" Background="#F8FAFC" CornerRadius="12" Padding="6" Margin="16,14,16,0"
+                                    BorderBrush="#E2E8F0" BorderThickness="1">
+                                <TabPanel IsItemsHost="True" HorizontalAlignment="Left"/>
+                            </Border>
+                            <Border Grid.Row="1" Background="Transparent">
+                                <ContentPresenter x:Name="PART_SelectedContentHost" ContentSource="SelectedContent"/>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Border CornerRadius="16" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" Background="#F8FAFC">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- En-tête brand -->
+            <Border Grid.Row="0" CornerRadius="16,16,0,0" ClipToBounds="True">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="{DynamicResource BrandPrimaryColor}" Offset="0"/>
+                        <GradientStop Color="{DynamicResource BrandSecondaryColor}" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Border.Effect>
+                    <DropShadowEffect BlurRadius="20" ShadowDepth="3" Opacity="0.15" Color="#047857"/>
+                </Border.Effect>
+                <Grid Margin="24,20">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <materialDesign:PackIcon Kind="Tune" Width="16" Height="16" Foreground="#A7F3D0" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="PARAMÈTRES" FontSize="11" FontWeight="Bold" Foreground="#A7F3D0" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="Moteur de paie" FontSize="26" FontWeight="Bold" Foreground="White"/>
+                        <TextBlock Text="{Binding NomUtilisateurConnecte}" FontSize="13" Foreground="#D1FAE5" Margin="0,6,0,0" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Right">
+                        <Border Background="#28FFFFFF" CornerRadius="12" Padding="14,10" BorderBrush="#35FFFFFF" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock Text="Réglages &amp; données" FontSize="11" FontWeight="SemiBold" Foreground="#ECFDF5"/>
+                                <TextBlock Text="{Binding VersionApplication, StringFormat=Version {0}}" FontSize="11" Foreground="#A7F3D0" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Corps -->
+            <Grid Grid.Row="1" Margin="20,18,20,22">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="16"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Configuration paie -->
+                <Border Grid.Column="0" Style="{StaticResource SettingsPanelCardStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" Padding="18,16" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Width="40" Height="40" CornerRadius="12" Background="#ECFDF5" Margin="0,0,12,0">
+                                    <materialDesign:PackIcon Kind="Cog" Width="22" Height="22" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Configuration de la paie" FontSize="15" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                    <TextBlock Text="Fiscal, social et organisation" FontSize="12" Foreground="#64748B" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+
+                        <TabControl Grid.Row="1" Style="{StaticResource SettingsTabControlStyle}" ItemContainerStyle="{StaticResource SettingsTabItemStyle}">
+                            <TabItem Header="Raccourcis">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,14,16,18">
+                                    <StackPanel>
+                                        <TextBlock Text="Réglages fiscaux, sociaux et structure (entreprise, périodes, calendrier)."
+                                                   FontSize="12" Foreground="#64748B" Margin="0,0,0,16" TextWrapping="Wrap" LineHeight="18"/>
+
+                                        <Button Command="{Binding OuvrirAssistantConfigurationCommand}"
+                                                Style="{StaticResource SettingsPrimaryButtonStyle}" HorizontalAlignment="Stretch">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="28" Height="28" CornerRadius="8" Background="#30FFFFFF" Margin="0,0,10,0">
+                                                    <materialDesign:PackIcon Kind="StarOutline" Width="16" Height="16" Foreground="White"
+                                                                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="Assistant de configuration" VerticalAlignment="Center" FontWeight="SemiBold"/>
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Button Command="{Binding CreerNouvelleEntrepriseCommand}"
+                                                Style="{StaticResource SettingsTileButtonStyle}" HorizontalAlignment="Stretch">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="32" Height="32" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                    <materialDesign:PackIcon Kind="DomainPlus" Width="18" Height="18" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="Nouvelle entreprise (souscription)" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+
+                                        <Button Command="{Binding ForcerAssistantProchainDemarrageCommand}"
+                                                Style="{StaticResource SettingsSubtleButtonStyle}" HorizontalAlignment="Stretch" Margin="0,0,0,18">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Restart" Width="16" Height="16" Margin="0,0,8,0" Foreground="#94A3B8"/>
+                                                <TextBlock Text="Forcer l'assistant au prochain démarrage" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Button>
+
+                                        <TextBlock Text="ORGANISATION" Style="{StaticResource SettingsGroupLabelStyle}"/>
+                                        <UniformGrid Columns="2">
+                                            <Button Command="{Binding OuvrirInfosEntrepriseCommand}" Style="{StaticResource SettingsTileButtonStyle}" HorizontalAlignment="Stretch">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="32" Height="32" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                        <materialDesign:PackIcon Kind="OfficeBuilding" Width="18" Height="18" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <TextBlock Text="Informations entreprise" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Command="{Binding OuvrirChampsComplementairesEntrepriseCommand}" Style="{StaticResource SettingsTileButtonStyle}" HorizontalAlignment="Stretch">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="32" Height="32" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                        <materialDesign:PackIcon Kind="FormTextbox" Width="18" Height="18" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <TextBlock Text="Champs complémentaires" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Command="{Binding OuvrirFormulairesDynamiquesCommand}" Style="{StaticResource SettingsTileButtonStyle}" HorizontalAlignment="Stretch">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="32" Height="32" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                        <materialDesign:PackIcon Kind="FileCode" Width="18" Height="18" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <TextBlock Text="Formulaires (JSON)" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Command="{Binding OuvrirEtablissementsDepartementsCommand}" Style="{StaticResource SettingsTileButtonStyle}" HorizontalAlignment="Stretch">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="32" Height="32" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                        <materialDesign:PackIcon Kind="Domain" Width="18" Height="18" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <TextBlock Text="Établissements" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Command="{Binding OuvrirPeriodesPaieCommand}" Style="{StaticResource SettingsTileButtonStyle}" HorizontalAlignment="Stretch">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="32" Height="32" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                        <materialDesign:PackIcon Kind="CalendarRange" Width="18" Height="18" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <TextBlock Text="Périodes de paie" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </UniformGrid>
+
+                                        <TextBlock Text="FISCAL &amp; SOCIAL" Style="{StaticResource SettingsGroupLabelStyle}" Margin="0,8,0,10"/>
+                                        <UniformGrid Columns="2">
+                                            <Button Command="{Binding OuvrirParametresIprCommand}" Style="{StaticResource SettingsTileButtonStyle}" HorizontalAlignment="Stretch">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="32" Height="32" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                        <materialDesign:PackIcon Kind="ScaleBalance" Width="18" Height="18" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <TextBlock Text="Paramètres IPR" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Command="{Binding OuvrirTauxSociauxCommand}" Style="{StaticResource SettingsTileButtonStyle}" HorizontalAlignment="Stretch">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="32" Height="32" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                        <materialDesign:PackIcon Kind="Percent" Width="18" Height="18" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <TextBlock Text="Taux sociaux" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Command="{Binding OuvrirConfigPrimesIndemnitesCommand}" Style="{StaticResource SettingsTileButtonStyle}" HorizontalAlignment="Stretch">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <Border Width="32" Height="32" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                        <materialDesign:PackIcon Kind="GiftOutline" Width="18" Height="18" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <TextBlock Text="Primes et indemnités" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                                </StackPanel>
+                                            </Button>
+                                        </UniformGrid>
+
+                                        <TextBlock Text="TEMPS DE TRAVAIL" Style="{StaticResource SettingsGroupLabelStyle}" Margin="0,8,0,10"/>
+                                        <Button Command="{Binding OuvrirCalendrierTravailCommand}" Style="{StaticResource SettingsTileButtonStyle}" HorizontalAlignment="Stretch" Margin="0,0,0,0">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Border Width="32" Height="32" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                    <materialDesign:PackIcon Kind="Calendar" Width="18" Height="18" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="Calendrier de travail" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+
+                            <TabItem Header="Taux de change">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,14,16,18">
+                                    <Border Style="{StaticResource SettingsInsetCardBorderStyle}" Margin="0">
+                                        <StackPanel>
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                                                <Border Width="36" Height="36" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                    <materialDesign:PackIcon Kind="CurrencyUsd" Width="20" Height="20" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <TextBlock Text="Taux CDF pour 1 USD" Style="{StaticResource SettingsSectionTitleStyle}" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                            <TextBlock Text="Conversions salaire USD → CDF, SMIG et net en francs sur les bulletins."
+                                                       FontSize="12" Foreground="#64748B" TextWrapping="Wrap" LineHeight="18" Margin="0,0,0,16"/>
+                                            <TextBlock Text="Taux actuel" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                            <TextBox materialDesign:HintAssist.Hint="Ex. 2850,50"
+                                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                     Margin="0,0,0,8"
+                                                     Text="{Binding TauxChangeCdfParUsd, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource StringToDecimalConverter}, Mode=TwoWay}"/>
+                                            <TextBlock Text="{Binding TauxChangeDerniereMajLibelle}" FontSize="11" Foreground="#94A3B8" Margin="0,0,0,12"/>
+                                            <CheckBox Content="Mettre à jour le taux des périodes de paie non clôturées"
+                                                      IsChecked="{Binding SyncPeriodesOuvertesAvecTaux, Mode=TwoWay}"
+                                                      Margin="0,0,0,16" FontSize="12"/>
+                                            <Button Command="{Binding EnregistrerTauxChangeGlobalCommand}" Style="{StaticResource SettingsChipPrimaryStyle}">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="ContentSave" Width="15" Height="15" Margin="0,0,6,0" Foreground="White"/>
+                                                    <TextBlock Text="Enregistrer le taux"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <TextBlock Text="Les bulletins déjà générés conservent les montants enregistrés ; régénérez-les pour appliquer un nouveau taux."
+                                                       FontSize="11" Foreground="#94A3B8" TextWrapping="Wrap" Margin="0,12,0,0"/>
+                                        </StackPanel>
+                                    </Border>
+                                </ScrollViewer>
+                            </TabItem>
+
+                            <TabItem Header="ZKTeco">
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="16,14,16,18">
+                                    <StackPanel>
+                                        <Border Style="{StaticResource SettingsInsetCardBorderStyle}">
+                                            <Border.Background>
+                                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                                    <GradientStop Color="#FFFFFF" Offset="0"/>
+                                                    <GradientStop Color="#F0FDF4" Offset="1"/>
+                                                </LinearGradientBrush>
+                                            </Border.Background>
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <Border Width="36" Height="36" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                        <materialDesign:PackIcon Kind="Fingerprint" Width="20" Height="20" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <TextBlock Text="Terminal ZKTeco" Style="{StaticResource SettingsSectionTitleStyle}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                                <TextBlock Text="Liaison réseau, synchronisation automatique et lecture des pointages."
+                                                           FontSize="12" Foreground="#64748B" TextWrapping="Wrap" Margin="0,0,0,16"/>
+                                                <Grid Margin="0,0,0,8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="8"/>
+                                                        <ColumnDefinition Width="100"/>
+                                                        <ColumnDefinition Width="8"/>
+                                                        <ColumnDefinition Width="100"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="Adresse IP" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                                        <TextBox Text="{Binding ZkIpText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="192.168.1.100"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="Port" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                                        <TextBox Text="{Binding ZkPortText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="4370"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="4">
+                                                        <TextBlock Text="Machine" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                                        <TextBox Text="{Binding ZkMachineText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="N°"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Grid Margin="0,0,0,12">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="8"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="8"/>
+                                                        <ColumnDefinition Width="Auto"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="Clé communication" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                                        <TextBox Text="{Binding ZkCommPasswordText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="000000"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="Intervalle (secondes)" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                                        <TextBox Text="{Binding ZkIntervalleText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="Min. 5"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="4" VerticalAlignment="Bottom" Margin="0,0,0,4">
+                                                        <TextBlock Text="Synchro auto" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                                        <CheckBox Content="Activée" IsChecked="{Binding ZkSyncActif, Mode=TwoWay}" FontSize="12"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Border Background="#F1F5F9" CornerRadius="10" Padding="12,10" Margin="0,0,0,12">
+                                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                        <Border CornerRadius="12" Padding="10,4" Background="{Binding ZkEtatSyncCouleur}">
+                                                            <TextBlock Text="{Binding ZkEtatSyncTexte}" Foreground="White" FontSize="11" FontWeight="Bold"/>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding ZkStatutSync}" FontSize="12" Foreground="#475569" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </Border>
+                                                <TextBlock Text="Actions terminal" Style="{StaticResource SettingsFieldLabelStyle}" Margin="0,0,0,8"/>
+                                                <WrapPanel>
+                                                    <Button Command="{Binding TesterConnexionZkCommand}" Style="{StaticResource SettingsChipButtonStyle}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="LanConnect" Width="15" Height="15" Margin="0,0,6,0"/>
+                                                            <TextBlock Text="Tester connexion"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Command="{Binding EnregistrerParametresZkCommand}" Style="{StaticResource SettingsChipButtonStyle}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="ContentSave" Width="15" Height="15" Margin="0,0,6,0"/>
+                                                            <TextBlock Text="Enregistrer"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                    <Button Command="{Binding SynchroniserTerminalZkCommand}" Style="{StaticResource SettingsChipPrimaryStyle}">
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <materialDesign:PackIcon Kind="CloudSync" Width="15" Height="15" Margin="0,0,6,0" Foreground="White"/>
+                                                            <TextBlock Text="Synchroniser"/>
+                                                        </StackPanel>
+                                                    </Button>
+                                                </WrapPanel>
+                                            </StackPanel>
+                                        </Border>
+
+                                        <Border Style="{StaticResource SettingsInsetCardBorderStyle}" Margin="0">
+                                            <StackPanel>
+                                                <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                                                    <Border Width="36" Height="36" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                                        <materialDesign:PackIcon Kind="ClockOutline" Width="20" Height="20" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                                 HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                    </Border>
+                                                    <TextBlock Text="Règles de service" Style="{StaticResource SettingsSectionTitleStyle}" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                                <TextBlock Text="Mode de pointage et horaires pour le calcul automatique des heures."
+                                                           FontSize="12" Foreground="#64748B" TextWrapping="Wrap" Margin="0,0,0,16"/>
+                                                <TextBlock Text="Mode de pointage" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                                <ComboBox ItemsSource="{Binding LtModesPointageOptions}"
+                                                          SelectedValue="{Binding LtModePointage, Mode=TwoWay}"
+                                                          SelectedValuePath="Code"
+                                                          DisplayMemberPath="Libelle"
+                                                          Margin="0,0,0,8"/>
+                                                <TextBlock Text="{Binding LtResumeModePointage}"
+                                                           FontSize="11" Foreground="#64748B" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                                                <CheckBox Content="Déduire automatiquement la pause déjeuner (modes 2 et 3 pointages)"
+                                                          IsChecked="{Binding LtDeductionPauseAutomatique, Mode=TwoWay}"
+                                                          Visibility="{Binding AfficherDeductionPauseAutomatique, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                                          Margin="0,0,0,16" FontSize="12"/>
+                                                <TextBlock Text="Horaires de service" Style="{StaticResource SettingsFieldLabelStyle}"/>
+                                                <Grid Margin="0,0,0,8">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="8"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="8"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="Début service" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding LtHeureDebutTravailText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="07:30"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="Tolérance entrée" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding LtHeureLimiteToleranceText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="07:40"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="4">
+                                                        <TextBlock Text="Fin lun.–ven." FontSize="10" Foreground="#94A3B8" Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding LtHeureFinSemaineText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="16:00"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Grid Margin="0,0,0,16"
+                                                      Visibility="{Binding AfficherParametresPause, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="8"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                        <ColumnDefinition Width="8"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <StackPanel Grid.Column="0">
+                                                        <TextBlock Text="Début pause" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding LtHeureDebutPauseText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="12:00"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="2">
+                                                        <TextBlock Text="Fin pause" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding LtHeureFinPauseText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="13:00"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Grid.Column="4">
+                                                        <TextBlock Text="Fin samedi" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding LtHeureFinSamediText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="12:30"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Grid Margin="0,0,0,16"
+                                                      Visibility="{Binding AfficherParametresPause, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                    <StackPanel>
+                                                        <TextBlock Text="Fin samedi" FontSize="10" Foreground="#94A3B8" Margin="0,0,0,4"/>
+                                                        <TextBox Text="{Binding LtHeureFinSamediText, UpdateSourceTrigger=PropertyChanged}"
+                                                                 materialDesign:HintAssist.Hint="12:30"
+                                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                                                    </StackPanel>
+                                                </Grid>
+                                                <Button Command="{Binding EnregistrerReglesLtCommand}" Style="{StaticResource SettingsChipPrimaryStyle}">
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <materialDesign:PackIcon Kind="ClockCheck" Width="15" Height="15" Margin="0,0,6,0" Foreground="White"/>
+                                                        <TextBlock Text="Enregistrer les règles"/>
+                                                    </StackPanel>
+                                                </Button>
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                </ScrollViewer>
+                            </TabItem>
+                        </TabControl>
+                    </Grid>
+                </Border>
+
+                <!-- Administration -->
+                <Border Grid.Column="2" Style="{StaticResource SettingsPanelCardStyle}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Grid.Row="0" Padding="18,16" BorderBrush="#E2E8F0" BorderThickness="0,0,0,1">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Border Width="40" Height="40" CornerRadius="12" Background="#FEF3C7" Margin="0,0,12,0">
+                                    <materialDesign:PackIcon Kind="ShieldAccount" Width="22" Height="22" Foreground="#D97706"
+                                                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Border>
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock Text="Administration &amp; données" FontSize="15" FontWeight="SemiBold" Foreground="#0F172A"/>
+                                    <TextBlock Text="Utilisateurs, sauvegarde, restauration" FontSize="12" Foreground="#64748B" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Grid>
+                        </Border>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="16,16,16,18">
+                            <StackPanel>
+                                <TextBlock Text="Comptes administrateurs, copies de sécurité SQLite et zone sensible."
+                                           FontSize="12" Foreground="#64748B" Margin="0,0,0,16" TextWrapping="Wrap" LineHeight="18"/>
+
+                                <Button Command="{Binding OuvrirCentreConfigurationCommand}" Style="{StaticResource SettingsCentreHubButtonStyle}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="32" Height="32" CornerRadius="8" Background="#30FFFFFF" Margin="0,0,10,0">
+                                            <materialDesign:PackIcon Kind="TuneVariant" Width="18" Height="18" Foreground="White"
+                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Text="Centre de configuration (paie, colonnes, champs…)" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Command="{Binding OuvrirGestionUtilisateursCommand}"
+                                        Visibility="{Binding EstAdmin, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                        Style="{StaticResource SettingsSoftActionButtonStyle}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="32" Height="32" CornerRadius="10" Background="#F1F5F9" Margin="0,0,10,0">
+                                            <materialDesign:PackIcon Kind="AccountKey" Width="18" Height="18" Foreground="#475569"
+                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Text="Gestion des utilisateurs" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Command="{Binding VerifierMiseAJourCommand}" Style="{StaticResource SettingsSoftActionButtonStyle}">
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Border Width="32" Height="32" CornerRadius="10" Background="#ECFDF5" Margin="0,0,10,0">
+                                            <materialDesign:PackIcon Kind="Update" Width="18" Height="18" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="Vérifier les mises à jour" FontWeight="SemiBold"
+                                                       Foreground="{DynamicResource BrandPrimaryBrush}" FontSize="12.5"/>
+                                            <TextBlock Text="{Binding VersionApplication, StringFormat=Version {0}}"
+                                                       FontSize="11" Foreground="#64748B" Margin="0,2,0,0"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </Button>
+
+                                <Button Command="{Binding SauvegarderBaseCommand}" Style="{StaticResource SettingsSoftActionButtonStyle}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <Border Width="32" Height="32" CornerRadius="10" Background="#F1F5F9" Margin="0,0,10,0">
+                                            <materialDesign:PackIcon Kind="ContentSave" Width="18" Height="18" Foreground="#475569"
+                                                                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                        </Border>
+                                        <TextBlock Text="Sauvegarder la base (backup)" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <Border Background="#FFF7ED" CornerRadius="12" Padding="16" BorderBrush="#FED7AA" BorderThickness="1" Margin="0,6,0,10">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                            <materialDesign:PackIcon Kind="AlertCircleOutline" Width="16" Height="16" Foreground="#EA580C" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Restauration (irréversible)" FontSize="11" FontWeight="SemiBold" Foreground="#C2410C"/>
+                                        </StackPanel>
+                                        <Button Command="{Binding RestaurerBaseCommand}"
+                                                Style="{StaticResource SettingsDangerActionButtonStyle}"
+                                                Foreground="#C2410C" BorderBrush="#FDBA74">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="DatabaseRefresh" Width="16" Height="16" Margin="0,0,8,0" Foreground="#C2410C"/>
+                                                <TextBlock Text="Restaurer depuis un backup" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Background="#FEF2F2" CornerRadius="12" Padding="16" BorderBrush="#FECACA" BorderThickness="1">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                            <materialDesign:PackIcon Kind="Alert" Width="16" Height="16" Foreground="#DC2626" Margin="0,0,6,0"/>
+                                            <TextBlock Text="Zone critique" FontSize="11" FontWeight="SemiBold" Foreground="#B91C1C"/>
+                                        </StackPanel>
+                                        <Button Command="{Binding ReinitialiserApplicationCommand}"
+                                                Style="{StaticResource SettingsDangerActionButtonStyle}"
+                                                Foreground="#B91C1C" BorderBrush="#FCA5A5">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="DeleteForever" Width="16" Height="16" Margin="0,0,8,0" Foreground="#B91C1C"/>
+                                                <TextBlock Text="Réinitialiser l'application" TextWrapping="Wrap"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Border>
+</UserControl>

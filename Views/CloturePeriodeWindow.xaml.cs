@@ -14,7 +14,6 @@ public partial class CloturePeriodeWindow : Window
         InitializeComponent();
         var vm = new CloturePeriodeViewModel(_db, periodePaieId);
         vm.OnErreur = msg => UiFeedback.Avertissement(msg);
-        vm.OnSucces = msg => UiFeedback.Succes(msg);
         vm.OnClotureEffectuee = () => DialogResult = true;
         DataContext = vm;
     }

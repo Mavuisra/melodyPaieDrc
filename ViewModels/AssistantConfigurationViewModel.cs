@@ -38,8 +38,8 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
 
     // Étape 2 — visuel
     private string? _logo;
-    private string? _couleurPrincipale = "#1E3A5F";
-    private string? _couleurSecondaire = "#00A6B8";
+    private string? _couleurPrincipale = "#047857";
+    private string? _couleurSecondaire = "#34D399";
 
     // Étape 3 — structure & paie
     private string _nomSite = "Siège";
@@ -221,8 +221,8 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
             Email = ent.Email;
             SiteWeb = ent.SiteWeb;
             Logo = ent.Logo;
-            CouleurPrincipale = string.IsNullOrWhiteSpace(ent.CouleurPrincipale) ? "#1E3A5F" : ent.CouleurPrincipale;
-            CouleurSecondaire = ent.CouleurSecondaire ?? "#00A6B8";
+            CouleurPrincipale = string.IsNullOrWhiteSpace(ent.CouleurPrincipale) ? "#047857" : ent.CouleurPrincipale;
+            CouleurSecondaire = ent.CouleurSecondaire ?? "#34D399";
         }
 
         TauxCdfParUsd = ParametresApplicationHelper.GetTauxCdfParUsd(_db);
@@ -286,6 +286,17 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
     {
         if (!EnregistrerEtapeCourante())
             return;
+
+        var messageEtape = EtapeCourante switch
+        {
+            EtapeIdentiteLegale => "Identité légale enregistrée.",
+            EtapeIdentiteVisuelle => "Identité visuelle enregistrée.",
+            EtapeStructurePaie => "Structure de paie enregistrée.",
+            _ => null
+        };
+        if (messageEtape != null)
+            UiFeedback.Succes(messageEtape);
+
         EtapeCourante = Math.Min(EtapeAdministrateur, EtapeCourante + 1);
         ActualiserMessageEtat();
     }
@@ -349,6 +360,7 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
 
         ConfigurationEntrepriseService.MarquerConfigurationTerminee(_db);
         AppSessionEvents.NotifierEntrepriseCouranteChanged();
+        UiFeedback.Succes("Configuration de l'entreprise terminée.");
         OnConfigurationTerminee?.Invoke();
     }
 
@@ -399,7 +411,7 @@ public class AssistantConfigurationViewModel : INotifyPropertyChanged
 
         var ent = _db.Entreprises.Find(_entrepriseId)!;
         ent.Logo = TrimOrNull(Logo);
-        ent.CouleurPrincipale = NormaliserCouleurHex(CouleurPrincipale) ?? "#1E3A5F";
+        ent.CouleurPrincipale = NormaliserCouleurHex(CouleurPrincipale) ?? "#047857";
         ent.CouleurSecondaire = NormaliserCouleurHex(CouleurSecondaire);
         _db.SaveChanges();
         AppSessionEvents.NotifierEntrepriseCouranteChanged();

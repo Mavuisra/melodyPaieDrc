@@ -81,6 +81,7 @@ public class TauxSociauxViewModel : INotifyPropertyChanged
                 _db.TauxSociaux.Add(new TauxSociaux { Code = t.Code.Trim(), Pourcentage = t.Pourcentage });
             }
             _db.SaveChanges();
+            UiFeedback.Succes("Taux sociaux enregistrés.");
             OnFermer?.Invoke();
         }
         catch (Exception ex)

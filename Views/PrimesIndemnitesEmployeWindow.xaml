@@ -25,7 +25,7 @@
                 <Run Text="Primes et indemnités – "/>
                 <Run Text="{Binding NomEmploye}" FontWeight="Bold"/>
             </TextBlock>
-            <TextBlock Text="Les primes sont ajoutées au bulletin selon les options Imposable (IPR) et Cotisable (CNSS) définies dans le référentiel." 
+            <TextBlock Text="Les montants saisis sont mensuels. FIXE : montant complet si l'employé est rémunéré sur la période. PRORATA_JOURS : prorata selon les jours pointés (politique de paie)." 
                        FontSize="12" Foreground="Gray" Margin="0,0,0,12" TextWrapping="Wrap"/>
         </StackPanel>
 
@@ -63,7 +63,8 @@
                   HeadersVisibility="Column" Margin="0,0,0,12" Background="White">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Prime / indemnité" Binding="{Binding PrimeIndemnite.Libelle}" Width="*"/>
-                <DataGridTextColumn Header="Montant" Binding="{Binding Montant, StringFormat=N2}" Width="100"/>
+                <DataGridTextColumn Header="Montant mensuel" Binding="{Binding Montant, StringFormat=N2}" Width="110"/>
+                <DataGridTextColumn Header="Mode calcul" Binding="{Binding PrimeIndemnite.ModeCalcul}" Width="100"/>
                 <DataGridTextColumn Header="Imposable" Binding="{Binding PrimeIndemnite.EstImposable}" Width="80"/>
                 <DataGridTextColumn Header="Cotisable" Binding="{Binding PrimeIndemnite.EstCotisable}" Width="80"/>
             </DataGrid.Columns>

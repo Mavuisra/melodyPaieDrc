@@ -7,6 +7,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
@@ -49,8 +50,67 @@
                 </StackPanel>
             </Grid>
 
+            <!-- Synthèse de paie -->
+            <Border Grid.Row="1" x:Name="SynthesePanel" Margin="0,0,0,12"
+                    Background="#F0FDF4" BorderBrush="#A7F3D0" BorderThickness="1" CornerRadius="8" Padding="14,10">
+                <StackPanel>
+                    <TextBlock Text="Synthèse de paie" FontWeight="SemiBold" FontSize="13" Foreground="#065F46" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="140"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Montant total (brut)" Margin="0,2"/>
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding MontantTotal, StringFormat=N2}" HorizontalAlignment="Right" FontWeight="SemiBold"/>
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Quinzaine / acomptes" Margin="0,2"/>
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Quinzaine, StringFormat=N2}" HorizontalAlignment="Right"/>
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Prêt / avances" Margin="0,2"/>
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Pret, StringFormat=N2}" HorizontalAlignment="Right"/>
+
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Retenue (CNSS + INPP)" Margin="0,2"/>
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding RetenueSociale, StringFormat=N2}" HorizontalAlignment="Right"/>
+
+                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Impôt (IPR net)" Margin="0,2"/>
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding Impot, StringFormat=N2}" HorizontalAlignment="Right"/>
+
+                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Sanctions / retards" Margin="0,2"/>
+                        <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding Sanctions, StringFormat=N2}" HorizontalAlignment="Right"/>
+
+                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Autres retenues" Margin="0,2"/>
+                        <TextBlock Grid.Row="6" Grid.Column="1" Text="{Binding AutresRetenues, StringFormat=N2}" HorizontalAlignment="Right"/>
+
+                        <Border Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,8,0,0" Padding="0,8,0,0"
+                                BorderBrush="#A7F3D0" BorderThickness="0,1,0,0">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="140"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Solde à payer" FontWeight="Bold" FontSize="14" Foreground="#065F46"/>
+                                <TextBlock Grid.Column="1" Text="{Binding Solde, StringFormat=N2}" HorizontalAlignment="Right"
+                                           FontWeight="Bold" FontSize="14" Foreground="#065F46"/>
+                            </Grid>
+                        </Border>
+                    </Grid>
+                    <TextBlock Text="{Binding FormuleSolde}" FontSize="10" Foreground="#64748B" Margin="0,8,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
+            </Border>
+
             <!-- Résumé des montants -->
-            <Grid Grid.Row="1" Margin="0,16,0,12">
+            <Grid Grid.Row="2" Margin="0,0,0,12">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
@@ -111,7 +171,7 @@
             </Grid>
 
             <!-- Détails -->
-            <DataGrid Grid.Row="2"
+            <DataGrid Grid.Row="3"
                       ItemsSource="{Binding Details}"
                       AutoGenerateColumns="False"
                       IsReadOnly="True"
@@ -131,7 +191,7 @@
             </DataGrid>
 
             <!-- Pied de page -->
-            <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
                 <TextBlock Text="Signature employeur" Margin="0,0,40,0"/>
                 <TextBlock Text="Signature employé"/>
             </StackPanel>

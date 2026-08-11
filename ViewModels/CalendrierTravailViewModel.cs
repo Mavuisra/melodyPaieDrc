@@ -133,6 +133,7 @@ public class CalendrierTravailViewModel : INotifyPropertyChanged
 
         _db.SaveChanges();
         Charger();
+        UiFeedback.Succes("Jour calendrier enregistré.");
     }
 
     private void SupprimerJour()
@@ -144,6 +145,7 @@ public class CalendrierTravailViewModel : INotifyPropertyChanged
             _db.JoursTravailCalendrier.Remove(entite);
             _db.SaveChanges();
             Charger();
+            UiFeedback.Succes("Jour calendrier supprimé.");
         }
     }
 
@@ -189,6 +191,7 @@ public class CalendrierTravailViewModel : INotifyPropertyChanged
 
         _db.SaveChanges();
         Charger();
+        UiFeedback.Succes($"Semaine {TypeSemaineSelectionne} appliquée pour {Annee}.");
     }
 
     private string DetecterTypeSemainePourAnnee(int annee)

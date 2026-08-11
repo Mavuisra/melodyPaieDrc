@@ -17,52 +17,63 @@ public static class SuiviJournalierPdfDataService
     /// <summary>Grille complète du mois pour l’employé (état calculé depuis la base).</summary>
     public static IReadOnlyList<SuiviJournalierPdfLigne> ObtenirLignesPourEmploye(PaieDbContext db, int employeId, int mois, int annee)
     {
+        var periode = new PeriodePaie { Mois = mois, Annee = annee };
+        var (politique, dateDebut, dateFin) = PeriodePaieHelper.ResoudrePeriode(db, periode);
         var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(db);
-        var dateDebut = new DateTime(annee, mois, 1).Date;
-        var dateFin = dateDebut.AddMonths(1).AddDays(-1).Date;
 
-        var existants = db.SuivisJournaliers
+        var existantsList = db.SuivisJournaliers
             .AsNoTracking()
             .Where(s => s.EmployeId == employeId && s.Date >= dateDebut && s.Date <= dateFin)
-            .ToDictionary(s => s.Date.Date);
+            .ToList();
+        var existants = existantsList.ToDictionary(s => s.Date.Date);
+
+        var calendrierCtx = SuiviJournalierCalculPaieHelper.ChargerCalendrierPaie(db, dateDebut, dateFin);
+        var semaineSixJours = calendrierCtx.SemaineSixJours || politique.ForcerSamediOuvre;
+        var fusionnes = SuiviJournalierGrilleHelper.FusionnerMoisCompletPourCalculPaie(
+            employeId,
+            dateDebut,
+            dateFin,
+            existantsList,
+            semaineSixJours,
+            calendrierCtx.Calendrier,
+            politique.CompleterJoursSansSaisie,
+            politique.ForcerSamediOuvre);
 
         var result = new List<SuiviJournalierPdfLigne>();
-        for (var d = dateDebut; d <= dateFin; d = d.AddDays(1))
+        foreach (var s in fusionnes)
         {
-            existants.TryGetValue(d, out var existant);
-            var typeJour = NormaliserTypeJour(existant?.TypeJour);
+            existants.TryGetValue(s.Date.Date, out var existantDb);
+            var typeJour = NormaliserTypeJour(existantDb?.TypeJour ?? s.TypeJour);
             decimal heures;
             string modeLibelle;
 
-            if (typeJour == SuiviJournalier.TypeNormal && existant != null &&
-                !string.IsNullOrEmpty(existant.PointagesJson) && !existant.HeuresManuelles)
+            if (typeJour == SuiviJournalier.TypeNormal && existantDb != null)
             {
-                heures = PointagesJournalierSerializer.CalculerHeuresLt(existant.PointagesJson, d, reglesLt);
+                heures = SuiviJournalierCalculPaieHelper.RecalculerHeuresEffectives(existantDb, reglesLt);
             }
-            else if (existant != null)
+            else if (existantDb != null)
             {
-                heures = existant.HeuresPrestees;
+                heures = existantDb.HeuresPrestees;
             }
             else
             {
-                // Sans pointage ni saisie admin, l'export ne pré-remplit plus d'heures.
-                heures = 0m;
+                heures = s.HeuresPrestees;
             }
 
-            if (existant == null)
-                modeLibelle = "—";
-            else if (!string.IsNullOrEmpty(existant.PointagesJson) && !existant.HeuresManuelles)
+            if (existantDb == null)
+                modeLibelle = heures > 0m ? "Défaut (politique)" : "—";
+            else if (!string.IsNullOrEmpty(existantDb.PointagesJson) && !existantDb.HeuresManuelles)
                 modeLibelle = "Auto (LT)";
-            else if (existant.HeuresManuelles)
+            else if (existantDb.HeuresManuelles)
                 modeLibelle = "Manuel";
             else
-                modeLibelle = "—";
+                modeLibelle = heures > 0m ? "Saisie" : "—";
 
             var jourCode = typeJour == SuiviJournalier.TypeNormal && heures > 0m ? 1 : 0;
 
             result.Add(new SuiviJournalierPdfLigne(
-                d.ToString("dd/MM/yyyy", Fr),
-                d.ToString("dddd", Fr),
+                s.Date.ToString("dd/MM/yyyy", Fr),
+                s.Date.ToString("dddd", Fr),
                 jourCode,
                 modeLibelle,
                 heures,
@@ -75,14 +86,23 @@ public static class SuiviJournalierPdfDataService
     /// <summary>Somme des heures prestées sur la période (même règles que la grille / export PDF / base paie).</summary>
     public static decimal CalculerTotalHeuresPourEmploye(PaieDbContext db, int employeId, int mois, int annee)
     {
-        return ObtenirLignesPourEmploye(db, employeId, mois, annee).Sum(l => l.HeuresPrestees);
+        var periode = new PeriodePaie { Mois = mois, Annee = annee };
+        return SuiviJournalierCalculPaieHelper.CalculerTotauxPresenceEmploye(db, employeId, periode).TotalHeures;
+    }
+
+    /// <summary>Jours équivalents pondérés (8 h / 5 h sam.) — même formule que le calcul de paie.</summary>
+    public static decimal CalculerJoursEquivalentsPourEmploye(PaieDbContext db, int employeId, int mois, int annee)
+    {
+        var periode = new PeriodePaie { Mois = mois, Annee = annee };
+        return SuiviJournalierCalculPaieHelper.CalculerTotauxPresenceEmploye(db, employeId, periode).JoursEquivalents;
     }
 
     /// <summary>Lignes du mois indexées par date (à minuit).</summary>
     public static IReadOnlyDictionary<DateTime, SuiviJournalierPdfLigne> ObtenirLignesParDate(PaieDbContext db, int employeId, int mois, int annee)
     {
         var lignes = ObtenirLignesPourEmploye(db, employeId, mois, annee);
-        var debut = new DateTime(annee, mois, 1).Date;
+        var periode = new PeriodePaie { Mois = mois, Annee = annee };
+        var (_, debut, _) = PeriodePaieHelper.ResoudrePeriode(db, periode);
         var dict = new Dictionary<DateTime, SuiviJournalierPdfLigne>();
         for (var i = 0; i < lignes.Count; i++)
             dict[debut.AddDays(i)] = lignes[i];
@@ -97,6 +117,7 @@ public static class SuiviJournalierPdfDataService
         return typeJour.Trim() switch
         {
             SuiviJournalier.TypeNormal => SuiviJournalier.TypeNormal,
+            SuiviJournalier.TypeCongeAnnuel => SuiviJournalier.TypeCongeAnnuel,
             SuiviJournalier.TypeCongeCirconstance => SuiviJournalier.TypeCongeCirconstance,
             SuiviJournalier.TypeMaladie => SuiviJournalier.TypeMaladie,
             SuiviJournalier.TypePreavis => SuiviJournalier.TypePreavis,

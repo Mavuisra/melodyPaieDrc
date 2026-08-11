@@ -15,7 +15,6 @@ public partial class TauxSociauxWindow : Window
         DataContext = vm;
         vm.OnFermer = () =>
         {
-            UiFeedback.Succes("Taux sociaux enregistrés.");
             DialogResult = true;
             Close();
         };

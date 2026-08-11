@@ -15,7 +15,6 @@ public partial class EtablissementsDepartementsWindow : Window
         DataContext = vm;
         vm.OnFermer = () =>
         {
-            UiFeedback.Succes("Établissements et départements enregistrés.");
             DialogResult = true;
             Close();
         };

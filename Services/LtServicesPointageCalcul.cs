@@ -125,6 +125,50 @@ public static class LtServicesPointageCalcul
         return decimal.Round(matin + apresMidi, 2, MidpointRounding.AwayFromZero);
     }
 
+    /// <summary>
+    /// Heures travaillées au-delà de l'heure de fin officielle (ex. après 16h00 en semaine).
+    /// </summary>
+    public static decimal CalculerHeuresApresFinOfficielle(
+        IReadOnlyList<DateTime> pointagesJour,
+        DateTime jour,
+        LtServicesRegles? regles = null)
+    {
+        var r = regles ?? LtServicesRegles.Defaut;
+        if (pointagesJour == null || pointagesJour.Count == 0)
+            return 0m;
+
+        if (jour.DayOfWeek is DayOfWeek.Saturday or DayOfWeek.Sunday)
+            return 0m;
+
+        var sorted = PointagesNettoyageHelper.SelectionnerPourCalcul(pointagesJour, jour, r).ToList();
+        if (sorted.Count < 2)
+            return 0m;
+
+        var finReelle = sorted[^1].TimeOfDay;
+        if (finReelle <= r.HeureFinSemaine)
+            return 0m;
+
+        return decimal.Round((decimal)(finReelle - r.HeureFinSemaine).TotalHours, 2, MidpointRounding.AwayFromZero);
+    }
+
+    /// <summary>
+    /// Heures sup. : dépassement du nominal journalier et/ou temps après la fin officielle.
+    /// </summary>
+    public static decimal CalculerHeuresSupplementaires(
+        IReadOnlyList<DateTime> pointagesJour,
+        DateTime jour,
+        decimal heuresNominalesJour,
+        LtServicesRegles? regles = null)
+    {
+        if (heuresNominalesJour <= 0m || pointagesJour == null || pointagesJour.Count == 0)
+            return 0m;
+
+        var heuresNormales = CalculerHeuresPrestees(pointagesJour, jour, regles);
+        var apresFin = CalculerHeuresApresFinOfficielle(pointagesJour, jour, regles);
+        var depassementNominal = Math.Max(0m, heuresNormales + apresFin - heuresNominalesJour);
+        return decimal.Round(Math.Max(apresFin, depassementNominal), 2, MidpointRounding.AwayFromZero);
+    }
+
     private static decimal CalculerJourneeSemaineTroisPointages(List<DateTime> sorted, LtServicesRegles r, bool deductionPause)
     {
         var t1 = sorted[0].TimeOfDay;

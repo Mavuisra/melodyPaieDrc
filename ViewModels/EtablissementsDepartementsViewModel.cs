@@ -175,6 +175,7 @@ public class EtablissementsDepartementsViewModel : INotifyPropertyChanged
                     entite.NomDepartement = d.NomDepartement.Trim();
             }
             _db.SaveChanges();
+            UiFeedback.Succes("Établissements et départements enregistrés.");
             OnFermer?.Invoke();
         }
         catch (Exception ex)

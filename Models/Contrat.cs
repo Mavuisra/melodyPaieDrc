@@ -1,6 +1,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using MelodyPaieRDC.Helpers;
 
 namespace MelodyPaieRDC.Models;
 
@@ -58,9 +59,17 @@ public class Contrat
     [Column(TypeName = "decimal(5,2)")]
     public decimal IndemniteLicenciementMoisBase { get; set; }
 
+    /// <summary>Jours de référence paie (politique entreprise), pour l'affichage jour/heure.</summary>
     [NotMapped]
-    public decimal SalaireJour => SalaireBase > 0 ? decimal.Round(SalaireBase / 26m, 2) : 0m;
+    public decimal JoursReferencePaie { get; set; } = SalaireReferenceHelper.JoursDefaut;
+
+    /// <summary>Heures par jour de référence (politique entreprise).</summary>
+    [NotMapped]
+    public decimal HeuresParJour { get; set; } = SalaireReferenceHelper.HeuresDefaut;
 
     [NotMapped]
-    public decimal SalaireHeure => SalaireBase > 0 ? decimal.Round(SalaireBase / 26m / 8m, 2) : 0m;
+    public decimal SalaireJour => SalaireReferenceHelper.SalaireJour(SalaireBase, JoursReferencePaie);
+
+    [NotMapped]
+    public decimal SalaireHeure => SalaireReferenceHelper.SalaireHeure(SalaireBase, JoursReferencePaie, HeuresParJour);
 }

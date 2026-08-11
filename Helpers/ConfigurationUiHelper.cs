@@ -13,18 +13,13 @@ public static class ConfigurationUiHelper
     private static readonly Dictionary<string, string> ColonneParHeader = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Matricule"] = "Matricule",
+        ["Employé"] = "NomComplet",
         ["Nom"] = "Nom",
         ["Postnom"] = "Postnom",
         ["Prénom"] = "Prenom",
         ["Sexe"] = "Sexe",
         ["Téléphone"] = "Telephone",
-        ["Département"] = "Departement",
-        ["Salaire base (USD)"] = "SalaireMensuelUsd",
-        ["Salaire base (FC)"] = "SalaireMensuelCdf",
-        ["Salaire / jour (USD)"] = "SalaireJourUsd",
-        ["Salaire / jour (FC)"] = "SalaireJourCdf",
-        ["Salaire / h (USD)"] = "SalaireHeureUsd",
-        ["Salaire / h (FC)"] = "SalaireHeureCdf"
+        ["Département"] = "Departement"
     };
 
     public static void AppliquerColonnesListeEmployes(DataGrid? grille)

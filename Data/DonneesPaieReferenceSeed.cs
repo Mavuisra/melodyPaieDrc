@@ -93,7 +93,15 @@ public static class DonneesPaieReferenceSeed
                 new() { Cle = ParametrePolitiquePaie.Cles.SalaireContratEnNet, Valeur = "false" },
                 new() { Cle = ParametrePolitiquePaie.Cles.ModeCalculPresence, Valeur = ParametrePolitiquePaie.ModePresencePointages },
                 new() { Cle = ParametrePolitiquePaie.Cles.UtiliserBaremeIpr, Valeur = "true" },
-                new() { Cle = ParametrePolitiquePaie.Cles.UtiliserTauxSociauxDb, Valeur = "true" }
+                new() { Cle = ParametrePolitiquePaie.Cles.UtiliserTauxSociauxDb, Valeur = "true" },
+                new() { Cle = ParametrePolitiquePaie.Cles.TypePeriodePaie, Valeur = ParametrePolitiquePaie.TypePeriodeCalendaire },
+                new() { Cle = ParametrePolitiquePaie.Cles.JourDebutPeriodeDecalee, Valeur = "26" },
+                new() { Cle = ParametrePolitiquePaie.Cles.JourFinPeriodeDecalee, Valeur = "25" },
+                new() { Cle = ParametrePolitiquePaie.Cles.ForcerSamediOuvre, Valeur = "false" },
+                new() { Cle = ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, Valeur = "false" },
+                new() { Cle = ParametrePolitiquePaie.Cles.RetardSanctionActive, Valeur = "false" },
+                new() { Cle = ParametrePolitiquePaie.Cles.RetardSeuilMinutes, Valeur = "120" },
+                new() { Cle = ParametrePolitiquePaie.Cles.RetardModeSanction, Valeur = ParametrePolitiquePaie.RetardModeAucun }
             },
             Rubriques = CreerRubriquesParDefaut()
         };
@@ -106,9 +114,10 @@ public static class DonneesPaieReferenceSeed
         {
             Rub("SALAIRE_BASE_JOUR", "Salaire de base proratisé", 10, RubriqueBulletin.TypeGain),
             Rub("HEURES_LT_PERIODE", "Heures période", 20, RubriqueBulletin.TypeInfo),
+            Rub("HEURES_SUP", "Heures supplémentaires", 25, RubriqueBulletin.TypeGain),
             Rub("ABSENCE_INFO", "Absence", 30, RubriqueBulletin.TypeInfo),
-            Rub("ABSENCE_NON_REMUNEREE", "Absence non rémunérée", 40, RubriqueBulletin.TypeRetenue),
-            Rub("SUSPENSION_CONTRAT", "Suspension contrat", 50, RubriqueBulletin.TypeRetenue),
+            Rub("ABSENCE_NON_REMUNEREE", "Absence non rémunérée (informatif)", 40, RubriqueBulletin.TypeInfo),
+            Rub("SUSPENSION_CONTRAT", "Suspension contrat (informatif)", 50, RubriqueBulletin.TypeInfo),
             Rub("AUTRES_GAINS_IMPOSABLES", "Autres gains imposables", 60, RubriqueBulletin.TypeGain),
             Rub("AUTRES_GAINS_NON_IMPOSABLES", "Autres gains non imposables", 70, RubriqueBulletin.TypeGain),
             Rub("IPR", "IPR", 80, RubriqueBulletin.TypeRetenue, RubriqueBulletin.SourceIprBareme),
@@ -116,7 +125,7 @@ public static class DonneesPaieReferenceSeed
             Rub("INPP", "INPP", 100, RubriqueBulletin.TypeRetenue, RubriqueBulletin.SourceInpp),
             Rub("PRETS_AVANCES", "Prêts / avances", 110, RubriqueBulletin.TypeRetenue),
             Rub("ACOMPTES_SALAIRE", "Acomptes salaire", 120, RubriqueBulletin.TypeRetenue),
-            Rub("SANCTIONS_DISCIPLINAIRES", "Sanctions disciplinaires", 130, RubriqueBulletin.TypeRetenue),
+            Rub("SANCTIONS_DISCIPLINAIRES", "Sanctions / retards", 130, RubriqueBulletin.TypeRetenue),
             Rub("AJUSTEMENTS_RETENUES", "Ajustements retenues", 140, RubriqueBulletin.TypeRetenue)
         };
     }

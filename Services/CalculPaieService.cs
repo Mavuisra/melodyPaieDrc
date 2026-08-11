@@ -14,6 +14,7 @@ public class CalculPaieService
 {
     private const string RubSalaireBaseJour = "SALAIRE_BASE_JOUR";
     private const string RubHeuresLtPeriode = "HEURES_LT_PERIODE";
+    private const string RubHeuresSup = "HEURES_SUP";
     private const string RubAbsenceInfo = "ABSENCE_INFO";
     private const string RubAbsence = "ABSENCE_NON_REMUNEREE";
     private const string RubSuspension = "SUSPENSION_CONTRAT";
@@ -48,7 +49,7 @@ public class CalculPaieService
     /// - IPR (barème + plafond + réduction famille)
     /// - CNSS part ouvrière
     /// - Échéances de prêts / avances (MontantMensuel, si solde > 0)
-    /// Les autres gains (primes, heures sup, etc.) pourront être ajoutés plus tard.
+    /// - Heures supplémentaires (majoration contractuelle sur heures au-delà du nominal)
     /// </summary>
     public BulletinPaie GenererBulletin(int employeId, int periodePaieId)
     {
@@ -74,15 +75,10 @@ public class CalculPaieService
         var heuresParJour = politique.HeuresParJour;
         var salaireBaseDejaNet = politique.SalaireContratEnNet;
 
-        // Recherche du contrat actif sur la période (simplifié : contrat sans date fin ou fin >= début de période)
-        var dateDebutPeriode = new DateTime(periode.Annee, periode.Mois, 1);
-        var dateFinPeriode = dateDebutPeriode.AddMonths(1).AddDays(-1);
-        // Si la période en cours n'est pas clôturée, on évite de payer les jours futurs du mois.
+        // Recherche du contrat actif sur la période
+        var (dateDebutPeriode, dateFinPeriode) = PeriodePaieHelper.ObtenirBornes(periode, politique);
         var aujourdHui = DateTime.Today;
-        var periodeEnCoursNonCloturee = periode.Annee == aujourdHui.Year && periode.Mois == aujourdHui.Month && !periode.Cloturee;
-        var dateFinCalcul = periodeEnCoursNonCloturee && aujourdHui < dateFinPeriode
-            ? aujourdHui
-            : dateFinPeriode;
+        var dateFinCalcul = PeriodePaieHelper.ObtenirFinCalcul(periode, politique, aujourdHui);
 
         var contrat = _db.Contrats
             .Where(c => c.EmployeId == employeId &&
@@ -105,47 +101,50 @@ public class CalculPaieService
             .Where(s => s.EmployeId == employeId && s.Date >= dateDebutPeriode && s.Date <= dateFinCalcul)
             .ToList();
 
-        var calendrierPaie = _db.JoursTravailCalendrier
-            .Where(j => j.Annee == periode.Annee && j.DateJour >= dateDebutPeriode && j.DateJour <= dateFinCalcul)
-            .ToDictionary(j => j.DateJour.Date);
-
-        var semaineSixJoursPaie = calendrierPaie.Any(kvp =>
-            kvp.Key.DayOfWeek == DayOfWeek.Saturday &&
-            string.Equals(kvp.Value.TypeJour, "Ouvre", StringComparison.OrdinalIgnoreCase));
+        var calendrierCtx = SuiviJournalierCalculPaieHelper.ChargerCalendrierPaie(_db, dateDebutPeriode, dateFinCalcul);
+        var calendrierPaie = calendrierCtx.Calendrier;
+        var semaineSixJoursPaie = calendrierCtx.SemaineSixJours || politique.ForcerSamediOuvre;
         var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
 
         decimal joursPointesDepuisSuivi = 0m;
-        List<SuiviJournalier>? suivisCompletsPourPaie = null;
+        List<SuiviJournalier> suivisComptables = new();
         var heuresLtCumulPeriode = 0m;
+        var heuresSupCumulPeriode = 0m;
         if (suivisJournaliers.Count > 0)
         {
-            // Mois complet comme sur la grille : jours sans ligne en base complétés (mois partiellement renseigné, etc.).
-            suivisCompletsPourPaie = SuiviJournalierGrilleHelper.FusionnerMoisCompletPourCalculPaie(
+            var suivisCompletsPourPaie = SuiviJournalierGrilleHelper.FusionnerMoisCompletPourCalculPaie(
                 employeId,
                 dateDebutPeriode,
                 dateFinCalcul,
                 suivisJournaliers,
                 semaineSixJoursPaie,
-                calendrierPaie);
+                calendrierPaie,
+                politique.CompleterJoursSansSaisie,
+                politique.ForcerSamediOuvre);
 
-            // Mode strict demandé : seuls les pointages terminal (PointagesJson) comptent pour la paie.
-            var suivisAvecPointages = suivisCompletsPourPaie
-                .Where(s => !string.IsNullOrWhiteSpace(s.PointagesJson))
+            suivisComptables = suivisCompletsPourPaie
+                .Where(s => string.Equals(s.TypeJour, SuiviJournalier.TypeNormal, StringComparison.OrdinalIgnoreCase))
+                .Where(s => SuiviJournalierCalculPaieHelper.RecalculerHeuresEffectives(s, reglesLt) > 0m)
                 .ToList();
 
-            foreach (var sj in suivisAvecPointages)
-                heuresLtCumulPeriode += PointagesJournalierSerializer.CalculerHeuresLt(sj.PointagesJson, sj.Date, reglesLt);
+            foreach (var sj in suivisComptables)
+            {
+                heuresLtCumulPeriode += SuiviJournalierCalculPaieHelper.RecalculerHeuresEffectives(sj, reglesLt);
+                var heuresNominales = SuiviJournalierCalculPaieHelper.DeterminerHeuresNominalesJour(
+                    sj.Date, semaineSixJoursPaie, calendrierPaie, reglesLt);
+                heuresSupCumulPeriode += SuiviJournalierCalculPaieHelper.CalculerHeuresSupplementairesJour(
+                    sj, heuresNominales, reglesLt);
+            }
 
             var joursEquiv = SuiviJournalierCalculPaieHelper.CalculerJoursEquivalentsPaie(
-                suivisAvecPointages, semaineSixJoursPaie, calendrierPaie, reglesLt);
-            joursPointesDepuisSuivi = decimal.Round(joursEquiv, 2);
+                suivisComptables, semaineSixJoursPaie, calendrierPaie, reglesLt);
+            joursPointesDepuisSuivi = RoundPaie(joursEquiv);
         }
 
-        // Jours payés à 100% sans indemnités : maladie + congé de circonstance.
+        // Jours payés à 100% sans indemnités : maladie, congé de circonstance, congé annuel.
         var joursSpeciauxPayes = suivisJournaliers
             .Where(s => s.Date >= dateDebutPeriode && s.Date <= dateFinCalcul)
-            .Where(s => string.Equals(s.TypeJour, SuiviJournalier.TypeMaladie, StringComparison.OrdinalIgnoreCase)
-                     || string.Equals(s.TypeJour, SuiviJournalier.TypeCongeCirconstance, StringComparison.OrdinalIgnoreCase))
+            .Where(s => SuiviJournalier.EstTypeJourSpecialPaye(s.TypeJour))
             .Select(s => s.Date.Date)
             .Distinct()
             .Count();
@@ -191,7 +190,7 @@ public class CalculPaieService
         if (joursPayesSalaire > 0)
         {
             joursPrestesEffectifs = joursPayesSalaire;
-            salaireBrut = decimal.Round(salaireBrutComplet * joursPayesSalaire / joursReferencePaie, 2);
+            salaireBrut = RoundPaie(salaireBrutComplet * joursPayesSalaire / joursReferencePaie);
             var joursArrondis = (int)Math.Round((double)joursPayesSalaire, MidpointRounding.AwayFromZero);
             nbJoursAbsentsNonPayes = Math.Max(0, joursDansPeriode - joursArrondis);
         }
@@ -213,10 +212,14 @@ public class CalculPaieService
         if (salaireBaseDejaNet && salaireBrut > 0)
             salaireBrut = ReconstituerBrutDepuisNet(salaireBrut, nbEnfants, entrepriseId);
 
-        // Gains : salaire + primes / indemnités.
-        // Règle métier : montants des affectations saisis au module employé = journalier.
+        var tauxHoraireContratRef = contrat.SalaireBase > 0 && heuresParJour > 0
+            ? RoundPaie(contrat.SalaireBase / joursReferencePaie / heuresParJour)
+            : 0m;
+
+        // Gains : salaire + primes / indemnités (montants mensuels selon ModeCalcul).
         decimal totalGainImposable = salaireBrut;
         decimal totalGainNonImposable = 0m;
+        decimal baseCotisable = salaireBrut;
 
         var affectationsPrimes = _db.AffectationsPrimesIndemnites
             .Where(a => a.EmployeId == employeId)
@@ -226,14 +229,19 @@ public class CalculPaieService
         var primes = _db.PrimesIndemnites
             .Where(p => primeIds.Contains(p.Id) && (p.EntrepriseId == null || p.EntrepriseId == entrepriseId))
             .ToDictionary(p => p.Id);
-        var detailsPrimesGains = new List<(string Libelle, decimal BaseJour, decimal TauxEffectif, decimal Montant)>();
+        var detailsPrimesGains = new List<(string Libelle, decimal BaseAffichee, decimal TauxEffectif, decimal Montant)>();
         var detailsPrimesRetenues = new List<(string Libelle, decimal Montant)>();
         decimal retenuesPrimes = 0m;
         foreach (var aff in affectationsPrimes)
         {
             if (!primes.TryGetValue(aff.PrimeIndemniteId, out var prime)) continue;
-            var montantJournalier = decimal.Round(aff.Montant, 2);
-            var montant = decimal.Round(montantJournalier * joursPointesDepuisSuivi, 2);
+            var montantMensuel = RoundPaie(aff.Montant);
+            var (montant, baseAffichee, tauxEffectif) = PrimeIndemniteCalculHelper.CalculerMontant(
+                montantMensuel,
+                prime.ModeCalcul,
+                joursPointesDepuisSuivi,
+                joursReferencePaie,
+                joursPrestesEffectifs);
             if (string.Equals(prime.TypeLigne, PrimeIndemnite.TypeRetenue, StringComparison.OrdinalIgnoreCase))
             {
                 detailsPrimesRetenues.Add((prime.Libelle, montant));
@@ -241,14 +249,26 @@ public class CalculPaieService
             }
             else
             {
-                // Indemnités uniquement sur jours réellement pointés (pas sur maladie/congé payés).
-                detailsPrimesGains.Add((prime.Libelle, montantJournalier, joursPointesDepuisSuivi, montant));
+                detailsPrimesGains.Add((prime.Libelle, baseAffichee, tauxEffectif, montant));
                 if (prime.EstImposable)
                     totalGainImposable += montant;
-                
                 else
                     totalGainNonImposable += montant;
+                if (prime.EstCotisable)
+                    baseCotisable += montant;
             }
+        }
+
+        // Heures supplémentaires : majoration contractuelle sur heures au-delà du nominal.
+        decimal montantHeuresSup = 0m;
+        decimal tauxHoraireSupMajoré = 0m;
+        if (joursPrestesEffectifs > 0m && heuresSupCumulPeriode > 0m && tauxHoraireContratRef > 0m &&
+            contrat.TauxMajorationHeuresSup > 0m)
+        {
+            tauxHoraireSupMajoré = RoundPaie(tauxHoraireContratRef * (1m + contrat.TauxMajorationHeuresSup / 100m));
+            montantHeuresSup = RoundPaie(heuresSupCumulPeriode * tauxHoraireSupMajoré);
+            totalGainImposable += montantHeuresSup;
+            baseCotisable += montantHeuresSup;
         }
 
         // Autres ajustements saisis (gains / retenues)
@@ -256,38 +276,33 @@ public class CalculPaieService
         {
             if (saisie.AutresGainsImposables != 0)
             {
-                var montant = decimal.Round(saisie.AutresGainsImposables, 2);
+                var montant = RoundPaie(saisie.AutresGainsImposables);
                 totalGainImposable += montant;
+                baseCotisable += montant;
             }
 
             if (saisie.AutresGainsNonImposables != 0)
             {
-                var montant = decimal.Round(saisie.AutresGainsNonImposables, 2);
+                var montant = RoundPaie(saisie.AutresGainsNonImposables);
                 totalGainNonImposable += montant;
-            }
-
-            if (saisie.AutresRetenues != 0)
-            {
-                // Autres retenues ajoutées plus loin dans les détails, ici on ajuste seulement le net.
             }
         }
 
-        // Base légale mensuelle de retenues : salaire du mois (base + indemnités de gains)
-        var baseLegaleRetenues = decimal.Round(Math.Max(0m, totalGainImposable + totalGainNonImposable), 2);
-        var baseImposable = baseLegaleRetenues;
+        var baseImposableIpr = RoundPaie(Math.Max(0m, totalGainImposable));
+        baseCotisable = RoundPaie(Math.Max(0m, baseCotisable));
 
         var iprDetails = politique.UtiliserBaremeIpr
-            ? _iprService.CalculerDetailsIprMensuelle(baseLegaleRetenues, nbEnfants, entrepriseId)
+            ? _iprService.CalculerDetailsIprMensuelle(baseImposableIpr, nbEnfants, entrepriseId)
             : new IprResultat();
         var iprNet = iprDetails.IprNet;
         var reductionFamille = iprDetails.ReductionFamille;
 
         var cotisations = politique.UtiliserTauxSociauxDb
-            ? _cotisationsService.Calculer(baseLegaleRetenues, entrepriseId)
+            ? _cotisationsService.Calculer(baseCotisable, entrepriseId)
             : new CotisationsResultat();
         var cnssOuvrierMontant = cotisations.CnssOuvrier;
         var inppMontant = cotisations.Inpp;
-        var tauxIprAffiche = baseLegaleRetenues > 0 ? decimal.Round(iprNet / baseLegaleRetenues * 100m, 2) : 0m;
+        var tauxIprAffiche = baseImposableIpr > 0 ? RoundPaie(iprNet / baseImposableIpr * 100m) : 0m;
         var tauxCnssAffiche = cotisations.TauxCnssOuvrier;
         var tauxInppAffiche = cotisations.TauxInpp;
 
@@ -296,7 +311,8 @@ public class CalculPaieService
             iprNet = 0m;
             cnssOuvrierMontant = 0m;
             inppMontant = 0m;
-            baseImposable = 0m;
+            baseImposableIpr = 0m;
+            baseCotisable = 0m;
             reductionFamille = 0m;
             tauxIprAffiche = 0m;
             tauxCnssAffiche = 0m;
@@ -305,35 +321,38 @@ public class CalculPaieService
 
         // Références fiche Excel (CDF) sur l’employé : mêmes montants que la grille importée
         var baseIprAffiche = employe.ReferenceBrutImposableCnssCdf is decimal rbf && rbf > 0
-            ? decimal.Round(rbf, 2)
-            : baseLegaleRetenues;
+            ? RoundPaie(rbf)
+            : baseImposableIpr;
 
         if (joursPrestesEffectifs > 0m && employe.ReferenceIprNetCdf.HasValue)
-            iprNet = decimal.Round(employe.ReferenceIprNetCdf.Value, 2);
+            iprNet = RoundPaie(employe.ReferenceIprNetCdf.Value);
 
         if (joursPrestesEffectifs > 0m && employe.ReferenceCnssOuvrierCdf.HasValue)
-            cnssOuvrierMontant = decimal.Round(employe.ReferenceCnssOuvrierCdf.Value, 2);
+            cnssOuvrierMontant = RoundPaie(employe.ReferenceCnssOuvrierCdf.Value);
 
         if (joursPrestesEffectifs > 0m && employe.ReferenceInppCdf.HasValue)
-            inppMontant = decimal.Round(employe.ReferenceInppCdf.Value, 2);
+            inppMontant = RoundPaie(employe.ReferenceInppCdf.Value);
 
         var basePourTauxRetenues = employe.ReferenceBrutImposableCnssCdf is decimal rbrut && rbrut > 0
-            ? decimal.Round(rbrut, 2)
-            : baseLegaleRetenues;
+            ? RoundPaie(rbrut)
+            : baseCotisable;
 
         // Échéances de prêts / avances en cours (retenues mensuelles)
-        // SQLite ne supporte pas Sum(decimal) en SQL : on agrège en mémoire
         var pretsEnCours = _db.PretsAvances
             .Where(p => p.EmployeId == employeId && p.SoldeRestant > 0)
             .ToList();
         var retenuePrets = pretsEnCours.Sum(p => p.MontantMensuel);
 
-        // Retenues totales sur salaire (côté employé)
-        var acomptesSaisis = saisie != null ? decimal.Round(saisie.AcomptesSalaire, 2) : 0m;
-        var sanctionsSaisies = saisie != null ? decimal.Round(saisie.SanctionsDisciplinaires, 2) : 0m;
-        var autresRetenuesSaisies = saisie != null ? decimal.Round(saisie.AutresRetenues, 2) : 0m;
+        var acomptesSaisis = saisie != null ? RoundPaie(saisie.AcomptesSalaire) : 0m;
+        var sanctionsSaisies = saisie != null ? RoundPaie(saisie.SanctionsDisciplinaires) : 0m;
+        var sanctionsRetardsAuto = politique.RetardSanctionActive
+            ? RoundPaie(RetardPaieHelper.CalculerSanctionsPeriode(
+                politique, employe, contrat, suivisJournaliers, reglesLt))
+            : 0m;
+        var totalSanctions = sanctionsSaisies + sanctionsRetardsAuto;
+        var autresRetenuesSaisies = saisie != null ? RoundPaie(saisie.AutresRetenues) : 0m;
         var totalRetenues = iprNet + cnssOuvrierMontant + inppMontant + retenuePrets + retenuesPrimes +
-                            acomptesSaisis + sanctionsSaisies + autresRetenuesSaisies;
+                            acomptesSaisis + totalSanctions + autresRetenuesSaisies;
 
         var totalGains = totalGainImposable + totalGainNonImposable;
         var netAPayer = totalGains - totalRetenues;
@@ -376,16 +395,16 @@ public class CalculPaieService
             PeriodePaieId = periodePaieId,
             NumeroBulletin = numeroBulletin,
             DateGeneration = DateTime.Now,
-            TotalGainImposable = decimal.Round(totalGainImposable, 2),
-            TotalGainNonImposable = decimal.Round(totalGainNonImposable, 2),
-            BaseIpr = decimal.Round(baseIprAffiche, 2),
-            MontantIprBrut = decimal.Round(iprDetails.IprBrut, 2),
-            ReductionFamille = decimal.Round(reductionFamille, 2),
-            MontantIprNet = decimal.Round(iprNet, 2),
-            CotisationCnssOuvrier = decimal.Round(cnssOuvrierMontant, 2),
-            CotisationInpp = decimal.Round(inppMontant, 2),
-            NetAPayer = decimal.Round(netAPayer, 2),
-            NetAPayerDeviseLocale = decimal.Round(netAPayerDeviseLocale, 2),
+            TotalGainImposable = RoundPaie(totalGainImposable),
+            TotalGainNonImposable = RoundPaie(totalGainNonImposable),
+            BaseIpr = RoundPaie(baseIprAffiche),
+            MontantIprBrut = RoundPaie(iprDetails.IprBrut),
+            ReductionFamille = RoundPaie(reductionFamille),
+            MontantIprNet = RoundPaie(iprNet),
+            CotisationCnssOuvrier = RoundPaie(cnssOuvrierMontant),
+            CotisationInpp = RoundPaie(inppMontant),
+            NetAPayer = RoundPaie(netAPayer),
+            NetAPayerDeviseLocale = RoundPaie(netAPayerDeviseLocale),
             Details = new List<BulletinDetail>()
         };
         void AjouterDetailSiLibelle(string code, decimal baseCalcul, decimal taux, decimal gain, decimal retenue)
@@ -403,48 +422,34 @@ public class CalculPaieService
             });
         }
 
-        // Référence mensuelle → journalière / horaire (26 j × 8 h), alignée fiche type « impôts & cotisation ».
+        // Référence mensuelle → journalière / horaire, alignée fiche type « impôts & cotisation ».
         var salaireJournalierRef = contrat.SalaireBase > 0
-            ? decimal.Round(contrat.SalaireBase / joursReferencePaie, 2)
-            : 0m;
-        var tauxHoraireContratRef = contrat.SalaireBase > 0 && heuresParJour > 0
-            ? decimal.Round(contrat.SalaireBase / joursReferencePaie / heuresParJour, 2)
+            ? RoundPaie(contrat.SalaireBase / joursReferencePaie)
             : 0m;
         var facteurSalaireBase = salaireJournalierRef > 0
-            ? decimal.Round(salaireBrut / salaireJournalierRef, 4)
+            ? RoundPaie(salaireBrut / salaireJournalierRef, 4)
             : 0m;
 
-        // Salaire contractuel proratisé : Base = montant / jour de réf., Taux = équivalent « nombre de jours » facturé.
-        AjouterDetailSiLibelle(RubSalaireBaseJour, salaireJournalierRef, facteurSalaireBase, decimal.Round(salaireBrut, 2), 0);
+        AjouterDetailSiLibelle(RubSalaireBaseJour, salaireJournalierRef, facteurSalaireBase, RoundPaie(salaireBrut), 0);
 
         if (heuresLtCumulPeriode > 0 && tauxHoraireContratRef > 0)
-        {
-            AjouterDetailSiLibelle(RubHeuresLtPeriode, decimal.Round(heuresLtCumulPeriode, 2), tauxHoraireContratRef, 0, 0);
-        }
+            AjouterDetailSiLibelle(RubHeuresLtPeriode, RoundPaie(heuresLtCumulPeriode), tauxHoraireContratRef, 0, 0);
 
-        // Détail : Absence non rémunérée ou suspension de contrat (traçabilité)
-        if (retenueAbsence > 0)
+        if (montantHeuresSup > 0 && tauxHoraireSupMajoré > 0)
+            AjouterDetailSiLibelle(RubHeuresSup, RoundPaie(heuresSupCumulPeriode), tauxHoraireSupMajoré, montantHeuresSup, 0);
+
+        // Informatif : montant théorique non payé (déjà proratisé dans le salaire de base).
+        if (retenueAbsence > 0 || nbJoursAbsentsNonPayes > 0)
         {
             AjouterDetailSiLibelle(
                 aSuspension ? RubSuspension : RubAbsence,
-                salaireBrutComplet,
-                0,
-                0,
-                decimal.Round(retenueAbsence, 2));
-        }
-
-        // Rubrique informative demandée : absences constatées, sans impact montant.
-        if (nbJoursAbsentsNonPayes > 0)
-        {
-            AjouterDetailSiLibelle(
-                RubAbsenceInfo,
+                RoundPaie(retenueAbsence),
                 nbJoursAbsentsNonPayes,
-                0m,
-                0m,
-                0m);
+                0,
+                0);
         }
 
-        // Primes / indemnités : base journalière × taux réel (jours effectivement prestés).
+        // Primes / indemnités : montant mensuel (FIXE ou prorata jours prestés).
         detailsPrimesGains = detailsPrimesGains
             .OrderBy(x =>
             {
@@ -453,15 +458,14 @@ public class CalculPaieService
             })
             .ThenBy(x => x.Libelle, StringComparer.OrdinalIgnoreCase)
             .ToList();
-        foreach (var (libelle, baseJour, tauxEffectif, montant) in detailsPrimesGains)
+        foreach (var (libelle, baseAffichee, tauxEffectif, montant) in detailsPrimesGains)
         {
-            var montantArrondi = decimal.Round(montant, 2);
             bulletin.Details.Add(new BulletinDetail
             {
                 Libelle = libelle,
-                BaseCalcul = decimal.Round(baseJour, 2),
-                Taux = decimal.Round(tauxEffectif, 2),
-                Gain = montantArrondi,
+                BaseCalcul = RoundPaie(baseAffichee),
+                Taux = RoundPaie(tauxEffectif),
+                Gain = RoundPaie(montant),
                 Retenue = 0
             });
         }
@@ -471,18 +475,17 @@ public class CalculPaieService
             bulletin.Details.Add(new BulletinDetail
             {
                 Libelle = libelle,
-                BaseCalcul = decimal.Round(montant, 2),
+                BaseCalcul = RoundPaie(montant),
                 Taux = 0,
                 Gain = 0,
-                Retenue = decimal.Round(montant, 2)
+                Retenue = RoundPaie(montant)
             });
         }
 
-        // Détails : autres gains saisis (toujours affichés pour un bulletin complet)
-        var autresGainsImposables = saisie != null ? decimal.Round(saisie.AutresGainsImposables, 2) : 0m;
+        var autresGainsImposables = saisie != null ? RoundPaie(saisie.AutresGainsImposables) : 0m;
         AjouterDetailSiLibelle(RubAutresGainsImposables, autresGainsImposables, 0, autresGainsImposables, 0);
 
-        var autresGainsNonImposables = saisie != null ? decimal.Round(saisie.AutresGainsNonImposables, 2) : 0m;
+        var autresGainsNonImposables = saisie != null ? RoundPaie(saisie.AutresGainsNonImposables) : 0m;
         AjouterDetailSiLibelle(RubAutresGainsNonImposables, autresGainsNonImposables, 0, autresGainsNonImposables, 0);
 
         // Détails : retenues (même libellés / ordre que fiche impôts & cotisation type LTS)
@@ -507,9 +510,10 @@ public class CalculPaieService
             0,
             inppMontant);
 
-        AjouterDetailSiLibelle(RubPretsAvances, 0, 0, 0, decimal.Round(retenuePrets, 2));
+        AjouterDetailSiLibelle(RubPretsAvances, 0, 0, 0, RoundPaie(retenuePrets));
         AjouterDetailSiLibelle(RubAcomptes, 0, 0, 0, acomptesSaisis);
-        AjouterDetailSiLibelle(RubSanctions, 0, 0, 0, sanctionsSaisies);
+        // Saisie manuelle + sanctions auto retards (pointages) — visible sur bulletin et synthèse.
+        AjouterDetailSiLibelle(RubSanctions, 0, 0, 0, totalSanctions);
         AjouterDetailSiLibelle(RubAjustementsRetenues, 0, 0, 0, autresRetenuesSaisies);
 
         _db.BulletinsPaie.Add(bulletin);
@@ -528,6 +532,9 @@ public class CalculPaieService
         return bulletin;
     }
 
+    private static decimal RoundPaie(decimal value, int decimals = 2)
+        => decimal.Round(value, decimals, MidpointRounding.AwayFromZero);
+
     private decimal ReconstituerBrutDepuisNet(decimal netCible, int nbEnfants, int entrepriseId)
     {
         if (netCible <= 0) return 0m;
@@ -535,8 +542,8 @@ public class CalculPaieService
         decimal NetDepuisBrut(decimal brut)
         {
             var ipr = _iprService.CalculerDetailsIprMensuelle(brut, nbEnfants, entrepriseId).IprNet;
-            var cnss = _cotisationsService.Calculer(brut, entrepriseId).CnssOuvrier;
-            var net = brut - ipr - cnss;
+            var cot = _cotisationsService.Calculer(brut, entrepriseId);
+            var net = brut - ipr - cot.CnssOuvrier - cot.Inpp;
             return net < 0 ? 0 : net;
         }
 
@@ -555,7 +562,7 @@ public class CalculPaieService
                 haut = milieu;
         }
 
-        return decimal.Round(haut, 2);
+        return RoundPaie(haut);
     }
 
     /// <summary>
@@ -563,8 +570,8 @@ public class CalculPaieService
     /// et n'ayant pas déjà de bulletin pour cette période.
     /// </summary>
     /// <param name="periodePaieId">Identifiant de la période de paie.</param>
-    /// <returns>Nombre de bulletins générés et liste des erreurs (employé : message).</returns>
-    public (int Generes, List<string> Erreurs) GenererBulletinsPourTous(int periodePaieId)
+    /// <returns>Nombre généré, déjà existants, éligibles (contrat actif), erreurs par employé.</returns>
+    public (int Generes, int DejaGeneres, int Eligibles, List<string> Erreurs) GenererBulletinsPourTous(int periodePaieId)
     {
         var periode = _db.PeriodesPaie.FirstOrDefault(p => p.Id == periodePaieId)
                       ?? throw new InvalidOperationException("Période de paie introuvable.");
@@ -572,8 +579,9 @@ public class CalculPaieService
         if (periode.Cloturee)
             throw new InvalidOperationException("Cette période est clôturée. Impossible de générer des bulletins.");
 
-        var dateDebutPeriode = new DateTime(periode.Annee, periode.Mois, 1);
-        var dateFinPeriode = dateDebutPeriode.AddMonths(1).AddDays(-1);
+        var entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(_db);
+        var politique = _politiqueService.Charger(entrepriseId);
+        var (dateDebutPeriode, dateFinPeriode) = PeriodePaieHelper.ObtenirBornes(periode, politique);
 
         // Employés ayant un contrat actif sur la période
         var employeIdsAvecContrat = _db.Contrats
@@ -589,6 +597,7 @@ public class CalculPaieService
             .ToHashSet();
 
         var aTraiter = employeIdsAvecContrat.Where(id => !dejaBulletin.Contains(id)).ToList();
+        var dejaGeneres = employeIdsAvecContrat.Count - aTraiter.Count;
         var generes = 0;
         var erreurs = new List<string>();
 
@@ -607,7 +616,7 @@ public class CalculPaieService
             }
         }
 
-        return (generes, erreurs);
+        return (generes, dejaGeneres, employeIdsAvecContrat.Count, erreurs);
     }
 
     private Dictionary<string, string> ChargerLibellesEmploye(int employeId)

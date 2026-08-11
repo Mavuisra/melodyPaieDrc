@@ -132,6 +132,7 @@ public class IprConfigViewModel : INotifyPropertyChanged
             }
 
             _db.SaveChanges();
+            UiFeedback.Succes("Paramètres IPR enregistrés.");
             OnEnregistrementReussi?.Invoke();
         }
         catch (Exception ex)

@@ -44,7 +44,7 @@
                         </StackPanel>
                     </StackPanel>
                     <StackPanel Grid.Column="1">
-                        <TextBlock Text="Couleur principale (hex, ex. #1E3A5F)" Margin="0,0,0,2"/>
+                        <TextBlock Text="Couleur principale (hex, ex. #047857)" Margin="0,0,0,2"/>
                         <TextBox Text="{Binding CouleurPrincipale, UpdateSourceTrigger=PropertyChanged}" MaxLength="20" Margin="0,0,0,10"/>
                         <TextBlock Text="Couleur secondaire (optionnel)" Margin="0,0,0,2"/>
                         <TextBox Text="{Binding CouleurSecondaire, UpdateSourceTrigger=PropertyChanged}" MaxLength="20" Margin="0,0,0,10"/>

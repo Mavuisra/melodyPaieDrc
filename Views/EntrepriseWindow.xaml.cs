@@ -15,7 +15,6 @@ public partial class EntrepriseWindow : Window
         var vm = new EntrepriseViewModel(db);
         DataContext = vm;
         vm.OnErreur = msg => UiFeedback.Avertissement(msg);
-        vm.OnEnregistre = () => UiFeedback.Succes("Informations entreprise enregistrées.");
         vm.OnDemandeChoisirLogo = () =>
         {
             var dlg = new OpenFileDialog

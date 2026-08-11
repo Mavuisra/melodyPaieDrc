@@ -44,15 +44,21 @@
                                  materialDesign:HintAssist.Hint="Votre identifiant"/>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="1" Margin="0,0,0,24">
+                    <StackPanel Grid.Row="1" Margin="0,0,0,12">
                         <TextBlock Text="Mot de passe" FontSize="12" Foreground="#546E7A" Margin="0,0,0,6"/>
                         <PasswordBox x:Name="TxtPassword" Padding="12,10" FontSize="14" MinHeight="36"
                                      TabIndex="1" materialDesign:HintAssist.Hint="Mot de passe"
                                      Foreground="#212121"/>
+                        <CheckBox x:Name="ChkAfficherMotDePasse" Content="Afficher le mot de passe"
+                                  Margin="0,8,0,0" FontSize="11" Foreground="#546E7A"
+                                  Checked="AfficherMotDePasse_Changed" Unchecked="AfficherMotDePasse_Changed"/>
+                        <TextBox x:Name="TxtPasswordVisible" Padding="12,10" FontSize="14" MinHeight="36"
+                                 Visibility="Collapsed" TabIndex="1"
+                                 materialDesign:HintAssist.Hint="Mot de passe" Foreground="#212121"/>
                     </StackPanel>
 
                     <TextBlock Grid.Row="2" TextWrapping="Wrap" FontSize="11" Foreground="#78909C" Margin="0,0,0,16"
-                               Text="Utilisez l'identifiant et le mot de passe définis lors de la configuration initiale. En cas d'oubli, contactez l'administrateur de votre organisation."/>
+                               Text="Identifiant en minuscules (souvent « admin »). Le mot de passe est celui défini à l'installation — ce n'est pas forcément « admin ». Vérifiez Verrou maj / AZERTY. En cas d'oubli, un administrateur peut le réinitialiser (Paramètres › Utilisateurs)."/>
 
                     <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
                         <Button Content="Annuler" IsCancel="True" Click="Annuler_Click"

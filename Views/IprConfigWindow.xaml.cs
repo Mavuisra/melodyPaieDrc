@@ -20,7 +20,6 @@ public partial class IprConfigWindow : Window
 
         _viewModel.OnEnregistrementReussi += () =>
         {
-            UiFeedback.Succes("Paramètres IPR enregistrés.");
             DialogResult = true;
             Close();
         };

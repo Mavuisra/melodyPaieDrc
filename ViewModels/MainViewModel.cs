@@ -9,6 +9,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 using MelodyPaieRDC.Services;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,8 @@ public class MainViewModel : INotifyPropertyChanged
     private decimal _declarationMasseSalariale;
     private List<Employe> _tousEmployes = new();
     private string _filtreEmployes = "";
+    private bool _masquerSuggestionsEmployes;
+    private bool _applicationSuggestionEmploye;
     private List<BulletinPaie> _tousBulletinsPeriode = new();
     private string _filtreBulletins = "";
     private string _filtreBulletinsGeneres = "";
@@ -79,6 +82,8 @@ public class MainViewModel : INotifyPropertyChanged
     private string _ltModePointage = LtReglesPointageModes.QuatrePointages;
     private bool _ltDeductionPauseAutomatique = true;
     private string _dashboardDateDuJour = "";
+    private DateTime? _dashboardDatePresence = DateTime.Today;
+    private PeriodePaie? _periodeSelectionneeDashboard;
     private int _dashboardPointesAujourdhui;
     private int _dashboardSansPointageAujourdhui;
     private int _dashboardRetardsAujourdhui;
@@ -99,6 +104,7 @@ public class MainViewModel : INotifyPropertyChanged
             LtReglesPointageModes.OptionsUi.Select(o => new LtModePointageOption(o.Code, o.Libelle)));
 
         Employes = new ObservableCollection<Employe>();
+        SuggestionsEmployes = new ObservableCollection<Employe>();
         PeriodesPaie = new ObservableCollection<PeriodePaie>();
         DernierBulletinDetails = new ObservableCollection<BulletinDetail>();
         BulletinsPeriode = new ObservableCollection<BulletinPaie>();
@@ -119,13 +125,33 @@ public class MainViewModel : INotifyPropertyChanged
         SupprimerEmployeCommand = new RelayCommand(_ => SupprimerEmploye(), _ => EmployeSelectionne != null && PeutMod());
         OuvrirContratsCommand = new RelayCommand(_ => OnOuvrirContrats?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
         OuvrirAyantsDroitCommand = new RelayCommand(_ => OnOuvrirAyantsDroit?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
+        OuvrirFicheEmployeCommand = new RelayCommand(_ => OnOuvrirFicheEmploye?.Invoke(), _ => EmployeSelectionne != null);
+        EffacerFiltreEmployesCommand = new RelayCommand(_ => EffacerFiltreEmployes(), _ => !string.IsNullOrWhiteSpace(FiltreEmployes));
+        SelectionnerSuggestionEmployeCommand = new RelayCommand(p => AppliquerSuggestionEmploye(p as Employe), p => p is Employe);
         OuvrirPretsAvancesCommand = new RelayCommand(_ => OnOuvrirPretsAvances?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
         OuvrirPrimesIndemnitesCommand = new RelayCommand(_ => OnOuvrirPrimesIndemnites?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
         OuvrirHeuresMoisEmployeCommand = new RelayCommand(_ => OnOuvrirHeuresMoisEmploye?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
+        OuvrirAbsencesCongesEmployeCommand = new RelayCommand(_ => OnOuvrirAbsencesCongesEmploye?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
         OuvrirChampsComplementairesEmployeCommand = new RelayCommand(_ => OnOuvrirChampsComplementairesEmploye?.Invoke(), _ => EmployeSelectionne != null);
         OuvrirFormulairesDynamiquesCommand = new RelayCommand(_ => OnOuvrirFormulairesDynamiques?.Invoke());
         OuvrirChampsComplementairesEntrepriseCommand = new RelayCommand(_ => OnOuvrirChampsComplementairesEntreprise?.Invoke());
         RafraichirCommand = new RelayCommand(_ => { ChargerEmployes(); ChargerStatistiques(); });
+        RafraichirTableauDeBordCommand = new RelayCommand(_ =>
+        {
+            try
+            {
+                ChargerEmployes();
+                ChargerPeriodes();
+                ChargerTauxChangeDepuisDb();
+                ChargerStatistiques();
+                ChargerTableauDeBord();
+                AppNotificationService.Succes("Tableau de bord actualisé.");
+            }
+            catch (Exception ex)
+            {
+                AppNotificationService.Avertissement($"Actualisation impossible : {ex.Message}");
+            }
+        });
         SelectionnerMenuCommand = new RelayCommand(p =>
         {
             var menu = ConvertMenuParameter(p);
@@ -163,6 +189,9 @@ public class MainViewModel : INotifyPropertyChanged
             _ => PeutMod() && PeriodeSelectionneePourPaie != null && !PeriodeSelectionneePourPaie.Cloturee);
         VoirBulletinCalculPaieCommand = new RelayCommand(_ => { if (BulletinSelectionnePourCalculPaie != null) OnVoirBulletin?.Invoke(BulletinSelectionnePourCalculPaie); }, _ => BulletinSelectionnePourCalculPaie != null);
         TelechargerBulletinCalculPaieCommand = new RelayCommand(_ => { if (BulletinSelectionnePourCalculPaie != null) OnTelechargerBulletin?.Invoke(BulletinSelectionnePourCalculPaie); }, _ => BulletinSelectionnePourCalculPaie != null);
+        ExporterFeuilleBulletinsPeriodeCommand = new RelayCommand(
+            _ => OnTelechargerTousBulletins?.Invoke(BulletinsPeriodeCalculPaie.ToList()),
+            _ => BulletinsPeriodeCalculPaie.Count > 0);
         ExportDeclarationCnssCommand = new RelayCommand(_ => ExporterDeclarationCnss());
         ExportDeclarationIprCommand = new RelayCommand(_ => ExporterDeclarationIpr());
         ExportDeclarationCnssExcelCommand = new RelayCommand(_ => OnExporterDeclarationCnssExcel?.Invoke(PeriodeSelectionneePourDeclarations!.Id), _ => PeriodeSelectionneePourDeclarations != null);
@@ -259,6 +288,7 @@ public class MainViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<Employe> Employes { get; }
+    public ObservableCollection<Employe> SuggestionsEmployes { get; }
     public ObservableCollection<Entreprise> EntreprisesDisponibles { get; } = new();
 
     public string EntrepriseCouranteLibelle
@@ -351,7 +381,7 @@ public class MainViewModel : INotifyPropertyChanged
         set { _dernierMoisTraite = value ?? ""; OnPropertyChanged(); }
     }
 
-    /// <summary>Recherche dans la liste des employés (matricule, nom, prénom, département).</summary>
+    /// <summary>Recherche intelligente dans la liste des employés.</summary>
     public string FiltreEmployes
     {
         get => _filtreEmployes;
@@ -359,9 +389,36 @@ public class MainViewModel : INotifyPropertyChanged
         {
             if (_filtreEmployes == value) return;
             _filtreEmployes = value ?? "";
+            if (!_applicationSuggestionEmploye)
+                _masquerSuggestionsEmployes = false;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(AfficherEffacerFiltreEmployes));
+            MettreAJourSuggestionsEmployes();
             _filtreEmployesTimer.Stop();
             _filtreEmployesTimer.Start();
+            (EffacerFiltreEmployesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
+    }
+
+    public bool AfficherSuggestionsEmployes =>
+        !_masquerSuggestionsEmployes
+        && !string.IsNullOrWhiteSpace(FiltreEmployes)
+        && SuggestionsEmployes.Count > 0;
+
+    public bool AfficherEffacerFiltreEmployes => !string.IsNullOrWhiteSpace(FiltreEmployes);
+
+    public string FiltreEmployesResultatLibelle
+    {
+        get
+        {
+            var total = _tousEmployes.Count;
+            var affiches = Employes.Count;
+            if (string.IsNullOrWhiteSpace(FiltreEmployes))
+                return total == 0 ? "Aucun employé enregistré" : $"{total} employé(s) affiché(s)";
+            var q = FiltreEmployes.Trim();
+            return affiches == 0
+                ? $"Aucun résultat pour « {q} »"
+                : $"{affiches} résultat(s) sur {total} pour « {q} »";
         }
     }
 
@@ -398,19 +455,19 @@ public class MainViewModel : INotifyPropertyChanged
     public int NbEmployes
     {
         get => _nbEmployes;
-        set { _nbEmployes = value; OnPropertyChanged(); }
+        set { _nbEmployes = value; OnPropertyChanged(); NotifierLibellesDashboard(); }
     }
 
     public decimal TotalMasseSalariale
     {
         get => _totalMasseSalariale;
-        set { _totalMasseSalariale = value; OnPropertyChanged(); }
+        set { _totalMasseSalariale = value; OnPropertyChanged(); NotifierLibellesDashboard(); }
     }
 
     public decimal TotalIprAPayer
     {
         get => _totalIprAPayer;
-        set { _totalIprAPayer = value; OnPropertyChanged(); }
+        set { _totalIprAPayer = value; OnPropertyChanged(); NotifierLibellesDashboard(); }
     }
 
     /// <summary>0=Tableau de bord, 1=Pointage, 2=Totaux heures paie, 3=Employés, 4=Calcul paie, 5=Déclarations, 6=Paramètres, 7=Bulletins, 8=Rapport.</summary>
@@ -447,6 +504,13 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>Libellé de la prochaine action sur le tableau de bord.</summary>
+    public string ProchaineEtapeLibelle =>
+        ChecklistMoisPaie.FirstOrDefault(x => x.EstProchaineEtape)?.Libelle
+        ?? (ChecklistMoisPaie.Count > 0 && ChecklistMoisPaie.All(x => x.EstTermine)
+            ? "Mois de paie terminé"
+            : "Commencer le parcours");
+
     public int ChecklistEtapesRestantes =>
         ChecklistMoisPaie.Count(x => !x.EstTermine);
 
@@ -482,14 +546,52 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    /// <summary>Login ou nom court pour la barre latérale.</summary>
+    public string NomUtilisateurCourt
+    {
+        get
+        {
+            if (!AuthService.EstConnecte || AuthService.UtilisateurCourant == null) return "";
+            var u = AuthService.UtilisateurCourant;
+            return string.IsNullOrWhiteSpace(u.NomComplet) ? u.Login : u.NomComplet;
+        }
+    }
+
+    /// <summary>Rôle affiché sous le nom (barre latérale).</summary>
+    public string RoleUtilisateurLibelle =>
+        AuthService.EstConnecte && AuthService.UtilisateurCourant != null
+            ? AuthService.UtilisateurCourant.Role
+            : "";
+
+    /// <summary>Initiales pour l'avatar (barre latérale).</summary>
+    public string InitialesUtilisateurConnecte
+    {
+        get
+        {
+            if (!AuthService.EstConnecte || AuthService.UtilisateurCourant == null) return "?";
+            var u = AuthService.UtilisateurCourant;
+            var source = string.IsNullOrWhiteSpace(u.NomComplet) ? u.Login : u.NomComplet;
+            var parts = source.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (parts.Length >= 2)
+                return $"{char.ToUpperInvariant(parts[0][0])}{char.ToUpperInvariant(parts[1][0])}";
+            return source.Length >= 2
+                ? source[..2].ToUpperInvariant()
+                : source.ToUpperInvariant();
+        }
+    }
+
     public ICommand NouvelEmployeCommand { get; }
     public ICommand ModifierEmployeCommand { get; }
     public ICommand SupprimerEmployeCommand { get; }
     public ICommand OuvrirContratsCommand { get; }
     public ICommand OuvrirAyantsDroitCommand { get; }
+    public ICommand OuvrirFicheEmployeCommand { get; }
+    public ICommand EffacerFiltreEmployesCommand { get; }
+    public ICommand SelectionnerSuggestionEmployeCommand { get; }
     public ICommand OuvrirPretsAvancesCommand { get; }
     public ICommand OuvrirPrimesIndemnitesCommand { get; }
     public ICommand OuvrirHeuresMoisEmployeCommand { get; }
+    public ICommand OuvrirAbsencesCongesEmployeCommand { get; }
     public ICommand OuvrirChampsComplementairesEmployeCommand { get; }
     public ICommand OuvrirFormulairesDynamiquesCommand { get; }
     public ICommand OuvrirChampsComplementairesEntrepriseCommand { get; }
@@ -499,6 +601,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand GenererBulletinCommand { get; }
     public ICommand VoirBulletinCalculPaieCommand { get; }
     public ICommand TelechargerBulletinCalculPaieCommand { get; }
+    public ICommand ExporterFeuilleBulletinsPeriodeCommand { get; }
     public ICommand ExportDeclarationCnssCommand { get; }
     public ICommand ExportDeclarationIprCommand { get; }
     public ICommand ExportDeclarationCnssExcelCommand { get; }
@@ -544,7 +647,14 @@ public class MainViewModel : INotifyPropertyChanged
     public decimal TauxChangeCdfParUsd
     {
         get => _tauxChangeCdfParUsd;
-        set { _tauxChangeCdfParUsd = value; OnPropertyChanged(); }
+        set
+        {
+            _tauxChangeCdfParUsd = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(DashboardTauxChangeAffiche));
+            OnPropertyChanged(nameof(DashboardTauxChangeLibelle));
+            NotifierLibellesDashboard();
+        }
     }
 
     /// <summary>Texte d'affichage de la dernière mise à jour du taux.</summary>
@@ -750,6 +860,66 @@ public class MainViewModel : INotifyPropertyChanged
 
     public string DashboardTauxPresenceAujourdhuiLibelle => $"{DashboardTauxPresenceAujourdhui:N1}%";
 
+    /// <summary>Date choisie pour les métriques de présence du tableau de bord.</summary>
+    public DateTime? DashboardDatePresence
+    {
+        get => _dashboardDatePresence;
+        set
+        {
+            var d = (value ?? DateTime.Today).Date;
+            if (_dashboardDatePresence == d) return;
+            _dashboardDatePresence = d;
+            OnPropertyChanged();
+            ChargerPulseOperationnelDuJour();
+        }
+    }
+
+    /// <summary>Période de paie utilisée pour IPR et taux affichés sur le tableau de bord.</summary>
+    public PeriodePaie? PeriodeSelectionneeDashboard
+    {
+        get => _periodeSelectionneeDashboard;
+        set
+        {
+            _periodeSelectionneeDashboard = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(DashboardTauxChangeAffiche));
+            OnPropertyChanged(nameof(DashboardTauxChangeLibelle));
+            OnPropertyChanged(nameof(DashboardTauxChangePeriodeLibelle));
+            NotifierLibellesDashboard();
+            ChargerStatistiques();
+        }
+    }
+
+    public decimal DashboardTauxChangeAffiche =>
+        PeriodeSelectionneeDashboard is { TauxChangeBudget: > 0 } p
+            ? p.TauxChangeBudget
+            : TauxChangeCdfParUsd;
+
+    public string DashboardEffectifLibelle =>
+        NbEmployes <= 1 ? $"{NbEmployes} salarié" : $"{NbEmployes} salariés";
+
+    public string DashboardEnveloppeUsdLibelle => $"{TotalMasseSalariale:N0} USD";
+
+    public string DashboardEnveloppeCdfLibelle =>
+        $"≈ {TotalMasseSalariale * DashboardTauxChangeAffiche:N0} CDF";
+
+    public string DashboardTauxChangeLibelle => $"{DashboardTauxChangeAffiche:N0} CDF / USD";
+
+    public string DashboardTauxChangePeriodeLibelle
+    {
+        get
+        {
+            if (PeriodeSelectionneeDashboard == null)
+                return "Taux global";
+            var mois = GetNomMois(PeriodeSelectionneeDashboard.Mois).ToLower(CultureInfo.GetCultureInfo("fr-FR"));
+            return $"Taux période ({mois} {PeriodeSelectionneeDashboard.Annee})";
+        }
+    }
+
+    public string DashboardIprLibelle => $"{TotalIprAPayer:N0} USD";
+
+    public ICommand RafraichirTableauDeBordCommand { get; }
+
     public ICommand EnregistrerTauxChangeGlobalCommand { get; }
     public Action<string>? OnMessageZkSettings { get; set; }
     public Action<string>? OnErreurZkSettings { get; set; }
@@ -840,9 +1010,11 @@ public class MainViewModel : INotifyPropertyChanged
         (SupprimerEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (OuvrirContratsCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (OuvrirAyantsDroitCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (OuvrirFicheEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (OuvrirPretsAvancesCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (OuvrirPrimesIndemnitesCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (OuvrirHeuresMoisEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (OuvrirAbsencesCongesEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
     private void NotifierExportsDeclarationsCanExecute()
@@ -880,6 +1052,9 @@ public class MainViewModel : INotifyPropertyChanged
     {
         _tousEmployes.Clear();
         Employes.Clear();
+        SuggestionsEmployes.Clear();
+        _masquerSuggestionsEmployes = false;
+        OnPropertyChanged(nameof(AfficherSuggestionsEmployes));
         PeriodesPaie.Clear();
         BulletinsPeriode.Clear();
         BulletinsPeriodeCalculPaie.Clear();
@@ -953,8 +1128,13 @@ public class MainViewModel : INotifyPropertyChanged
         }
 
         var tauxCdfUsd = ParametresApplicationHelper.GetTauxCdfParUsd(_db);
+        var entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(_db);
+        var politiquePaie = new PolitiquePaieService(_db).Charger(entrepriseId);
         foreach (var e in _tousEmployes)
         {
+            e.JoursReferencePaie = politiquePaie.JoursReferencePaie;
+            e.HeuresParJour = politiquePaie.HeuresParJour;
+
             if (!contratsParEmploye.TryGetValue(e.Id, out var c))
             {
                 e.SalaireMensuelUsd = e.SalaireMensuelCdf = 0m;
@@ -981,23 +1161,61 @@ public class MainViewModel : INotifyPropertyChanged
 
     private void ApplyFiltreEmployes()
     {
-        var filtre = (FiltreEmployes ?? "").Trim().ToLowerInvariant();
-        IEnumerable<Employe> source = _tousEmployes;
-        if (!string.IsNullOrEmpty(filtre))
-        {
-            source = _tousEmployes.Where(e =>
-            {
-                var nomComplet = $"{e.Nom} {e.Postnom} {e.Prenom}".Trim().ToLowerInvariant();
-                var dept = e.Departement?.NomDepartement?.ToLowerInvariant() ?? "";
-                return (e.Matricule?.ToLowerInvariant().Contains(filtre) == true) ||
-                       nomComplet.Contains(filtre) ||
-                       dept.Contains(filtre);
-            });
-        }
+        var filtrés = RechercheEmployeHelper.Filtrer(_tousEmployes, FiltreEmployes).ToList();
 
         Employes.Clear();
-        foreach (var e in source)
+        foreach (var e in filtrés)
             Employes.Add(e);
+
+        if (EmployeSelectionne != null && !filtrés.Any(e => e.Id == EmployeSelectionne.Id))
+            EmployeSelectionne = filtrés.FirstOrDefault();
+
+        OnPropertyChanged(nameof(FiltreEmployesResultatLibelle));
+        (EffacerFiltreEmployesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        MettreAJourSuggestionsEmployes();
+    }
+
+    private void MettreAJourSuggestionsEmployes()
+    {
+        SuggestionsEmployes.Clear();
+        if (!_masquerSuggestionsEmployes && !string.IsNullOrWhiteSpace(FiltreEmployes))
+        {
+            foreach (var e in RechercheEmployeHelper.Suggerer(_tousEmployes, FiltreEmployes))
+                SuggestionsEmployes.Add(e);
+        }
+
+        OnPropertyChanged(nameof(AfficherSuggestionsEmployes));
+    }
+
+    private void EffacerFiltreEmployes()
+    {
+        _masquerSuggestionsEmployes = false;
+        FiltreEmployes = "";
+    }
+
+    private void AppliquerSuggestionEmploye(Employe? employe)
+    {
+        if (employe == null) return;
+
+        _applicationSuggestionEmploye = true;
+        _masquerSuggestionsEmployes = true;
+        try
+        {
+            _filtreEmployes = employe.Matricule;
+            OnPropertyChanged(nameof(FiltreEmployes));
+            OnPropertyChanged(nameof(AfficherEffacerFiltreEmployes));
+            _filtreEmployesTimer.Stop();
+            ApplyFiltreEmployes();
+            EmployeSelectionne = employe;
+        }
+        finally
+        {
+            _applicationSuggestionEmploye = false;
+        }
+
+        SuggestionsEmployes.Clear();
+        OnPropertyChanged(nameof(AfficherSuggestionsEmployes));
+        (EffacerFiltreEmployesCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
     public void ChargerPeriodes()
@@ -1005,6 +1223,31 @@ public class MainViewModel : INotifyPropertyChanged
         PeriodesPaie.Clear();
         foreach (var p in _db.PeriodesPaie.AsNoTracking().OrderByDescending(p => p.Annee).ThenByDescending(p => p.Mois))
             PeriodesPaie.Add(p);
+        SelectionnerPeriodeDashboardCourante();
+    }
+
+    private void SelectionnerPeriodeDashboardCourante()
+    {
+        if (PeriodeSelectionneeDashboard != null
+            && PeriodesPaie.Any(p => p.Id == PeriodeSelectionneeDashboard.Id))
+            return;
+
+        var aujourd = DateTime.Today;
+        var courante = PeriodesPaie.FirstOrDefault(p => p.Mois == aujourd.Month && p.Annee == aujourd.Year)
+                       ?? PeriodesPaie.FirstOrDefault();
+        if (courante != null)
+            PeriodeSelectionneeDashboard = courante;
+    }
+
+    private void NotifierLibellesDashboard()
+    {
+        OnPropertyChanged(nameof(DashboardEffectifLibelle));
+        OnPropertyChanged(nameof(DashboardEnveloppeUsdLibelle));
+        OnPropertyChanged(nameof(DashboardEnveloppeCdfLibelle));
+        OnPropertyChanged(nameof(DashboardTauxChangeAffiche));
+        OnPropertyChanged(nameof(DashboardTauxChangeLibelle));
+        OnPropertyChanged(nameof(DashboardTauxChangePeriodeLibelle));
+        OnPropertyChanged(nameof(DashboardIprLibelle));
     }
 
     /// <summary>En Calcul de paie, sélectionne la première période si aucune n'est choisie.</summary>
@@ -1027,14 +1270,28 @@ public class MainViewModel : INotifyPropertyChanged
             .Where(c => idsEmployes.Contains(c.EmployeId) && (c.DateFin == null || c.DateFin >= DateTime.Today))
             .ToList();
         TotalMasseSalariale = contratsActifs.Sum(c => c.SalaireBase);
-        var aujourd = DateTime.Today;
-        var bulletinsMois = _db.BulletinsPaie
-            .AsNoTracking()
-            .Where(b => idsEmployes.Contains(b.EmployeId) &&
-                        b.PeriodePaie != null &&
-                        b.PeriodePaie.Mois == aujourd.Month &&
-                        b.PeriodePaie.Annee == aujourd.Year)
-            .ToList();
+
+        var periode = PeriodeSelectionneeDashboard;
+        List<BulletinPaie> bulletinsMois;
+        if (periode != null)
+        {
+            bulletinsMois = _db.BulletinsPaie
+                .AsNoTracking()
+                .Where(b => idsEmployes.Contains(b.EmployeId) && b.PeriodePaieId == periode.Id)
+                .ToList();
+        }
+        else
+        {
+            var aujourd = DateTime.Today;
+            bulletinsMois = _db.BulletinsPaie
+                .AsNoTracking()
+                .Where(b => idsEmployes.Contains(b.EmployeId) &&
+                            b.PeriodePaie != null &&
+                            b.PeriodePaie.Mois == aujourd.Month &&
+                            b.PeriodePaie.Annee == aujourd.Year)
+                .ToList();
+        }
+
         TotalIprAPayer = bulletinsMois.Sum(b => b.MontantIprNet);
     }
 
@@ -1045,6 +1302,9 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(PeutModifierDonnees));
         OnPropertyChanged(nameof(AfficherBandeauLectureSeule));
         OnPropertyChanged(nameof(NomUtilisateurConnecte));
+        OnPropertyChanged(nameof(NomUtilisateurCourt));
+        OnPropertyChanged(nameof(RoleUtilisateurLibelle));
+        OnPropertyChanged(nameof(InitialesUtilisateurConnecte));
 
         AppSessionEvents.NotifierSessionUtilisateurChanged();
 
@@ -1079,6 +1339,9 @@ public class MainViewModel : INotifyPropertyChanged
     /// <summary>Charge les données du tableau de bord : situation paie du mois et cumulée depuis le début de l'année.</summary>
     public void ChargerTableauDeBord()
     {
+        ChargerTauxChangeDepuisDb();
+        SelectionnerPeriodeDashboardCourante();
+        ChargerStatistiques();
         DashboardMois.Clear();
         var anneeCourante = DateTime.Today.Year;
 
@@ -1120,8 +1383,8 @@ public class MainViewModel : INotifyPropertyChanged
     /// <summary>Métriques opérationnelles du jour pour le tableau de bord.</summary>
     private void ChargerPulseOperationnelDuJour()
     {
-        var aujourdHui = DateTime.Today;
-        DashboardDateDuJour = aujourdHui.ToString("dddd dd MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR"));
+        var jour = (_dashboardDatePresence ?? DateTime.Today).Date;
+        DashboardDateDuJour = jour.ToString("dddd dd MMMM yyyy", CultureInfo.GetCultureInfo("fr-FR"));
 
         var effectif = ContexteEntrepriseService.EmployesEntrepriseCourante(_db).AsNoTracking().Count();
         if (effectif <= 0)
@@ -1138,7 +1401,7 @@ public class MainViewModel : INotifyPropertyChanged
         var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
         var suivisDuJour = _db.SuivisJournaliers
             .AsNoTracking()
-            .Where(s => s.Date.Date == aujourdHui && !string.IsNullOrEmpty(s.PointagesJson) && s.PointagesJson != "[]")
+            .Where(s => s.Date.Date == jour && !string.IsNullOrEmpty(s.PointagesJson) && s.PointagesJson != "[]")
             .Select(s => new { s.EmployeId, s.PointagesJson })
             .ToList();
 
@@ -1149,7 +1412,7 @@ public class MainViewModel : INotifyPropertyChanged
 
         foreach (var suivi in suivisDuJour)
         {
-            var pointages = PointagesJournalierSerializer.Deserialiser(suivi.PointagesJson, aujourdHui)
+            var pointages = PointagesJournalierSerializer.Deserialiser(suivi.PointagesJson, jour)
                 .Select(p => p.Kind == DateTimeKind.Utc ? p.ToLocalTime() : DateTime.SpecifyKind(p, DateTimeKind.Local))
                 .OrderBy(p => p)
                 .ToList();
@@ -1402,7 +1665,11 @@ public class MainViewModel : INotifyPropertyChanged
     {
         BulletinsPeriodeCalculPaie.Clear();
         BulletinSelectionnePourCalculPaie = null;
-        if (PeriodeSelectionneePourPaie is null) return;
+        if (PeriodeSelectionneePourPaie is null)
+        {
+            (ExporterFeuilleBulletinsPeriodeCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            return;
+        }
         var bulletins = _db.BulletinsPaie
             .AsNoTracking()
             .Include(b => b.Employe)
@@ -1412,6 +1679,7 @@ public class MainViewModel : INotifyPropertyChanged
             .ToList();
         foreach (var b in bulletins)
             BulletinsPeriodeCalculPaie.Add(b);
+        (ExporterFeuilleBulletinsPeriodeCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
     /// <summary>Recharge la liste complète des bulletins (onglet Bulletins générés).</summary>
@@ -1618,9 +1886,12 @@ public class MainViewModel : INotifyPropertyChanged
     /// <summary>Ouvrir la fenêtre des ayants droit pour l'employé dont l'id est passé.</summary>
     public Action<int>? OnOuvrirAyantsDroit { get; set; }
 
+    public Action? OnOuvrirFicheEmploye { get; set; }
+
     public Action<int>? OnOuvrirPretsAvances { get; set; }
     public Action<int>? OnOuvrirPrimesIndemnites { get; set; }
     public Action<int>? OnOuvrirHeuresMoisEmploye { get; set; }
+    public Action<int>? OnOuvrirAbsencesCongesEmploye { get; set; }
     public Action? OnOuvrirChampsComplementairesEmploye { get; set; }
     public Action? OnOuvrirFormulairesDynamiques { get; set; }
     public Action? OnOuvrirChampsComplementairesEntreprise { get; set; }
@@ -1805,6 +2076,7 @@ public class MainViewModel : INotifyPropertyChanged
             EmployeSelectionne = null;
             ChargerEmployes();
             ChargerStatistiques();
+            UiFeedback.Succes("Employé supprimé.");
         }
         catch (Exception ex)
         {
@@ -2120,8 +2392,12 @@ public class MainViewModel : INotifyPropertyChanged
 
         try
         {
-            var service = new CalculPaieService(_db);
-            var (generes, erreurs) = service.GenererBulletinsPourTous(PeriodeSelectionneePourPaie.Id);
+            using var calcDb = new PaieDbContext();
+            if (_entrepriseCouranteId > 0)
+                calcDb.SetTenant(_entrepriseCouranteId);
+
+            var service = new CalculPaieService(calcDb);
+            var (generes, dejaGeneres, eligibles, erreurs) = service.GenererBulletinsPourTous(PeriodeSelectionneePourPaie.Id);
 
             if (erreurs.Count > 0)
             {
@@ -2131,10 +2407,28 @@ public class MainViewModel : INotifyPropertyChanged
                         ? $"{generes} bulletin(s) généré(s). Erreurs pour certains employés :{Environment.NewLine}{msgErreurs}"
                         : $"Aucun bulletin généré. Erreurs :{Environment.NewLine}{msgErreurs}");
             }
+            else if (generes == 0)
+            {
+                if (eligibles == 0)
+                {
+                    OnErreurCalculPaie?.Invoke(
+                        "Aucun employé avec contrat actif sur cette période. Vérifiez les contrats (dates de début/fin) et la période sélectionnée.");
+                }
+                else if (dejaGeneres >= eligibles)
+                {
+                    OnErreurCalculPaie?.Invoke(
+                        $"Tous les employés éligibles ({dejaGeneres}) ont déjà un bulletin pour cette période. Supprimez les bulletins existants (menu Bulletins générés) pour recalculer.");
+                }
+                else
+                {
+                    OnErreurCalculPaie?.Invoke("Aucun bulletin généré pour cette période.");
+                }
+            }
 
             if (generes > 0)
             {
                 OnSuccessCalculPaie?.Invoke($"{generes} bulletin(s) généré(s) pour la période {PeriodeSelectionneePourPaie.Mois:D2}/{PeriodeSelectionneePourPaie.Annee}.");
+                _db.ChangeTracker.Clear();
                 ChargerBulletinsPeriodeCalculPaie();
                 ChargerTousBulletins();
                 if (PeriodeSelectionneePourRapport != null && PeriodeSelectionneePourRapport.Id == PeriodeSelectionneePourPaie.Id)
@@ -2248,6 +2542,7 @@ public class MainViewModel : INotifyPropertyChanged
             });
 
         OnPropertyChanged(nameof(MoisPaieProgression));
+        OnPropertyChanged(nameof(ProchaineEtapeLibelle));
         OnPropertyChanged(nameof(ChecklistEtapesRestantes));
         OnPropertyChanged(nameof(AfficherBadgeChecklist));
         OnPropertyChanged(nameof(BadgeChecklistLibelle));

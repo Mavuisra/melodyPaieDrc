@@ -69,7 +69,7 @@ public class DeclarationsService
         foreach (var b in resume.Bulletins.OrderBy(x => x.Employe?.Matricule))
         {
             var salaireBrut = b.TotalGainImposable + b.TotalGainNonImposable;
-            var baseCnss = GetBaseCnss(b);
+            var baseCnss = BulletinCnssBaseResolver.ObtenirBaseCnss(b);
             var cotisations = _cotisationsService.Calculer(baseCnss);
             var nomComplet = $"{b.Employe?.Nom} {b.Employe?.Postnom} {b.Employe?.Prenom}".Trim();
             sb.AppendLine($"{b.Employe?.Matricule}{sep}{nomComplet}{sep}{salaireBrut:N2}{sep}{b.CotisationCnssOuvrier:N2}{sep}{cotisations.CnssPatronal:N2}");
@@ -130,7 +130,7 @@ public class DeclarationsService
         foreach (var b in resume.Bulletins.OrderBy(x => x.Employe?.Matricule))
         {
             var salaireBrut = b.TotalGainImposable + b.TotalGainNonImposable;
-            var baseCnss = GetBaseCnss(b);
+            var baseCnss = BulletinCnssBaseResolver.ObtenirBaseCnss(b);
             var cotisations = _cotisationsService.Calculer(baseCnss);
             var nomComplet = $"{b.Employe?.Nom} {b.Employe?.Postnom} {b.Employe?.Prenom}".Trim();
             ws.Cell(row, 1).Value = b.Employe?.Matricule ?? "";
@@ -204,19 +204,6 @@ public class DeclarationsService
 
         ws.Columns().AdjustToContents();
         workbook.SaveAs(cheminFichier);
-    }
-
-    private static decimal GetBaseCnss(BulletinPaie bulletin)
-    {
-        if (bulletin.Details != null)
-        {
-            var ligneCnss = bulletin.Details
-                .FirstOrDefault(d => string.Equals(d.Libelle, "CNSS (part ouvrière)", StringComparison.OrdinalIgnoreCase));
-            if (ligneCnss != null && ligneCnss.BaseCalcul > 0)
-                return ligneCnss.BaseCalcul;
-        }
-
-        return bulletin.TotalGainImposable + bulletin.TotalGainNonImposable;
     }
 }
 

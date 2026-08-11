@@ -14,6 +14,7 @@ public static class SchemaSqliteApplicatorExtensible
         AjouterColonnesMultiEntreprise(db);
         AjouterColonnesPrimesEtSync(db);
         AjouterColonnesExportsPaie(db);
+        MettreAJourLibellesRubriquesParDefaut(db);
     }
 
     private static void CreerTablesExtensibles(DbContext db)
@@ -137,6 +138,21 @@ public static class SchemaSqliteApplicatorExtensible
         AjouterColonne(db, "BulletinsPaie", "UpdatedAtUtc", "TEXT");
         AjouterColonne(db, "ParametresApplication", "ForcerAssistantProchainDemarrage", "INTEGER NOT NULL DEFAULT 0");
         AjouterColonne(db, "ParametresApplication", "VersionParcoursDemarrage", "INTEGER NOT NULL DEFAULT 0");
+    }
+
+    /// <summary>Renomme les libellés par défaut sans écraser une personnalisation utilisateur.</summary>
+    private static void MettreAJourLibellesRubriquesParDefaut(DbContext db)
+    {
+        var conn = Ouvrir(db);
+        var columns = ListerColonnes(conn, "RubriquesBulletin");
+        if (columns.Count == 0)
+            return;
+
+        Executer(conn, @"
+            UPDATE ""RubriquesBulletin""
+            SET ""Libelle"" = 'Sanctions / retards'
+            WHERE ""Code"" = 'SANCTIONS_DISCIPLINAIRES'
+              AND ""Libelle"" = 'Sanctions disciplinaires'");
     }
 
     private static void AjouterColonne(DbContext db, string table, string column, string sqlType)

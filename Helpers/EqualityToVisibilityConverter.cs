@@ -13,12 +13,37 @@ public class MenuIndexEqualsConverter : IMultiValueConverter
     public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
     {
         if (values == null || values.Length < 2) return false;
-        var a = values[0] is int i ? i : (values[0] != null && int.TryParse(values[0].ToString(), out var i2) ? i2 : -1);
-        var b = values[1] != null && int.TryParse(values[1].ToString(), out var j) ? j : -2;
-        return a == b;
+
+        static int AsInt(object? v, CultureInfo cult, int fallback)
+        {
+            if (v is int i) return i;
+            if (v is string s && int.TryParse(s, NumberStyles.Integer, cult, out var parsed)) return parsed;
+            if (v != null && int.TryParse(v.ToString(), NumberStyles.Integer, cult, out parsed)) return parsed;
+            return fallback;
+        }
+
+        var selected = AsInt(values[0], culture, -1);
+        var tag = AsInt(values[1], culture, -2);
+        return selected == tag;
     }
 
     public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        => throw new NotImplementedException();
+}
+
+/// <summary>MenuSelectionne (int) vs ConverterParameter (index Tag) → bool pour SidebarNavHelper.IsActive.</summary>
+public class MenuIndexActiveConverter : IValueConverter
+{
+    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+    {
+        if (value is not int selected)
+            return false;
+        if (parameter is int tag)
+            return selected == tag;
+        return int.TryParse(parameter?.ToString(), NumberStyles.Integer, culture, out var parsed) && selected == parsed;
+    }
+
+    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
         => throw new NotImplementedException();
 }
 

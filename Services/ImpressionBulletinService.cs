@@ -5,6 +5,7 @@ using System.Windows.Documents;
 using System.Windows.Markup;
 using System.Windows.Media;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -36,6 +37,13 @@ public static class ImpressionBulletinService
         var printDialog = new PrintDialog();
         if (printDialog.ShowDialog() != true) return false;
 
+        // Format A5 (148 × 210 mm) pour l'impression bulletin.
+        const double a5WidthMm = 148.0;
+        const double a5HeightMm = 210.0;
+        printDialog.PrintTicket.PageMediaSize = new System.Printing.PageMediaSize(
+            a5WidthMm / 25.4 * 96.0,
+            a5HeightMm / 25.4 * 96.0);
+
         var paginator = ((IDocumentPaginatorSource)doc).DocumentPaginator;
         printDialog.PrintDocument(paginator, $"Bulletin de paie {b.NumeroBulletin ?? b.Id.ToString()}");
         return true;
@@ -45,9 +53,11 @@ public static class ImpressionBulletinService
     {
         var doc = new FlowDocument
         {
-            PagePadding = new Thickness(40),
+            PagePadding = new Thickness(28),
             FontFamily = new FontFamily("Segoe UI"),
-            FontSize = 11
+            FontSize = 9,
+            PageWidth = 148.0 / 25.4 * 96.0,
+            PageHeight = 210.0 / 25.4 * 96.0
         };
 
         var nomComplet = $"{b.Employe?.Nom} {b.Employe?.Postnom} {b.Employe?.Prenom}".Trim();
@@ -86,7 +96,7 @@ public static class ImpressionBulletinService
         table.RowGroups.Add(new TableRowGroup());
         table.RowGroups[0].Rows.Add(headerRow);
 
-        foreach (var d in b.Details.OrderBy(x => x.Id))
+        foreach (var d in (b.Details ?? Enumerable.Empty<BulletinDetail>()).OrderBy(x => x.Id))
         {
             var row = new TableRow();
             row.Cells.Add(Cell(d.Libelle));
@@ -100,16 +110,38 @@ public static class ImpressionBulletinService
         doc.Blocks.Add(table);
         doc.Blocks.Add(new Paragraph());
 
-        // Net à payer
+        var synthese = BulletinSyntheseHelper.Construire(b);
+        var pSyn = new Paragraph(new Run("SYNTHÈSE DE PAIE")) { FontSize = 12, FontWeight = FontWeights.Bold };
+        doc.Blocks.Add(pSyn);
+        AjouterLigneSynthese(doc, "Montant total (brut)", synthese.MontantTotal, true);
+        AjouterLigneSynthese(doc, "Quinzaine / acomptes", synthese.Quinzaine);
+        AjouterLigneSynthese(doc, "Prêt / avances", synthese.Pret);
+        AjouterLigneSynthese(doc, "Retenue (CNSS + INPP)", synthese.RetenueSociale);
+        AjouterLigneSynthese(doc, "Impôt (IPR net)", synthese.Impot);
+        if (synthese.Sanctions > 0) AjouterLigneSynthese(doc, "Sanctions / retards", synthese.Sanctions);
+        if (synthese.AutresRetenues > 0) AjouterLigneSynthese(doc, "Autres retenues", synthese.AutresRetenues);
+        doc.Blocks.Add(new Paragraph(new Run(synthese.FormuleSolde)) { FontSize = 8, Foreground = Brushes.Gray });
+        doc.Blocks.Add(new Paragraph());
+
+        // Solde à payer
         var pNet = new Paragraph();
-        pNet.Inlines.Add(new Run($"Net à payer (USD) : ") { FontWeight = FontWeights.Bold });
-        pNet.Inlines.Add(new Run(b.NetAPayer.ToString("N2")) { FontWeight = FontWeights.Bold });
+        pNet.Inlines.Add(new Run($"Solde à payer : ") { FontWeight = FontWeights.Bold });
+        pNet.Inlines.Add(new Run(synthese.Solde.ToString("N2")) { FontWeight = FontWeights.Bold, FontSize = 14 });
         doc.Blocks.Add(pNet);
-        doc.Blocks.Add(new Paragraph(new Run($"Net en devise locale : {b.NetAPayerDeviseLocale:N2}")));
+        if (Math.Abs(b.NetAPayer - b.NetAPayerDeviseLocale) > 0.01m)
+            doc.Blocks.Add(new Paragraph(new Run($"Net en devise locale : {b.NetAPayerDeviseLocale:N2}")));
         doc.Blocks.Add(new Paragraph());
         doc.Blocks.Add(new Paragraph(new Run("Signature employeur ___________________    Signature employé ___________________")) { FontSize = 9 });
 
         return doc;
+    }
+
+    private static void AjouterLigneSynthese(FlowDocument doc, string libelle, decimal montant, bool bold = false)
+    {
+        var p = new Paragraph();
+        p.Inlines.Add(new Run($"{libelle} : ") { FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal });
+        p.Inlines.Add(new Run(montant.ToString("N2")) { FontWeight = bold ? FontWeights.SemiBold : FontWeights.Normal });
+        doc.Blocks.Add(p);
     }
 
     private static TableCell Cell(string text)

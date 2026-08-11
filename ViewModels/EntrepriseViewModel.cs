@@ -101,7 +101,7 @@ public class EntrepriseViewModel : INotifyPropertyChanged
             SiteWeb = ent.SiteWeb;
             NumeroAffiliationCnss = ent.NumeroAffiliationCnss;
             Logo = ent.Logo;
-            CouleurPrincipale = string.IsNullOrWhiteSpace(ent.CouleurPrincipale) ? "#1E3A5F" : ent.CouleurPrincipale;
+            CouleurPrincipale = string.IsNullOrWhiteSpace(ent.CouleurPrincipale) ? "#047857" : ent.CouleurPrincipale;
             CouleurSecondaire = ent.CouleurSecondaire;
         }
         else
@@ -119,7 +119,7 @@ public class EntrepriseViewModel : INotifyPropertyChanged
             SiteWeb = null;
             NumeroAffiliationCnss = null;
             Logo = null;
-            CouleurPrincipale = "#1E3A5F";
+            CouleurPrincipale = "#047857";
             CouleurSecondaire = null;
         }
     }
@@ -187,7 +187,7 @@ public class EntrepriseViewModel : INotifyPropertyChanged
                 ent.SiteWeb = string.IsNullOrWhiteSpace(SiteWeb) ? null : SiteWeb.Trim();
                 ent.NumeroAffiliationCnss = string.IsNullOrWhiteSpace(NumeroAffiliationCnss) ? null : NumeroAffiliationCnss.Trim();
                 ent.Logo = string.IsNullOrWhiteSpace(Logo) ? null : Logo.Trim();
-                ent.CouleurPrincipale = NormaliserCouleurHex(CouleurPrincipale) ?? "#1E3A5F";
+                ent.CouleurPrincipale = NormaliserCouleurHex(CouleurPrincipale) ?? "#047857";
                 ent.CouleurSecondaire = NormaliserCouleurHex(CouleurSecondaire);
             }
             else
@@ -206,7 +206,7 @@ public class EntrepriseViewModel : INotifyPropertyChanged
                     SiteWeb = string.IsNullOrWhiteSpace(SiteWeb) ? null : SiteWeb.Trim(),
                     NumeroAffiliationCnss = string.IsNullOrWhiteSpace(NumeroAffiliationCnss) ? null : NumeroAffiliationCnss.Trim(),
                     Logo = string.IsNullOrWhiteSpace(Logo) ? null : Logo.Trim(),
-                    CouleurPrincipale = NormaliserCouleurHex(CouleurPrincipale) ?? "#1E3A5F",
+                    CouleurPrincipale = NormaliserCouleurHex(CouleurPrincipale) ?? "#047857",
                     CouleurSecondaire = NormaliserCouleurHex(CouleurSecondaire)
                 };
                 _db.Entreprises.Add(ent);
@@ -218,6 +218,7 @@ public class EntrepriseViewModel : INotifyPropertyChanged
 
             OnEnregistre?.Invoke();
             AppSessionEvents.NotifierEntrepriseCouranteChanged();
+            UiFeedback.Succes("Informations entreprise enregistrées.");
         }
         catch (Exception ex)
         {

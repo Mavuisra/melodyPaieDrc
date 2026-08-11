@@ -15,7 +15,7 @@ public class AbsencesCongesViewModel : INotifyPropertyChanged
     private readonly int _employeId;
     private AbsenceConge? _selectionne;
 
-    private string _type = "Annuel";
+    private string _type = "Congé annuel";
     private DateTime _dateDebut = DateTime.Today;
     private DateTime _dateFin = DateTime.Today;
     private bool _estPaye = true;
@@ -118,17 +118,20 @@ public class AbsencesCongesViewModel : INotifyPropertyChanged
 
         try
         {
-            _db.AbsencesConges.Add(new AbsenceConge
+            var absence = new AbsenceConge
             {
                 EmployeId = _employeId,
                 Type = Type.Trim(),
                 DateDebut = DateDebut,
                 DateFin = DateFin,
                 EstPaye = EstPaye
-            });
+            };
+            _db.AbsencesConges.Add(absence);
             _db.SaveChanges();
+            AbsenceCongeSuiviSyncService.SynchroniserAbsence(_db, absence);
+            AppSessionEvents.NotifierDonneesMetierModifiees();
             Charger();
-            Type = "Annuel";
+            Type = "Congé annuel";
             DateDebut = DateTime.Today;
             DateFin = DateTime.Today;
             EstPaye = true;
@@ -136,6 +139,7 @@ public class AbsencesCongesViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(DateDebut));
             OnPropertyChanged(nameof(DateFin));
             OnPropertyChanged(nameof(EstPaye));
+            UiFeedback.Succes("Absence / congé enregistré(e).");
         }
         catch (Exception ex)
         {
@@ -151,9 +155,12 @@ public class AbsencesCongesViewModel : INotifyPropertyChanged
             var entite = _db.AbsencesConges.Find(Selectionne.Id);
             if (entite != null)
             {
+                AbsenceCongeSuiviSyncService.RetirerAbsence(_db, entite);
                 _db.AbsencesConges.Remove(entite);
                 _db.SaveChanges();
+                AppSessionEvents.NotifierDonneesMetierModifiees();
                 Charger();
+                UiFeedback.Succes("Absence / congé supprimé(e).");
             }
         }
         catch (Exception ex)

@@ -39,6 +39,9 @@ public sealed class PaieExportContextFactory
         var entreprise = entrepriseId > 0
             ? _db.Entreprises.AsNoTracking().FirstOrDefault(e => e.Id == entrepriseId)
             : null;
+        var politique = new PolitiquePaieService(_db).Charger(entrepriseId);
+        var joursReferencePaie = politique.JoursReferencePaie;
+        var heuresParJour = politique.HeuresParJour;
 
         var employeIds = bulletins.Select(b => b.EmployeId).Distinct().ToList();
         var contrats = _db.Contrats
@@ -71,7 +74,7 @@ public sealed class PaieExportContextFactory
         {
             contrats.TryGetValue(b.EmployeId, out var contrat);
             saisies.TryGetValue(b.EmployeId, out var saisie);
-            var baseCnss = ObtenirBaseCnss(b);
+            var baseCnss = BulletinCnssBaseResolver.ObtenirBaseCnss(b);
             var cot = _cotisations.Calculer(baseCnss);
             var nbEnfants = b.Employe?.AyantsDroit?.Count(a =>
                 a.LienParente.Contains("enfant", StringComparison.OrdinalIgnoreCase)) ?? 0;
@@ -87,6 +90,8 @@ public sealed class PaieExportContextFactory
                 NbEnfants = nbEnfants,
                 HeuresTravailPeriode = heuresPeriode,
                 CommuneAffectation = b.Employe?.CommuneAffectation,
+                JoursReferencePaie = joursReferencePaie,
+                HeuresParJour = heuresParJour,
                 Cotisations = new CotisationsCalculees
                 {
                     BaseCnss = baseCnss,
@@ -100,15 +105,6 @@ public sealed class PaieExportContextFactory
         }
 
         return new PaieExportLot(periode, entreprise, contexts);
-    }
-
-    private static decimal ObtenirBaseCnss(BulletinPaie bulletin)
-    {
-        var ligne = bulletin.Details?.FirstOrDefault(d =>
-            d.Libelle.Contains("CNSS", StringComparison.OrdinalIgnoreCase) &&
-            d.Libelle.Contains("ouvr", StringComparison.OrdinalIgnoreCase));
-        if (ligne?.BaseCalcul > 0) return ligne.BaseCalcul;
-        return bulletin.TotalGainImposable + bulletin.TotalGainNonImposable;
     }
 }
 

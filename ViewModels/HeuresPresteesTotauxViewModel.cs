@@ -7,6 +7,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 using MelodyPaieRDC.Services;
 using Microsoft.EntityFrameworkCore;
@@ -16,19 +17,15 @@ namespace MelodyPaieRDC.ViewModels;
 /// <summary>Ligne du tableau des totaux d’heures pour un employé sur une période.</summary>
 public sealed class HeuresTotauxEmployeRow
 {
-    private const decimal HeuresParJourEquivalent = 8m;
+    public int EmployeId { get; init; }
     public string Matricule { get; init; } = "";
     public string NomComplet { get; init; } = "";
     public string? Departement { get; init; }
     public decimal TotalHeures { get; init; }
+    public decimal TotalJoursEquivalent { get; init; }
 
     public string TotalHeuresLibelle =>
         TotalHeures.ToString("N2", CultureInfo.CurrentCulture) + " h";
-
-    public decimal TotalJoursEquivalent =>
-        HeuresParJourEquivalent <= 0m
-            ? 0m
-            : decimal.Round(TotalHeures / HeuresParJourEquivalent, 2, MidpointRounding.AwayFromZero);
 
     public string TotalJoursEquivalentLibelle =>
         TotalJoursEquivalent.ToString("N2", CultureInfo.CurrentCulture) + " j";
@@ -55,11 +52,11 @@ public sealed class CalendrierJourCellVm
 public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
 {
     private static readonly CultureInfo Fr = new("fr-FR");
-    private const decimal HeuresParJourEquivalent = 8m;
 
     private readonly PaieDbContext _db;
     private PeriodePaie? _periodeSelectionnee;
     private decimal _totalGeneralHeures;
+    private decimal _totalGeneralJoursEquivalent;
     private Employe? _employeSelectionne;
     private int _moisCalendrier = DateTime.Today.Month;
     private int _anneeCalendrier = DateTime.Today.Year;
@@ -72,12 +69,20 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
     private ICommand? _enregistrerMomentsCommand;
     private ICommand? _enregistrerTypeJourCommand;
     private ICommand? _actualiserTotauxCommand;
+    private ICommand? _exporterRapportAgentCommand;
+    private ICommand? _exporterRapportQuinzainesCommand;
+    private ICommand? _exporterRapportMensuelCommand;
+    private ICommand? _exporterHeuresPeriodeCommand;
+    private ICommand? _exporterHeuresEmployeCommand;
+
+    private readonly HeuresPaieRapportService _rapportPaieService = new();
 
     public HeuresPresteesTotauxViewModel(PaieDbContext db)
     {
         _db = db;
         PeriodesPaie = new ObservableCollection<PeriodePaie>();
         Lignes = new ObservableCollection<HeuresTotauxEmployeRow>();
+        LignesSituationPaie = new ObservableCollection<SituationPaieAgentLigne>();
         Employes = new ObservableCollection<Employe>();
         CellulesCalendrier = new ObservableCollection<CalendrierJourCellVm>();
         LignesPointagesJour = new ObservableCollection<PointageAffichageLtDto>();
@@ -85,9 +90,27 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
         ChargerEmployes();
     }
 
+    public decimal HeuresParJourEquivalent
+    {
+        get
+        {
+            var entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(_db);
+            var h = new PolitiquePaieService(_db).Charger(entrepriseId).HeuresParJour;
+            return h > 0m ? h : SalaireReferenceHelper.HeuresDefaut;
+        }
+    }
+
+    public string JoursEquivalentAideLibelle =>
+        "Jours équivalents : heures ÷ nominal du jour (8 h lun.–ven., 5 h sam. si semaine 6 jours) — même formule que le calcul de paie.";
+
     public ObservableCollection<PeriodePaie> PeriodesPaie { get; }
 
     public ObservableCollection<HeuresTotauxEmployeRow> Lignes { get; }
+
+    public ObservableCollection<SituationPaieAgentLigne> LignesSituationPaie { get; }
+
+    /// <summary>Affiche la section rapports paie lorsqu'une période est active.</summary>
+    public bool AfficherSectionRapports => PeriodeSelectionnee != null && LignesSituationPaie.Count > 0;
 
     public ObservableCollection<Employe> Employes { get; }
 
@@ -102,9 +125,8 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
     /// <summary>Vue calendrier et détail jour lorsqu’un employé est choisi.</summary>
     public bool AfficherCalendrierEmploye => AfficherTableau && EmployeSelectionne != null;
 
-    /// <summary>Tableau récap tous employés (période) — masqué lorsqu’un jour est sélectionné dans le calendrier.</summary>
-    public bool AfficherTableauRecapEmployesPeriode =>
-        AfficherTableau && (EmployeSelectionne == null || !_dateSelectionnee.HasValue);
+    /// <summary>Tableau récap tous employés (période) — toujours visible lorsqu'une période est sélectionnée.</summary>
+    public bool AfficherTableauRecapEmployesPeriode => AfficherTableau;
 
     /// <summary>Tableau des pointages uniquement pour le jour sélectionné (employé obligatoire).</summary>
     public bool AfficherTableauPointagesJourSelectionne =>
@@ -114,17 +136,13 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
     {
         get
         {
-            if (!AfficherTableau)
+            if (!AfficherTableau || EmployeSelectionne == null || !_dateSelectionnee.HasValue)
                 return "";
-            if (EmployeSelectionne != null && _dateSelectionnee.HasValue)
-            {
-                var e = EmployeSelectionne;
-                var nom = $"{e.Nom} {e.Postnom} {e.Prenom}".Trim();
-                var d = _dateSelectionnee.Value;
-                return $"Pointages du {d.ToString("dddd d MMMM yyyy", Fr)} — {e.Matricule} · {nom}";
-            }
 
-            return "Totaux d’heures par employé (période de paie)";
+            var e = EmployeSelectionne;
+            var nom = $"{e.Nom} {e.Postnom} {e.Prenom}".Trim();
+            var d = _dateSelectionnee.Value;
+            return $"Pointages du {d.ToString("dddd d MMMM yyyy", Fr)} — {e.Matricule} · {nom}";
         }
     }
 
@@ -161,6 +179,9 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(TotalJoursMoisAfficheLibelle));
             ConstruireGrilleCalendrier();
             NotifyModeTableauBas();
+            (ExporterRapportAgentCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ExporterHeuresEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            OnPropertyChanged(nameof(SituationEmployeSelectionne));
         }
     }
 
@@ -200,8 +221,8 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
         get
         {
             if (EmployeSelectionne == null) return "—";
-            var t = SuiviJournalierPdfDataService.CalculerTotalHeuresPourEmploye(_db, EmployeSelectionne.Id, _moisCalendrier, _anneeCalendrier);
-            var j = HeuresParJourEquivalent <= 0m ? 0m : decimal.Round(t / HeuresParJourEquivalent, 2, MidpointRounding.AwayFromZero);
+            var j = SuiviJournalierPdfDataService.CalculerJoursEquivalentsPourEmploye(
+                _db, EmployeSelectionne.Id, _moisCalendrier, _anneeCalendrier);
             return j.ToString("N2", CultureInfo.CurrentCulture) + " j";
         }
     }
@@ -215,10 +236,17 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
     public string TotalGeneralHeuresLibelle =>
         TotalGeneralHeures.ToString("N2", CultureInfo.CurrentCulture) + " h";
 
-    public decimal TotalGeneralJoursEquivalent =>
-        HeuresParJourEquivalent <= 0m
-            ? 0m
-            : decimal.Round(TotalGeneralHeures / HeuresParJourEquivalent, 2, MidpointRounding.AwayFromZero);
+    public decimal TotalGeneralJoursEquivalent
+    {
+        get => _totalGeneralJoursEquivalent;
+        private set
+        {
+            if (_totalGeneralJoursEquivalent == value) return;
+            _totalGeneralJoursEquivalent = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(TotalGeneralJoursEquivalentLibelle));
+        }
+    }
 
     public string TotalGeneralJoursEquivalentLibelle =>
         TotalGeneralJoursEquivalent.ToString("N2", CultureInfo.CurrentCulture) + " j";
@@ -268,6 +296,37 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
 
     public ICommand ActualiserTotauxCommand =>
         _actualiserTotauxCommand ??= new RelayCommand(_ => RafraichirTotaux());
+
+    public ICommand ExporterRapportAgentCommand =>
+        _exporterRapportAgentCommand ??= new RelayCommand(
+            _ => OnDemandeExportRapportAgent?.Invoke(),
+            _ => EmployeSelectionne != null && PeriodeSelectionnee != null);
+
+    public ICommand ExporterRapportQuinzainesCommand =>
+        _exporterRapportQuinzainesCommand ??= new RelayCommand(
+            _ => OnDemandeExportRapportQuinzaines?.Invoke(),
+            _ => PeriodeSelectionnee != null && LignesSituationPaie.Count > 0);
+
+    public ICommand ExporterRapportMensuelCommand =>
+        _exporterRapportMensuelCommand ??= new RelayCommand(
+            _ => OnDemandeExportRapportMensuel?.Invoke(),
+            _ => PeriodeSelectionnee != null && LignesSituationPaie.Count > 0);
+
+    public ICommand ExporterHeuresPeriodeCommand =>
+        _exporterHeuresPeriodeCommand ??= new RelayCommand(
+            _ => OnDemandeExportHeuresPeriode?.Invoke(),
+            _ => PeriodeSelectionnee != null && Lignes.Count > 0);
+
+    public ICommand ExporterHeuresEmployeCommand =>
+        _exporterHeuresEmployeCommand ??= new RelayCommand(
+            _ => OnDemandeExportHeuresEmploye?.Invoke(),
+            _ => PeriodeSelectionnee != null && EmployeSelectionne != null);
+
+    public event Action? OnDemandeExportRapportAgent;
+    public event Action? OnDemandeExportRapportQuinzaines;
+    public event Action? OnDemandeExportRapportMensuel;
+    public event Action? OnDemandeExportHeuresPeriode;
+    public event Action? OnDemandeExportHeuresEmploye;
 
     public void ChargerPeriodes()
     {
@@ -496,6 +555,7 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
         ChargerTotaux();
         OnPropertyChanged(nameof(TotalHeuresMoisAfficheLibelle));
         OnPropertyChanged(nameof(TotalJoursMoisAfficheLibelle));
+        UiFeedback.Succes("Pointages du jour enregistrés.");
     }
 
     private void EnregistrerTypeJour()
@@ -527,9 +587,8 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
             sj.PointagesJson = null;
             sj.HeuresManuelles = false;
             sj.HeuresPrestees =
-                string.Equals(typeJour, SuiviJournalier.TypeMaladie, StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(typeJour, SuiviJournalier.TypeCongeCirconstance, StringComparison.OrdinalIgnoreCase)
-                    ? DeterminerHeuresNominalesJour(d)
+                SuiviJournalier.EstTypeJourSpecialPaye(typeJour)
+                    ? SuiviJournalierCalculPaieHelper.DeterminerHeuresNominalesJourDepuisDb(_db, d)
                     : 0m;
         }
         else if (!string.IsNullOrWhiteSpace(sj.PointagesJson))
@@ -551,33 +610,7 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
         ChargerTotaux();
         OnPropertyChanged(nameof(TotalHeuresMoisAfficheLibelle));
         OnPropertyChanged(nameof(TotalJoursMoisAfficheLibelle));
-    }
-
-    private decimal DeterminerHeuresNominalesJour(DateTime d)
-    {
-        var date = d.Date;
-        var calendrier = _db.JoursTravailCalendrier
-            .AsNoTracking()
-            .Where(j => j.DateJour.Date == date)
-            .FirstOrDefault();
-
-        if (calendrier != null)
-        {
-            if (string.Equals(calendrier.TypeJour, "Repos", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(calendrier.TypeJour, "Ferie", StringComparison.OrdinalIgnoreCase))
-                return 0m;
-
-            if (string.Equals(calendrier.TypeJour, "Ouvre", StringComparison.OrdinalIgnoreCase))
-                return date.DayOfWeek == DayOfWeek.Saturday
-                    ? LtServicesPointageCalcul.HeuresNormalesSamedi
-                    : LtServicesPointageCalcul.HeuresNormalesJourSemaine;
-        }
-
-        if (date.DayOfWeek == DayOfWeek.Sunday)
-            return 0m;
-        if (date.DayOfWeek == DayOfWeek.Saturday)
-            return 0m;
-        return LtServicesPointageCalcul.HeuresNormalesJourSemaine;
+        UiFeedback.Succes("Type de jour enregistré.");
     }
 
     private void ConstruireGrilleCalendrier()
@@ -641,6 +674,8 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
             return ("ABS", "#FEE2E2", "#B91C1C");
         if (string.Equals(type, SuiviJournalier.TypeMaladie, StringComparison.OrdinalIgnoreCase))
             return ("MAL", "#E0F2FE", "#0369A1");
+        if (string.Equals(type, SuiviJournalier.TypeCongeAnnuel, StringComparison.OrdinalIgnoreCase))
+            return ("ANNUEL", "#FEF3C7", "#92400E");
         if (string.Equals(type, SuiviJournalier.TypeCongeCirconstance, StringComparison.OrdinalIgnoreCase))
             return ("CONGE", "#DCFCE7", "#166534");
         if (string.Equals(type, SuiviJournalier.TypePreavis, StringComparison.OrdinalIgnoreCase))
@@ -653,12 +688,14 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
     {
         Lignes.Clear();
         TotalGeneralHeures = 0;
+        TotalGeneralJoursEquivalent = 0;
 
         if (PeriodeSelectionnee == null)
             return;
 
         var mois = PeriodeSelectionnee.Mois;
         var annee = PeriodeSelectionnee.Annee;
+        var (politique, debut, fin) = PeriodePaieHelper.ResoudrePeriode(_db, PeriodeSelectionnee);
 
         var employes = ContexteEntrepriseService.EmployesEntrepriseCourante(_db)
             .AsNoTracking()
@@ -666,24 +703,117 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
             .OrderBy(e => e.Matricule)
             .ToList();
 
-        decimal total = 0;
+        decimal totalHeures = 0;
+        decimal totalJours = 0;
         foreach (var e in employes)
         {
-            var h = SuiviJournalierPdfDataService.CalculerTotalHeuresPourEmploye(_db, e.Id, mois, annee);
-            total += h;
+            var totaux = SuiviJournalierCalculPaieHelper.CalculerTotauxPresenceEmploye(_db, e.Id, debut, fin, politique);
+            totalHeures += totaux.TotalHeures;
+            totalJours += totaux.JoursEquivalents;
             var nom = $"{e.Nom} {e.Postnom} {e.Prenom}".Trim();
             Lignes.Add(new HeuresTotauxEmployeRow
             {
+                EmployeId = e.Id,
                 Matricule = e.Matricule,
                 NomComplet = nom,
                 Departement = e.Departement?.NomDepartement,
-                TotalHeures = h
+                TotalHeures = totaux.TotalHeures,
+                TotalJoursEquivalent = totaux.JoursEquivalents
             });
         }
 
-        TotalGeneralHeures = total;
-        OnPropertyChanged(nameof(TotalGeneralJoursEquivalent));
-        OnPropertyChanged(nameof(TotalGeneralJoursEquivalentLibelle));
+        TotalGeneralHeures = totalHeures;
+        TotalGeneralJoursEquivalent = decimal.Round(totalJours, 2, MidpointRounding.AwayFromZero);
+        (ExporterHeuresPeriodeCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        ChargerSituationPaie();
+    }
+
+    private void ChargerSituationPaie()
+    {
+        LignesSituationPaie.Clear();
+        if (PeriodeSelectionnee == null)
+        {
+            OnPropertyChanged(nameof(AfficherSectionRapports));
+            (ExporterRapportQuinzainesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (ExporterRapportMensuelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            return;
+        }
+
+        foreach (var l in _rapportPaieService.ConstruireSituationPeriode(_db, PeriodeSelectionnee.Id))
+            LignesSituationPaie.Add(l);
+
+        OnPropertyChanged(nameof(AfficherSectionRapports));
+        (ExporterRapportQuinzainesCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (ExporterRapportMensuelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+    }
+
+    public SituationPaieAgentLigne? SituationEmployeSelectionne =>
+        EmployeSelectionne == null
+            ? null
+            : LignesSituationPaie.FirstOrDefault(l => l.EmployeId == EmployeSelectionne.Id);
+
+    public void ExporterRapportAgentPdf(string cheminFichier)
+    {
+        if (PeriodeSelectionnee == null || EmployeSelectionne == null)
+            throw new InvalidOperationException("Sélectionnez une période et un employé.");
+
+        var ligne = SituationEmployeSelectionne
+                    ?? _rapportPaieService.ConstruireSituationPeriode(_db, PeriodeSelectionnee.Id)
+                        .FirstOrDefault(l => l.EmployeId == EmployeSelectionne.Id)
+                    ?? throw new InvalidOperationException("Employé introuvable.");
+
+        new ExportPdfService().ExporterRapportAgentSituationPdf(
+            ligne, PeriodeSelectionnee.Mois, PeriodeSelectionnee.Annee, cheminFichier);
+    }
+
+    public void ExporterRapportQuinzainesPdf(string cheminFichier)
+    {
+        if (PeriodeSelectionnee == null || LignesSituationPaie.Count == 0)
+            throw new InvalidOperationException("Aucune donnée pour la période.");
+
+        new ExportPdfService().ExporterRapportQuinzainesPdf(
+            LignesSituationPaie.ToList(), PeriodeSelectionnee.Mois, PeriodeSelectionnee.Annee, cheminFichier);
+    }
+
+    public void ExporterRapportMensuelSalairesPdf(string cheminFichier)
+    {
+        if (PeriodeSelectionnee == null || LignesSituationPaie.Count == 0)
+            throw new InvalidOperationException("Aucune donnée pour la période.");
+
+        new ExportPdfService().ExporterRapportMensuelSalairesPdf(
+            LignesSituationPaie.ToList(), PeriodeSelectionnee.Mois, PeriodeSelectionnee.Annee, cheminFichier);
+    }
+
+    public void ExporterHeuresPeriodePdf(string cheminFichier)
+    {
+        if (PeriodeSelectionnee == null || Lignes.Count == 0)
+            throw new InvalidOperationException("Aucune donnée d'heures pour la période.");
+
+        var pdfLignes = Lignes.Select(l => new HeuresTotauxEmployePdfLigne(
+            l.Matricule, l.NomComplet, l.Departement, l.TotalHeures, l.TotalJoursEquivalent)).ToList();
+
+        new ExportPdfService().ExporterTotauxHeuresEmployesPdf(
+            pdfLignes,
+            PeriodeSelectionnee.Mois,
+            PeriodeSelectionnee.Annee,
+            TotalGeneralHeures,
+            TotalGeneralJoursEquivalent,
+            cheminFichier);
+    }
+
+    public void ExporterHeuresEmployePdf(string cheminFichier)
+    {
+        if (PeriodeSelectionnee == null || EmployeSelectionne == null)
+            throw new InvalidOperationException("Sélectionnez une période et un employé.");
+
+        var mois = PeriodeSelectionnee.Mois;
+        var annee = PeriodeSelectionnee.Annee;
+        var e = EmployeSelectionne;
+        var nom = $"{e.Nom} {e.Postnom} {e.Prenom}".Trim();
+        var lignes = SuiviJournalierPdfDataService.ObtenirLignesPourEmploye(_db, e.Id, mois, annee);
+
+        new ExportPdfService().ExporterSuiviJournalierPdf(
+            e.Matricule, nom, e.Departement?.NomDepartement, mois, annee, lignes, cheminFichier);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

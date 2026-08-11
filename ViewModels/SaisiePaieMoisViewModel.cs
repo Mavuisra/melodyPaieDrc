@@ -155,6 +155,7 @@ public class SaisiePaieMoisViewModel : INotifyPropertyChanged
             }
 
             _db.SaveChanges();
+            UiFeedback.Succes("Saisie de paie enregistrée.");
             OnFermer?.Invoke();
         }
         catch (Exception ex)

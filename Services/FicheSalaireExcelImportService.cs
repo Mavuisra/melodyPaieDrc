@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using ClosedXML.Excel;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 using Microsoft.EntityFrameworkCore;
 
@@ -24,13 +25,16 @@ public sealed class FicheSalaireExcelImportResult
 
 public static class FicheSalaireExcelImportService
 {
-    private const decimal NombreJoursPaieDefaut = 26m;
-
     public static FicheSalaireExcelImportResult Importer(string cheminFichier, PaieDbContext db)
     {
         var result = new FicheSalaireExcelImportResult();
         if (string.IsNullOrWhiteSpace(cheminFichier) || !File.Exists(cheminFichier))
             throw new FileNotFoundException("Fichier Excel introuvable.", cheminFichier);
+
+        var entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(db);
+        var joursReferencePaie = new PolitiquePaieService(db).Charger(entrepriseId).JoursReferencePaie;
+        if (joursReferencePaie <= 0m)
+            joursReferencePaie = SalaireReferenceHelper.JoursDefaut;
 
         using var wb = new XLWorkbook(cheminFichier);
         var ws = wb.Worksheets.FirstOrDefault(w => w.Name.Trim().Equals("SALAIRE ET TAXE", StringComparison.OrdinalIgnoreCase))
@@ -123,7 +127,7 @@ public static class FicheSalaireExcelImportService
                 continue;
             }
 
-            var catId = ObtenirCategorieId(db, catCache, codeCat, smig);
+            var catId = ObtenirCategorieId(db, catCache, codeCat, smig, joursReferencePaie);
 
             var emp = new Employe
             {
@@ -174,9 +178,9 @@ public static class FicheSalaireExcelImportService
             if (decompositionLts)
             {
                 var nbrJours = colNbreJr > 0
-                    ? LireDecimalCellule(ws.Cell(r, colNbreJr)) ?? NombreJoursPaieDefaut
-                    : NombreJoursPaieDefaut;
-                if (nbrJours <= 0) nbrJours = NombreJoursPaieDefaut;
+                    ? LireDecimalCellule(ws.Cell(r, colNbreJr)) ?? joursReferencePaie
+                    : joursReferencePaie;
+                if (nbrJours <= 0) nbrJours = joursReferencePaie;
 
                 var tensionJr = colTensionJr > 0 ? LireDecimalCellule(ws.Cell(r, colTensionJr)) ?? 0m : 0m;
                 var salBaseJr = colSalBaseJr > 0 ? LireDecimalCellule(ws.Cell(r, colSalBaseJr)) ?? 0m : 0m;
@@ -431,7 +435,7 @@ public static class FicheSalaireExcelImportService
         return "Mécanique";
     }
 
-    private static int ObtenirCategorieId(PaieDbContext db, Dictionary<string, int> cache, string codeCat, decimal smig)
+    private static int ObtenirCategorieId(PaieDbContext db, Dictionary<string, int> cache, string codeCat, decimal smig, decimal joursReferencePaie)
     {
         var cle = codeCat.Trim().ToUpperInvariant();
         if (cache.TryGetValue(cle, out var id))
@@ -445,7 +449,7 @@ public static class FicheSalaireExcelImportService
             return existant.Id;
         }
 
-        var smigMensuel = smig > 0 ? smig * 26m : 377000m;
+        var smigMensuel = smig > 0 ? smig * joursReferencePaie : 377000m;
         var cat = new CategorieProfessionnelle
         {
             Libelle = libelle.Length > 100 ? libelle[..100] : libelle,

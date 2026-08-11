@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 
 namespace MelodyPaieRDC.Services.Export;
@@ -59,7 +60,7 @@ public static class ExportDonneesPaieResolver
             "HeuresTravail" => FormaterNombre(
                 ctx.HeuresTravailPeriode > 0
                     ? ctx.HeuresTravailPeriode
-                    : ObtenirJoursPrestes(ctx) * 8m,
+                    : ObtenirJoursPrestes(ctx) * ctx.HeuresParJour,
                 "N2"),
             _ => ""
         };
@@ -182,10 +183,15 @@ public static class ExportDonneesPaieResolver
     private static string ResoudreSaisie(ExportDonneesPaieContext ctx, string champ)
     {
         var s = ctx.Saisie;
-        if (s is null) return champ == "JoursPrestes" ? "26" : "";
+        if (s is null)
+            return champ == "JoursPrestes"
+                ? FormaterNombre(ctx.JoursReferencePaie, "0.##")
+                : "";
         return champ switch
         {
-            "JoursPrestes" => s.JoursPrestes > 0 ? s.JoursPrestes.ToString(Fr) : "26",
+            "JoursPrestes" => s.JoursPrestes > 0
+                ? s.JoursPrestes.ToString(Fr)
+                : FormaterNombre(ctx.JoursReferencePaie, "0.##"),
             "AutresGainsImposables" => FormaterNombre(s.AutresGainsImposables, "N2"),
             "AutresGainsNonImposables" => FormaterNombre(s.AutresGainsNonImposables, "N2"),
             _ => ""
@@ -210,12 +216,12 @@ public static class ExportDonneesPaieResolver
         };
     }
 
-    private static int ObtenirJoursPrestes(ExportDonneesPaieContext ctx)
+    private static decimal ObtenirJoursPrestes(ExportDonneesPaieContext ctx)
     {
         var s = ctx.Saisie;
         if (s is { JoursPrestes: > 0 })
             return s.JoursPrestes;
-        return 26;
+        return ctx.JoursReferencePaie;
     }
 
     private static string ResoudreDetail(ExportDonneesPaieContext ctx, string champ)

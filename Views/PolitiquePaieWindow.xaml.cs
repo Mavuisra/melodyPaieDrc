@@ -11,7 +11,7 @@ public partial class PolitiquePaieWindow : Window
     {
         InitializeComponent();
         var vm = new PolitiquePaieViewModel(new PaieDbContext());
-        vm.OnSucces = msg => { UiFeedback.Succes(msg); DialogResult = true; };
+        vm.OnSucces = _ => { DialogResult = true; Close(); };
         vm.OnErreur = msg => UiFeedback.Avertissement(msg);
         DataContext = vm;
     }

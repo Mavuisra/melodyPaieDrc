@@ -11,8 +11,8 @@ namespace MelodyPaieRDC.Services;
 /// <summary>Identité visuelle de l'entreprise courante (logo, couleurs, thème Material Design).</summary>
 public static class EntrepriseBrandingService
 {
-    public const string CouleurPrincipaleParDefaut = "#1E3A5F";
-    public const string CouleurSecondaireParDefaut = "#00A6B8";
+    public const string CouleurPrincipaleParDefaut = "#047857";
+    public const string CouleurSecondaireParDefaut = "#34D399";
 
     public sealed record ProfilEntreprise(
         string? RaisonSociale,
@@ -138,6 +138,9 @@ public static class EntrepriseBrandingService
         DefinirBrush(ressources, "BrandPrimaryDarkBrush", primaireFonce);
         DefinirBrush(ressources, "BrandSecondaryBrush", secondaire);
         DefinirBrush(ressources, "BrandOnPrimaryBrush", Colors.White);
+        DefinirBrush(ressources, "BrandSelectedBorderBrush", ColorBlendHelper.Eclaircir(secondaire, 0.25));
+
+        DefinirGradient(ressources, "BrandGradientBrush", primaire, secondaire);
 
         DefinirBrush(ressources, "SidebarBrush", sidebarFond);
         DefinirBrush(ressources, "SidebarHoverBrush", sidebarSurvol);
@@ -150,6 +153,11 @@ public static class EntrepriseBrandingService
 
     private static void DefinirBrush(ResourceDictionary ressources, string cle, Color couleur) =>
         ressources[cle] = new SolidColorBrush(couleur);
+
+    private static void DefinirGradient(ResourceDictionary ressources, string cle, Color debut, Color fin)
+    {
+        ressources[cle] = new LinearGradientBrush(debut, fin, new Point(0, 0.5), new Point(1, 0.5));
+    }
 
     private static bool EssayerConvertirCouleur(string hex, out Color couleur)
     {

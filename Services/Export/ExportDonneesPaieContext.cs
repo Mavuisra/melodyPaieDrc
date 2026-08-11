@@ -1,3 +1,5 @@
+using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 
 namespace MelodyPaieRDC.Services.Export;
@@ -18,6 +20,10 @@ public sealed class ExportDonneesPaieContext
     public decimal HeuresTravailPeriode { get; init; }
     /// <summary>Commune / territoire pour l'export CNSS.</summary>
     public string? CommuneAffectation { get; init; }
+    /// <summary>Jours de référence paie (politique entreprise).</summary>
+    public decimal JoursReferencePaie { get; init; } = SalaireReferenceHelper.JoursDefaut;
+    /// <summary>Heures par jour de référence (politique entreprise).</summary>
+    public decimal HeuresParJour { get; init; } = SalaireReferenceHelper.HeuresDefaut;
 }
 
 public sealed class CotisationsCalculees

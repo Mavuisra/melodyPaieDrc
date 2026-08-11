@@ -1,0 +1,158 @@
+<Window x:Class="MelodyPaieRDC.Views.ContratEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:helpers="clr-namespace:MelodyPaieRDC.Helpers"
+        Title="Modifier le contrat"
+        Height="580" Width="760"
+        MinHeight="480" MinWidth="640"
+        WindowStartupLocation="CenterOwner"
+        Background="#F0F2F5"
+        TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
+        FontFamily="{materialDesign:MaterialDesignFont}">
+    <Window.Resources>
+        <helpers:CdiToVisibilityConverter x:Key="CdiToVisibilityConverter"/>
+    </Window.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource BrandHeaderBorder}">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="40" Height="40" CornerRadius="20" Background="#33FFFFFF" Margin="0,0,12,0">
+                    <materialDesign:PackIcon Kind="Pencil" Width="22" Height="22" Foreground="White"
+                                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="Modifier le contrat" FontSize="17" FontWeight="SemiBold" Foreground="White"/>
+                    <TextBlock FontSize="11" Foreground="#D1FAE5" Margin="0,3,0,0">
+                        <Run Text="Employé : "/>
+                        <Run FontWeight="SemiBold">
+                            <Run.Text>
+                                <Binding Path="NomEmploye" Mode="OneWay"/>
+                            </Run.Text>
+                        </Run>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Margin="16,12,16,0" Style="{StaticResource MelodyFormCardStyle}"
+                IsEnabled="{Binding PeutModifier}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="8" ShadowDepth="1" Opacity="0.06"/>
+            </Border.Effect>
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="12"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,10">
+                            <TextBlock Text="Type *" Style="{StaticResource MelodyFieldLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding TypesContrat}" SelectedItem="{Binding Contrat.TypeContrat, Mode=TwoWay}"
+                                      IsEditable="False" Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="2" Margin="0,0,0,10">
+                            <TextBlock Text="Date début *" Style="{StaticResource MelodyFieldLabelStyle}"/>
+                            <DatePicker SelectedDate="{Binding Contrat.DateDebut, Mode=TwoWay}"
+                                        Style="{StaticResource MaterialDesignOutlinedDatePicker}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="0" Grid.Column="4" Margin="0,0,0,10"
+                                    Visibility="{Binding Contrat.TypeContrat, Converter={StaticResource CdiToVisibilityConverter}}">
+                            <TextBlock Text="Date fin *" Style="{StaticResource MelodyFieldLabelStyle}"/>
+                            <DatePicker SelectedDate="{Binding Contrat.DateFin, Mode=TwoWay}"
+                                        Style="{StaticResource MaterialDesignOutlinedDatePicker}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,10">
+                            <TextBlock Text="Salaire de base *" Style="{StaticResource MelodyFieldLabelStyle}"/>
+                            <TextBox Text="{Binding Contrat.SalaireBase, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="≈ " Foreground="#78909C" FontSize="11" VerticalAlignment="Center"/>
+                                <TextBlock Text="{Binding Contrat.SalaireJour, Mode=OneWay, StringFormat='Jour : {0:N2}'}" Foreground="#78909C" FontSize="11" Margin="0,0,10,0"/>
+                                <TextBlock Text="{Binding Contrat.SalaireHeure, Mode=OneWay, StringFormat='Heure : {0:N2}'}" Foreground="#78909C" FontSize="11"/>
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="2" Margin="0,0,0,10">
+                            <TextBlock Text="Devise" Style="{StaticResource MelodyFieldLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding Devises}" SelectedItem="{Binding Contrat.DeviseBase, Mode=TwoWay}"
+                                      IsEditable="False" Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="1" Grid.Column="4" Margin="0,0,0,10">
+                            <TextBlock Text="Catégorie professionnelle *" Style="{StaticResource MelodyFieldLabelStyle}"/>
+                            <ComboBox ItemsSource="{Binding Categories}" DisplayMemberPath="Libelle" SelectedValuePath="Id"
+                                      SelectedValue="{Binding Contrat.CategorieProfessionnelleId, Mode=TwoWay}"
+                                      IsEditable="False" Style="{StaticResource MaterialDesignOutlinedComboBox}"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Row="2" Grid.Column="0">
+                            <TextBlock Text="Majoration heures sup. (%)" Style="{StaticResource MelodyFieldLabelStyle}"/>
+                            <TextBox Text="{Binding Contrat.TauxMajorationHeuresSup, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="2">
+                            <TextBlock Text="Majoration nuit (%)" Style="{StaticResource MelodyFieldLabelStyle}"/>
+                            <TextBox Text="{Binding Contrat.TauxMajorationNuit, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Row="2" Grid.Column="4">
+                            <TextBlock Text="Majoration jours fériés (%)" Style="{StaticResource MelodyFieldLabelStyle}"/>
+                            <TextBox Text="{Binding Contrat.TauxMajorationJourFerie, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <Grid Margin="0,12,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="16"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0">
+                            <TextBlock Text="Préavis (mois de salaire)" Style="{StaticResource MelodyFieldLabelStyle}"/>
+                            <TextBox Text="{Binding Contrat.PreavisMoisBase, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2">
+                            <TextBlock Text="Indemnité de licenciement (mois)" Style="{StaticResource MelodyFieldLabelStyle}"/>
+                            <TextBox Text="{Binding Contrat.IndemniteLicenciementMoisBase, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                        </StackPanel>
+                    </Grid>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <Border Grid.Row="2" Background="White" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="16,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Annuler" IsCancel="True"
+                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                        materialDesign:ButtonAssist.CornerRadius="8" Padding="20,8" Margin="0,0,10,0"
+                        Click="Annuler_Click"/>
+                <Button Command="{Binding EnregistrerCommand}"
+                        Style="{StaticResource BrandRaisedButton}"
+                        materialDesign:ButtonAssist.CornerRadius="8" Padding="20,8" IsDefault="True">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ContentSaveOutline" Width="18" Height="18" Margin="0,0,8,0"/>
+                        <TextBlock Text="Enregistrer" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

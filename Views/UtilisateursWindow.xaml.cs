@@ -74,6 +74,7 @@ public partial class UtilisateursWindow : Window
             db.Utilisateurs.Add(u);
             db.SaveChanges();
         }
+        UiFeedback.Succes($"Utilisateur « {dlg.Login.Trim()} » créé.");
         Charger();
     }
 
@@ -104,6 +105,7 @@ public partial class UtilisateursWindow : Window
             }
             db.SaveChanges();
         }
+        UiFeedback.Succes("Utilisateur modifié.");
         Charger();
     }
 
@@ -155,6 +157,7 @@ public partial class UtilisateursWindow : Window
                 db.SaveChanges();
             }
         }
+        UiFeedback.Succes("Utilisateur supprimé.");
         Charger();
     }
 }

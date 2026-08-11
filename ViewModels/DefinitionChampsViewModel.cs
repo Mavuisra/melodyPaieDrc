@@ -95,6 +95,7 @@ public class DefinitionChampsViewModel : INotifyPropertyChanged
         });
         _db.SaveChanges();
         Charger();
+        UiFeedback.Succes("Champ complémentaire ajouté.");
     }
 
     private void Enregistrer()
@@ -109,6 +110,7 @@ public class DefinitionChampsViewModel : INotifyPropertyChanged
         e.Ordre = Ordre;
         _db.SaveChanges();
         Charger();
+        UiFeedback.Succes("Champ complémentaire modifié.");
     }
 
     private void Supprimer()
@@ -118,6 +120,7 @@ public class DefinitionChampsViewModel : INotifyPropertyChanged
         _db.DefinitionsChampsDynamiques.Remove(e);
         _db.SaveChanges();
         Charger();
+        UiFeedback.Succes("Champ complémentaire supprimé.");
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

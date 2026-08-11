@@ -34,7 +34,8 @@ public sealed class PointageToastItem
     public string HeureAffichage { get; init; } = "";
     public bool EstRetard { get; init; }
     public bool ReconnuMelody { get; init; }
-    public string CouleurAccent { get; init; } = "#43A047";
+    public string CouleurAccent { get; init; } = "#047857";
+    public DateTime Horodatage { get; init; } = DateTime.Now;
 }
 
 /// <summary>
@@ -119,11 +120,12 @@ public static class PointageLiveNotificationService
             if (!KeysVus.Add(key))
                 continue;
 
-            var moment = DeterminerMoment(codePin, local, regles);
+            var emp = ResoudreEmploye(map, codePin);
+            var reglesEmp = emp != null ? RetardPaieHelper.ReglesPourEmploye(regles, emp) : regles;
+            var moment = DeterminerMoment(codePin, local, reglesEmp);
             if (moment == "Lecture en double (ignorée)")
                 continue;
 
-            var emp = ResoudreEmploye(map, codePin);
             var estRetard = moment.StartsWith("Entrée", StringComparison.OrdinalIgnoreCase)
                             && moment.Contains("retard", StringComparison.OrdinalIgnoreCase);
 
@@ -155,18 +157,14 @@ public static class PointageLiveNotificationService
         AjouterToast(args);
         if (SonActif)
             JouerSon(args.EstRetard);
-
-        AppNotificationService.Afficher(
-            $"{args.NomComplet} — {args.Moment} à {args.HeureAffichage}",
-            args.EstRetard ? NotificationKind.Warning : NotificationKind.Success);
     }
 
     private static void AjouterToast(PointageRecuEventArgs args)
     {
-        var accent = args.EstRetard ? "#E53935"
-            : args.Moment.Contains("Sortie", StringComparison.OrdinalIgnoreCase) ? "#8E24AA"
-            : args.Moment.Contains("pause", StringComparison.OrdinalIgnoreCase) ? "#FB8C00"
-            : "#43A047";
+        var accent = args.EstRetard ? "#DC2626"
+            : args.Moment.Contains("Sortie", StringComparison.OrdinalIgnoreCase) ? "#7C3AED"
+            : args.Moment.Contains("pause", StringComparison.OrdinalIgnoreCase) ? "#D97706"
+            : "#047857";
 
         var toast = new PointageToastItem
         {
@@ -177,16 +175,17 @@ public static class PointageLiveNotificationService
             HeureAffichage = args.HeureAffichage,
             EstRetard = args.EstRetard,
             ReconnuMelody = args.ReconnuMelody,
-            CouleurAccent = accent
+            CouleurAccent = accent,
+            Horodatage = args.HorodatageLocal
         };
 
         void AjouterSurUi()
         {
             Toasts.Insert(0, toast);
-            while (Toasts.Count > 6)
+            while (Toasts.Count > 12)
                 Toasts.RemoveAt(Toasts.Count - 1);
 
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
+            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(45) };
             timer.Tick += (_, _) =>
             {
                 timer.Stop();

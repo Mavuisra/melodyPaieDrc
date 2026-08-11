@@ -5,14 +5,69 @@
              xmlns:vm="clr-namespace:MelodyPaieRDC.ViewModels"
              xmlns:models="clr-namespace:MelodyPaieRDC.Models"
              Background="Transparent"
-             TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
-             FontFamily="{materialDesign:MaterialDesignFont}">
+             FontFamily="Segoe UI">
     <UserControl.Resources>
-        <!-- Intensité des heures (tons cyan / bleu vifs) -->
-        <SolidColorBrush x:Key="CalN0" Color="#F0FDFA"/>
-        <SolidColorBrush x:Key="CalN1" Color="#CCFBF1"/>
-        <SolidColorBrush x:Key="CalN2" Color="#5EEAD4"/>
-        <SolidColorBrush x:Key="CalN3" Color="#14B8A6"/>
+        <SolidColorBrush x:Key="CalN0" Color="#F0FDF4"/>
+        <SolidColorBrush x:Key="CalN1" Color="#DCFCE7"/>
+        <SolidColorBrush x:Key="CalN2" Color="#6EE7B7"/>
+        <SolidColorBrush x:Key="CalN3" Color="#10B981"/>
+
+        <Style x:Key="HeuresKpiCard" TargetType="Border">
+            <Setter Property="Background" Value="#28FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#45FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="14"/>
+            <Setter Property="Padding" Value="14,12"/>
+            <Setter Property="Margin" Value="0,0,8,0"/>
+        </Style>
+        <Style x:Key="HeuresKpiLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#A7F3D0"/>
+        </Style>
+        <Style x:Key="HeuresKpiValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="20"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+        </Style>
+        <Style x:Key="HeuresPanelCard" TargetType="Border">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="CornerRadius" Value="16"/>
+            <Setter Property="BorderBrush" Value="#E2E8F0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Effect">
+                <Setter.Value>
+                    <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.07" Color="#0F172A"/>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="HeuresRefreshButton" TargetType="Button">
+            <Setter Property="Background" Value="White"/>
+            <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource BrandSecondaryBrush}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Padding" Value="16,10"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="12" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#F0FDF4"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
         <Style x:Key="CalDayButton" TargetType="Button">
             <Setter Property="Padding" Value="4,6"/>
@@ -49,96 +104,135 @@
         </Style>
     </UserControl.Resources>
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="0,0,4,0">
-        <Grid MaxWidth="1200">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-                <RowDefinition Height="Auto"/>
-            </Grid.RowDefinitions>
+    <Border CornerRadius="16" BorderBrush="#E2E8F0" BorderThickness="1" ClipToBounds="True" Background="#F8FAFC">
+        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <Grid MaxWidth="1200">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
 
-            <TextBlock Grid.Row="0" FontSize="12" Foreground="#546E7A" TextWrapping="Wrap" Margin="0,0,0,12">
-                <Run Text="Somme des heures prestées par employé pour la période choisie. Calcul aligné sur le pointage journalier (LT depuis les horodatages, sinon valeurs enregistrées) — base pour le calcul de paie. Sélectionnez un employé pour explorer le calendrier mensuel et le détail par jour."/>
-            </TextBlock>
-
-            <Border Grid.Row="1" Background="White" CornerRadius="12" Padding="16,14" Margin="0,0,0,12"
-                    BorderBrush="#E2E8F0" BorderThickness="1">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="12" ShadowDepth="1" Opacity="0.06"/>
-                </Border.Effect>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*" MinWidth="160"/>
-                        <ColumnDefinition Width="*" MinWidth="200"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-                    <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,12,0">
-                        <TextBlock Text="Période de paie" FontWeight="SemiBold" FontSize="13" Foreground="#37474F"/>
-                        <ComboBox ItemsSource="{Binding PeriodesPaie}"
-                                  SelectedItem="{Binding PeriodeSelectionnee, Mode=TwoWay}"
-                                  Margin="0,8,0,0"
-                                  materialDesign:HintAssist.Hint="Mois / année"
-                                  IsEditable="False">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock>
-                                        <Run Text="{Binding Mois}"/>
-                                        <Run Text="/"/>
-                                        <Run Text="{Binding Annee}"/>
-                                    </TextBlock>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </StackPanel>
-                    <StackPanel Grid.Row="0" Grid.Column="1">
-                        <TextBlock Text="Employé (calendrier)" FontWeight="SemiBold" FontSize="13" Foreground="#37474F"/>
-                        <ComboBox ItemsSource="{Binding Employes}"
-                                  SelectedItem="{Binding EmployeSelectionne, Mode=TwoWay}"
-                                  Margin="0,8,0,0"
-                                  materialDesign:HintAssist.Hint="Matricule / nom"
-                                  IsEditable="False">
-                            <ComboBox.ItemTemplate>
-                                <DataTemplate DataType="{x:Type models:Employe}">
-                                    <TextBlock>
-                                        <Run Text="{Binding Matricule, Mode=OneWay}" FontWeight="SemiBold"/>
-                                        <Run Text=" — "/>
-                                        <Run Text="{Binding Nom, Mode=OneWay}"/>
-                                        <Run Text=" "/>
-                                        <Run Text="{Binding Postnom, Mode=OneWay}"/>
-                                        <Run Text=" "/>
-                                        <Run Text="{Binding Prenom, Mode=OneWay}"/>
-                                    </TextBlock>
-                                </DataTemplate>
-                            </ComboBox.ItemTemplate>
-                        </ComboBox>
-                    </StackPanel>
-                    <Button Grid.Row="0" Grid.Column="2"
-                            Command="{Binding ActualiserTotauxCommand}"
-                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                            materialDesign:ButtonAssist.CornerRadius="8"
-                            Padding="12,8"
-                            Margin="12,24,0,0"
-                            VerticalAlignment="Top"
-                            ToolTip="Recharger les périodes, employés et totaux">
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" Margin="0,0,8,0"/>
-                            <TextBlock Text="Actualiser" VerticalAlignment="Center"/>
+                <!-- En-tête brand -->
+                <Border Grid.Row="0" CornerRadius="16,16,0,0" ClipToBounds="True">
+                    <Border.Background>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                            <GradientStop Color="{DynamicResource BrandPrimaryColor}" Offset="0"/>
+                            <GradientStop Color="{DynamicResource BrandSecondaryColor}" Offset="1"/>
+                        </LinearGradientBrush>
+                    </Border.Background>
+                    <Grid Margin="24,20">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <materialDesign:PackIcon Kind="ClockOutline" Width="16" Height="16" Foreground="#A7F3D0" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                            <TextBlock Text="HEURES" FontSize="11" FontWeight="Bold" Foreground="#A7F3D0" VerticalAlignment="Center"/>
                         </StackPanel>
-                    </Button>
-                    <StackPanel Grid.Row="1" Grid.ColumnSpan="3" Orientation="Horizontal" Margin="0,12,0,0">
-                        <materialDesign:PackIcon Kind="InformationOutline" Width="18" Height="18" Foreground="#78909C" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                        <TextBlock Text="Le calendrier affiche les heures calculées pour le mois affiché (indépendamment de la période de paie sélectionnée ci-dessus). Les créneaux horaires proviennent des pointages enregistrés." FontSize="11" Foreground="#78909C" TextWrapping="Wrap"/>
-                    </StackPanel>
-                </Grid>
-            </Border>
+                        <StackPanel Grid.Row="1">
+                            <TextBlock Text="Totaux pour la paie" FontSize="26" FontWeight="Bold" Foreground="White"/>
+                            <TextBlock Text="Heures prestées par employé — même calcul que le pointage journalier (8 h lun.–ven., 5 h sam. si semaine 6 jours)."
+                                       FontSize="13" Foreground="#D1FAE5" Margin="0,8,0,0" TextWrapping="Wrap" MaxWidth="720"/>
+                        </StackPanel>
+                        <UniformGrid Grid.Row="2" Columns="3" Margin="0,18,0,0">
+                            <Border Style="{StaticResource HeuresKpiCard}">
+                                <StackPanel>
+                                    <TextBlock Text="Total heures" Style="{StaticResource HeuresKpiLabel}"/>
+                                    <TextBlock Text="{Binding TotalGeneralHeuresLibelle, Mode=OneWay}" Style="{StaticResource HeuresKpiValue}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource HeuresKpiCard}" Margin="4,0">
+                                <StackPanel>
+                                    <TextBlock Text="Jours équivalents" Style="{StaticResource HeuresKpiLabel}"/>
+                                    <TextBlock Text="{Binding TotalGeneralJoursEquivalentLibelle, Mode=OneWay}" Style="{StaticResource HeuresKpiValue}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource HeuresKpiCard}" Margin="4,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Période active" Style="{StaticResource HeuresKpiLabel}"/>
+                                    <TextBlock Text="{Binding PériodeLibellé, Mode=OneWay}" Style="{StaticResource HeuresKpiValue}" FontSize="16"/>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                    </Grid>
+                </Border>
 
-            <Grid Grid.Row="2" MinHeight="240">
+                <!-- Filtres -->
+                <Border Grid.Row="1" Style="{StaticResource HeuresPanelCard}" Margin="20,18,20,0" Padding="18,16">
+                    <StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MinWidth="160"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="*" MinWidth="200"/>
+                                <ColumnDefinition Width="16"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="Période de paie" FontWeight="SemiBold" FontSize="12" Foreground="#64748B" Margin="0,0,0,8"/>
+                                <ComboBox ItemsSource="{Binding PeriodesPaie}"
+                                          SelectedItem="{Binding PeriodeSelectionnee, Mode=TwoWay}"
+                                          materialDesign:HintAssist.Hint="Mois / année"
+                                          IsEditable="False">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock>
+                                                <Run Text="{Binding Mois}"/>
+                                                <Run Text="/"/>
+                                                <Run Text="{Binding Annee}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="Employé (calendrier)" FontWeight="SemiBold" FontSize="12" Foreground="#64748B" Margin="0,0,0,8"/>
+                                <ComboBox ItemsSource="{Binding Employes}"
+                                          SelectedItem="{Binding EmployeSelectionne, Mode=TwoWay}"
+                                          materialDesign:HintAssist.Hint="Matricule / nom"
+                                          IsEditable="False">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type models:Employe}">
+                                            <TextBlock>
+                                                <Run Text="{Binding Matricule, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                <Run Text=" — "/>
+                                                <Run Text="{Binding Nom, Mode=OneWay}"/>
+                                                <Run Text=" "/>
+                                                <Run Text="{Binding Postnom, Mode=OneWay}"/>
+                                                <Run Text=" "/>
+                                                <Run Text="{Binding Prenom, Mode=OneWay}"/>
+                                            </TextBlock>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                            </StackPanel>
+                            <Button Grid.Column="4"
+                                    Command="{Binding ActualiserTotauxCommand}"
+                                    Style="{StaticResource HeuresRefreshButton}"
+                                    VerticalAlignment="Bottom"
+                                    ToolTip="Recharger les périodes, employés et totaux">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" Margin="0,0,8,0"/>
+                                    <TextBlock Text="Actualiser" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </Grid>
+                        <Border Margin="0,14,0,0" Background="#F8FAFC" CornerRadius="10" Padding="12,10" BorderBrush="#E2E8F0" BorderThickness="1">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="InformationOutline" Width="18" Height="18" Foreground="#64748B" VerticalAlignment="Top" Margin="0,0,10,0"/>
+                                <TextBlock Text="Le calendrier affiche les heures du mois navigué (indépendamment de la période de paie). Les créneaux proviennent des pointages enregistrés."
+                                           FontSize="11" Foreground="#64748B" TextWrapping="Wrap" LineHeight="16"/>
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </Border>
+
+                <Grid Grid.Row="2" Margin="20,16,20,0" MinHeight="240">
                 <TextBlock Text="{Binding MessageVide}"
                            Foreground="#78909C"
                            FontSize="13"
@@ -716,10 +810,10 @@
                         </Border>
                     </Grid>
 
-                    <!-- Message si pas d’employé sélectionné -->
-                    <Border Grid.Row="1" Background="#FAFCFE" CornerRadius="12" Padding="20" BorderBrush="#E8EDF2" BorderThickness="1" Margin="0,0,0,12">
+                    <!-- Message si pas d'employé sélectionné -->
+                    <Border Grid.Row="1" Margin="0,0,0,12" Padding="24">
                         <Border.Style>
-                            <Style TargetType="Border">
+                            <Style TargetType="Border" BasedOn="{StaticResource HeuresPanelCard}">
                                 <Setter Property="Visibility" Value="Visible"/>
                                 <Style.Triggers>
                                     <DataTrigger Binding="{Binding AfficherCalendrierEmploye}" Value="True">
@@ -731,25 +825,22 @@
                                 </Style.Triggers>
                             </Style>
                         </Border.Style>
-                        <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="AccountOutline" Width="22" Height="22" Foreground="#94A3B8" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                            <TextBlock Text="Choisissez un employé ci-dessus pour afficher le calendrier interactif et les disponibilités par jour." FontSize="13" Foreground="#64748B" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Border Width="48" Height="48" CornerRadius="14" Background="#ECFDF5" Margin="0,0,16,0">
+                                <materialDesign:PackIcon Kind="AccountOutline" Width="26" Height="26" Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="Choisissez un employé ci-dessus pour afficher le calendrier interactif et les disponibilités par jour."
+                                       FontSize="13" Foreground="#64748B" VerticalAlignment="Center" TextWrapping="Wrap" MaxWidth="520"/>
                         </StackPanel>
                     </Border>
 
-                    <!-- Table bas : récap période OU pointages du jour sélectionné -->
+                    <!-- Table bas : récap période + pointages du jour -->
                     <StackPanel Grid.Row="2" Margin="0,8,0,0">
-                        <TextBlock FontWeight="SemiBold" FontSize="13" Foreground="#0D9488" Margin="0,0,0,8" TextWrapping="Wrap"
-                                   Text="{Binding TitreTableauBas, Mode=OneWay}"/>
-
-                        <!-- Récap tous employés (période) -->
-                        <Border Background="White" CornerRadius="12" Padding="0"
-                                BorderBrush="#E2E8F0" BorderThickness="1">
-                            <Border.Effect>
-                                <DropShadowEffect BlurRadius="14" ShadowDepth="2" Opacity="0.07"/>
-                            </Border.Effect>
+                        <!-- Récap tous employés (période) — toujours visible -->
+                        <Border Padding="0" Margin="0,0,0,12">
                             <Border.Style>
-                                <Style TargetType="Border">
+                                <Style TargetType="Border" BasedOn="{StaticResource HeuresPanelCard}">
                                     <Setter Property="Visibility" Value="Collapsed"/>
                                     <Style.Triggers>
                                         <DataTrigger Binding="{Binding AfficherTableauRecapEmployesPeriode}" Value="True">
@@ -758,6 +849,39 @@
                                     </Style.Triggers>
                                 </Style>
                             </Border.Style>
+                            <StackPanel>
+                                <Grid Margin="16,14,16,10">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Text="Heures travaillées par employé" FontSize="15" FontWeight="SemiBold"
+                                                   Foreground="{DynamicResource BrandPrimaryBrush}"/>
+                                        <TextBlock FontSize="12" Foreground="#64748B" Margin="0,4,0,0">
+                                            <Run Text="Période : "/>
+                                            <Run Text="{Binding PériodeLibellé, Mode=OneWay}"/>
+                                        </TextBlock>
+                                    </StackPanel>
+                                    <WrapPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Top">
+                                        <Button Command="{Binding ExporterHeuresPeriodeCommand}"
+                                                Style="{StaticResource HeuresRefreshButton}" Margin="0,0,8,0"
+                                                ToolTip="PDF récapitulatif de tous les employés">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" Margin="0,0,6,0"/>
+                                                <TextBlock Text="Tous (PDF)"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding ExporterHeuresEmployeCommand}"
+                                                Style="{StaticResource HeuresRefreshButton}"
+                                                ToolTip="PDF détail journalier de l'employé sélectionné">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" Margin="0,0,6,0"/>
+                                                <TextBlock Text="Employé (PDF)"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </WrapPanel>
+                                </Grid>
                             <DataGrid ItemsSource="{Binding Lignes}"
                                       AutoGenerateColumns="False"
                                       CanUserAddRows="False"
@@ -787,12 +911,27 @@
                                     <DataGridTextColumn Header="Matricule" Binding="{Binding Matricule}" Width="100" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Employé" Binding="{Binding NomComplet}" Width="*" MinWidth="160" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Département" Binding="{Binding Departement}" Width="140" IsReadOnly="True"/>
-                                    <DataGridTextColumn Header="Total heures" Binding="{Binding TotalHeuresLibelle}" Width="130" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Total heures" Binding="{Binding TotalHeuresLibelle}" Width="110" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Jours équiv." Binding="{Binding TotalJoursEquivalentLibelle, Mode=OneWay}" Width="110" IsReadOnly="True"/>
                                 </DataGrid.Columns>
                             </DataGrid>
+                            </StackPanel>
                         </Border>
 
                         <!-- Pointages : jour sélectionné uniquement -->
+                        <TextBlock FontWeight="SemiBold" FontSize="14" Foreground="{DynamicResource BrandPrimaryBrush}" Margin="0,0,0,10" TextWrapping="Wrap"
+                                   Text="{Binding TitreTableauBas, Mode=OneWay}">
+                            <TextBlock.Style>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding AfficherTableauPointagesJourSelectionne}" Value="True">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBlock.Style>
+                        </TextBlock>
                         <Border Background="White" CornerRadius="12" Padding="0"
                                 BorderBrush="#99F6E4" BorderThickness="2" Margin="0,0,0,0">
                             <Border.Effect>
@@ -940,8 +1079,14 @@
                 </Grid>
             </Grid>
 
-            <Border Grid.Row="3" Background="#EEF4FA" CornerRadius="10" Padding="14,10" Margin="0,12,0,0"
-                    BorderBrush="#DDE8F2" BorderThickness="1">
+            <Border Grid.Row="3" Margin="20,16,20,22" CornerRadius="14" Padding="16,14"
+                    BorderBrush="#D1FAE5" BorderThickness="1">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                        <GradientStop Color="#ECFDF5" Offset="0"/>
+                        <GradientStop Color="#F0FDF4" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -954,127 +1099,114 @@
                             <Run Text="{Binding PériodeLibellé, Mode=OneWay}"/>
                         </TextBlock>
                     </StackPanel>
-                    <TextBlock Grid.Column="1" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource BrandPrimaryBrush}" VerticalAlignment="Center">
-                        <Run Text="Total général : "/>
-                        <Run Text="{Binding TotalGeneralHeuresLibelle, Mode=OneWay}"/>
-                    </TextBlock>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="{DynamicResource BrandPrimaryBrush}" Margin="0,0,16,0">
+                            <Run Text="Total : "/>
+                            <Run Text="{Binding TotalGeneralHeuresLibelle, Mode=OneWay}"/>
+                        </TextBlock>
+                        <TextBlock FontSize="14" FontWeight="SemiBold" Foreground="#047857">
+                            <Run Text="Jours équiv. : "/>
+                            <Run Text="{Binding TotalGeneralJoursEquivalentLibelle, Mode=OneWay}"/>
+                        </TextBlock>
+                    </StackPanel>
                 </Grid>
             </Border>
 
-            <Border Grid.Row="4" Margin="0,12,0,0" Background="White" CornerRadius="12" BorderBrush="#E2E8F0" BorderThickness="1" Padding="12">
-                <Border.Effect>
-                    <DropShadowEffect BlurRadius="14" ShadowDepth="2" Opacity="0.08"/>
-                </Border.Effect>
-                <TabControl SelectedIndex="0">
-                    <TabItem Header="Analyse heures &amp; jours">
-                        <Grid Margin="8">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
+            <!-- Rapports paie -->
+            <Border Grid.Row="4" Margin="20,0,20,18" Padding="18,16">
+                <Border.Style>
+                    <Style TargetType="Border" BasedOn="{StaticResource HeuresPanelCard}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding AfficherSectionRapports}" Value="True">
+                                <Setter Property="Visibility" Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <StackPanel>
+                    <Grid Margin="0,0,0,14">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Rapports paie" FontSize="16" FontWeight="SemiBold" Foreground="#0F172A"/>
+                            <TextBlock Text="Situation mensuelle par agent — salaire, quinzaine, retenues, impôt, retards, prêts et solde à payer."
+                                       FontSize="12" Foreground="#64748B" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                        </StackPanel>
+                        <WrapPanel Grid.Column="1" VerticalAlignment="Top" HorizontalAlignment="Right">
+                            <Button Command="{Binding ExporterRapportAgentCommand}"
+                                    Style="{StaticResource HeuresRefreshButton}" Margin="0,0,8,8"
+                                    ToolTip="PDF situation de l'employé sélectionné">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Agent (PDF)"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding ExporterRapportQuinzainesCommand}"
+                                    Style="{StaticResource HeuresRefreshButton}" Margin="0,0,8,8"
+                                    ToolTip="Rapport des quinzaines / acomptes">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Quinzaines (PDF)"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding ExporterRapportMensuelCommand}"
+                                    Style="{StaticResource HeuresRefreshButton}" Margin="0,0,0,8"
+                                    ToolTip="Rapport mensuel complet des salaires">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" Margin="0,0,6,0"/>
+                                    <TextBlock Text="Mensuel (PDF)"/>
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                    </Grid>
 
-                            <UniformGrid Grid.Row="0" Columns="3" Margin="0,0,0,10">
-                                <Border CornerRadius="10" Background="#ECFEFF" BorderBrush="#99F6E4" BorderThickness="1" Padding="10" Margin="0,0,8,0">
-                                    <StackPanel>
-                                        <TextBlock Text="Total période (heures)" FontSize="11" Foreground="#0F766E"/>
-                                        <TextBlock Text="{Binding TotalGeneralHeuresLibelle, Mode=OneWay}" FontSize="20" FontWeight="Bold" Foreground="#0F172A"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border CornerRadius="10" Background="#EEF2FF" BorderBrush="#C7D2FE" BorderThickness="1" Padding="10" Margin="0,0,8,0">
-                                    <StackPanel>
-                                        <TextBlock Text="Total période (jours équiv.)" FontSize="11" Foreground="#4338CA"/>
-                                        <TextBlock Text="{Binding TotalGeneralJoursEquivalentLibelle, Mode=OneWay}" FontSize="20" FontWeight="Bold" Foreground="#0F172A"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border CornerRadius="10" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" Padding="10">
-                                    <StackPanel>
-                                        <TextBlock Text="Employé sélectionné (mois affiché)" FontSize="11" Foreground="#166534"/>
-                                        <TextBlock FontSize="18" FontWeight="Bold" Foreground="#0F172A">
-                                            <Run Text="{Binding TotalHeuresMoisAfficheLibelle, Mode=OneWay}"/>
-                                            <Run Text="  •  "/>
-                                            <Run Text="{Binding TotalJoursMoisAfficheLibelle, Mode=OneWay}"/>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Border>
-                            </UniformGrid>
-
-                            <TextBlock Grid.Row="1" Text="Lecture rapide : 1 jour équivalent = 8 heures (conversion d’affichage)." FontSize="11" Foreground="#64748B" Margin="2,0,0,8"/>
-
-                            <DataGrid Grid.Row="2"
-                                      ItemsSource="{Binding Lignes}"
-                                      AutoGenerateColumns="False"
-                                      CanUserAddRows="False"
-                                      CanUserDeleteRows="False"
-                                      HeadersVisibility="Column"
-                                      Background="Transparent"
-                                      RowBackground="White"
-                                      AlternatingRowBackground="#F8FAFC"
-                                      GridLinesVisibility="Horizontal"
-                                      HorizontalGridLinesBrush="#E2E8F0"
-                                      RowHeight="38"
-                                      BorderThickness="0"
-                                      MaxHeight="280"
-                                      ScrollViewer.VerticalScrollBarVisibility="Auto">
-                                <DataGrid.ColumnHeaderStyle>
-                                    <Style TargetType="DataGridColumnHeader">
-                                        <Setter Property="Background" Value="#F8FAFC"/>
-                                        <Setter Property="Foreground" Value="#334155"/>
-                                        <Setter Property="FontWeight" Value="Bold"/>
-                                        <Setter Property="Padding" Value="10,8"/>
-                                    </Style>
-                                </DataGrid.ColumnHeaderStyle>
-                                <DataGrid.Columns>
-                                    <DataGridTextColumn Header="Matricule" Binding="{Binding Matricule}" Width="100" IsReadOnly="True"/>
-                                    <DataGridTextColumn Header="Employé" Binding="{Binding NomComplet}" Width="*" MinWidth="180" IsReadOnly="True"/>
-                                    <DataGridTextColumn Header="Département" Binding="{Binding Departement}" Width="150" IsReadOnly="True"/>
-                                    <DataGridTextColumn Header="Heures" Binding="{Binding TotalHeuresLibelle, Mode=OneWay}" Width="120" IsReadOnly="True"/>
-                                    <DataGridTextColumn Header="Jours équiv." Binding="{Binding TotalJoursEquivalentLibelle, Mode=OneWay}" Width="120" IsReadOnly="True"/>
-                                </DataGrid.Columns>
-                            </DataGrid>
-                        </Grid>
-                    </TabItem>
-                    <TabItem Header="Vue synthèse">
-                        <Grid Margin="10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-
-                            <WrapPanel Grid.Row="0" Margin="0,0,0,10">
-                                <Border CornerRadius="12" Background="#EEF2FF" BorderBrush="#C7D2FE" BorderThickness="1" Padding="12" Margin="0,0,10,10" Width="250">
-                                    <StackPanel>
-                                        <TextBlock Text="Heures totales période" Foreground="#4338CA" FontSize="11"/>
-                                        <TextBlock Text="{Binding TotalGeneralHeuresLibelle, Mode=OneWay}" FontSize="24" FontWeight="Bold" Foreground="#111827"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border CornerRadius="12" Background="#ECFEFF" BorderBrush="#99F6E4" BorderThickness="1" Padding="12" Margin="0,0,10,10" Width="250">
-                                    <StackPanel>
-                                        <TextBlock Text="Jours équivalents période" Foreground="#0F766E" FontSize="11"/>
-                                        <TextBlock Text="{Binding TotalGeneralJoursEquivalentLibelle, Mode=OneWay}" FontSize="24" FontWeight="Bold" Foreground="#111827"/>
-                                    </StackPanel>
-                                </Border>
-                                <Border CornerRadius="12" Background="#F0FDF4" BorderBrush="#BBF7D0" BorderThickness="1" Padding="12" Margin="0,0,10,10" Width="320">
-                                    <StackPanel>
-                                        <TextBlock Text="Employé sélectionné (mois)" Foreground="#166534" FontSize="11"/>
-                                        <TextBlock FontSize="22" FontWeight="Bold" Foreground="#111827">
-                                            <Run Text="{Binding TotalHeuresMoisAfficheLibelle, Mode=OneWay}"/>
-                                            <Run Text="  /  "/>
-                                            <Run Text="{Binding TotalJoursMoisAfficheLibelle, Mode=OneWay}"/>
-                                        </TextBlock>
-                                    </StackPanel>
-                                </Border>
-                            </WrapPanel>
-
-                            <TextBlock Grid.Row="1"
-                                       Text="Onglet pensé pour une lecture manager : heures + jours sur un seul écran, visuel et rapide."
-                                       FontSize="12"
-                                       Foreground="#64748B"
-                                       Margin="2,0,0,0"/>
-                        </Grid>
-                    </TabItem>
-                </TabControl>
+                    <DataGrid ItemsSource="{Binding LignesSituationPaie}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              IsReadOnly="True"
+                              HeadersVisibility="Column"
+                              Background="Transparent"
+                              RowBackground="White"
+                              AlternatingRowBackground="#F8FAFC"
+                              GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="#E2E8F0"
+                              RowHeight="36"
+                              BorderThickness="0"
+                              MaxHeight="320"
+                              ScrollViewer.VerticalScrollBarVisibility="Auto">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader">
+                                <Setter Property="Background" Value="#F0FDF4"/>
+                                <Setter Property="Foreground" Value="#065F46"/>
+                                <Setter Property="FontWeight" Value="SemiBold"/>
+                                <Setter Property="Padding" Value="10,8"/>
+                                <Setter Property="BorderBrush" Value="#D1FAE5"/>
+                                <Setter Property="BorderThickness" Value="0,0,1,1"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Matricule" Binding="{Binding Matricule}" Width="80"/>
+                            <DataGridTextColumn Header="Employé" Binding="{Binding NomComplet}" Width="*" MinWidth="140"/>
+                            <DataGridTextColumn Header="Heures" Binding="{Binding TotalHeuresLibelle}" Width="72"/>
+                            <DataGridTextColumn Header="Salaire" Binding="{Binding SalaireLibelle}" Width="80"/>
+                            <DataGridTextColumn Header="Quinzaine" Binding="{Binding QuinzaineLibelle}" Width="80"/>
+                            <DataGridTextColumn Header="Retenue" Binding="{Binding RetenueLibelle}" Width="76"/>
+                            <DataGridTextColumn Header="Impôt" Binding="{Binding ImpotLibelle}" Width="72"/>
+                            <DataGridTextColumn Header="Retards" Binding="{Binding RetardsLibelle}" Width="72"/>
+                            <DataGridTextColumn Header="Prêts" Binding="{Binding PretsLibelle}" Width="72"/>
+                            <DataGridTextColumn Header="Solde à payer" Binding="{Binding SoldeAPayerLibelle}" Width="90"/>
+                            <DataGridTextColumn Header="Statut" Binding="{Binding StatutBulletinLibelle}" Width="110"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                    <TextBlock Text="Quinzaine = acomptes sur salaire. Retenue = CNSS + INPP. Retards = sanctions disciplinaires saisies. Générez les bulletins (menu Calcul) pour remplir les montants."
+                               FontSize="11" Foreground="#94A3B8" Margin="0,10,0,0" TextWrapping="Wrap"/>
+                </StackPanel>
             </Border>
         </Grid>
-    </ScrollViewer>
+        </ScrollViewer>
+    </Border>
 </UserControl>

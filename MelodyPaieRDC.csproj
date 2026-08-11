@@ -36,6 +36,8 @@
   <ItemGroup>
     <Compile Remove="ZktecoPullWorker\**\*" />
     <None Include="ZktecoPullWorker\**\*" />
+    <Compile Remove="MelodyPaieRDC.Tests\**\*" />
+    <None Include="MelodyPaieRDC.Tests\**\*" />
   </ItemGroup>
 
   <ItemGroup>

@@ -122,6 +122,7 @@ public class CloturePeriodeViewModel : INotifyPropertyChanged
         {
             var svc = new PeriodeClotureService(_db);
             svc.Cloturer(_periodeId, Environment.UserName, forcer);
+            UiFeedback.Succes("Période clôturée avec succès.");
             OnSucces?.Invoke("Période clôturée avec succès.");
             ChargerPeriode();
             Analyser();
@@ -138,6 +139,7 @@ public class CloturePeriodeViewModel : INotifyPropertyChanged
         try
         {
             new PeriodeClotureService(_db).Rouvrir(_periodeId);
+            UiFeedback.Succes("Période rouverte.");
             OnSucces?.Invoke("Période rouverte.");
             ChargerPeriode();
             Analyser();

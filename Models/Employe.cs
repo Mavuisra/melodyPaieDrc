@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using MelodyPaieRDC.Helpers;
 
 namespace MelodyPaieRDC.Models;
 
@@ -20,6 +21,10 @@ public class Employe
     /// <summary>ID utilisateur ZKTeco (User ID / PIN) utilisé pour la correspondance des pointages.</summary>
     [MaxLength(50)]
     public string? ZkUserId { get; set; }
+
+    /// <summary>Heure limite d'entrée sans retard (HH:mm). Vide = horaire entreprise.</summary>
+    [MaxLength(8)]
+    public string? HeureLimiteTolerance { get; set; }
 
     [Required]
     [MaxLength(100)]
@@ -118,15 +123,26 @@ public class Employe
     [NotMapped]
     public decimal SalaireMensuelCdf { get; set; }
 
+    /// <summary>Jours de référence paie (politique entreprise), pour l'affichage jour/heure.</summary>
     [NotMapped]
-    public decimal SalaireJourUsd => SalaireMensuelUsd > 0 ? decimal.Round(SalaireMensuelUsd / 26m, 2) : 0m;
+    public decimal JoursReferencePaie { get; set; } = SalaireReferenceHelper.JoursDefaut;
+
+    /// <summary>Heures par jour de référence (politique entreprise).</summary>
+    [NotMapped]
+    public decimal HeuresParJour { get; set; } = SalaireReferenceHelper.HeuresDefaut;
 
     [NotMapped]
-    public decimal SalaireJourCdf => SalaireMensuelCdf > 0 ? decimal.Round(SalaireMensuelCdf / 26m, 2) : 0m;
+    public decimal SalaireJourUsd => SalaireReferenceHelper.SalaireJour(SalaireMensuelUsd, JoursReferencePaie);
 
     [NotMapped]
-    public decimal SalaireHeureUsd => SalaireMensuelUsd > 0 ? decimal.Round(SalaireMensuelUsd / 26m / 8m, 2) : 0m;
+    public decimal SalaireJourCdf => SalaireReferenceHelper.SalaireJour(SalaireMensuelCdf, JoursReferencePaie);
 
     [NotMapped]
-    public decimal SalaireHeureCdf => SalaireMensuelCdf > 0 ? decimal.Round(SalaireMensuelCdf / 26m / 8m, 2) : 0m;
+    public decimal SalaireHeureUsd => SalaireReferenceHelper.SalaireHeure(SalaireMensuelUsd, JoursReferencePaie, HeuresParJour);
+
+    [NotMapped]
+    public decimal SalaireHeureCdf => SalaireReferenceHelper.SalaireHeure(SalaireMensuelCdf, JoursReferencePaie, HeuresParJour);
+
+    [NotMapped]
+    public string NomComplet => $"{Nom} {Postnom} {Prenom}".Trim();
 }

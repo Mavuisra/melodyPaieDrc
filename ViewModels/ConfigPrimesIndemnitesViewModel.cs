@@ -122,6 +122,7 @@ public class ConfigPrimesIndemnitesViewModel : INotifyPropertyChanged
                 }
             }
             _db.SaveChanges();
+            UiFeedback.Succes("Primes et indemnités enregistrées.");
             OnFermer?.Invoke();
         }
         catch (Exception ex)

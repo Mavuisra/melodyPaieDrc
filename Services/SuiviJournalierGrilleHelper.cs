@@ -47,10 +47,13 @@ public static class SuiviJournalierGrilleHelper
         DateTime dateFin,
         IReadOnlyList<SuiviJournalier> enBase,
         bool semaineSixJours,
-        IReadOnlyDictionary<DateTime, JourTravailCalendrier> calendrier)
+        IReadOnlyDictionary<DateTime, JourTravailCalendrier> calendrier,
+        bool completerJoursSansSaisie = false,
+        bool forcerSamediOuvre = false)
     {
         dateDebut = dateDebut.Date;
         dateFin = dateFin.Date;
+        var semaine6 = semaineSixJours || forcerSamediOuvre;
 
         var parDate = enBase
             .GroupBy(s => s.Date.Date)
@@ -65,13 +68,13 @@ public static class SuiviJournalierGrilleHelper
                 continue;
             }
 
+            var heures = ResoudreHeuresJourSansSaisie(d, semaine6, calendrier, completerJoursSansSaisie, forcerSamediOuvre);
+
             liste.Add(new SuiviJournalier
             {
                 EmployeId = employeId,
                 Date = d,
-                // Pour le calcul de paie, un jour sans ligne en base ne doit pas être payé par défaut.
-                // Il est considéré à 0h tant qu'aucun pointage/saisie explicite n'existe.
-                HeuresPrestees = 0m,
+                HeuresPrestees = heures,
                 TypeJour = SuiviJournalier.TypeNormal,
                 PointagesJson = null,
                 HeuresManuelles = false
@@ -79,5 +82,21 @@ public static class SuiviJournalierGrilleHelper
         }
 
         return liste;
+    }
+
+    private static decimal ResoudreHeuresJourSansSaisie(
+        DateTime date,
+        bool semaineSixJours,
+        IReadOnlyDictionary<DateTime, JourTravailCalendrier> calendrier,
+        bool completerJoursSansSaisie,
+        bool forcerSamediOuvre)
+    {
+        if (completerJoursSansSaisie && date.DayOfWeek != DayOfWeek.Sunday)
+            return DeterminerHeuresParDefaut(date, semaineSixJours, calendrier);
+
+        if (forcerSamediOuvre && date.DayOfWeek == DayOfWeek.Saturday)
+            return LtServicesPointageCalcul.HeuresNormalesSamedi;
+
+        return 0m;
     }
 }

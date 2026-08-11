@@ -103,6 +103,7 @@ public class PretsAvancesViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(MontantTotal));
             OnPropertyChanged(nameof(DateOctroi));
             OnPropertyChanged(nameof(NbEcheances));
+            UiFeedback.Succes("Prêt / avance enregistré(e).");
         }
         catch (Exception ex)
         {
@@ -121,6 +122,7 @@ public class PretsAvancesViewModel : INotifyPropertyChanged
                 _db.PretsAvances.Remove(entite);
                 _db.SaveChanges();
                 Charger();
+                UiFeedback.Succes("Prêt / avance supprimé(e).");
             }
         }
         catch (Exception ex)

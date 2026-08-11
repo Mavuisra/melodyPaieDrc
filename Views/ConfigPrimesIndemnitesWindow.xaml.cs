@@ -15,7 +15,6 @@ public partial class ConfigPrimesIndemnitesWindow : Window
         DataContext = vm;
         vm.OnFermer = () =>
         {
-            UiFeedback.Succes("Primes et indemnités enregistrées.");
             DialogResult = true;
             Close();
         };

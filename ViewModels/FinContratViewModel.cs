@@ -17,7 +17,7 @@ public class FinContratViewModel : INotifyPropertyChanged
         _employeId = employeId;
     }
 
-    public string NomEmploye { get; private set; } = string.Empty;
+    public string NomEmploye { get; set; } = string.Empty;
 
     public Contrat? ContratActif
     {

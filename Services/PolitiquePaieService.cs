@@ -72,6 +72,24 @@ public sealed class PolitiquePaieContext
     public bool UtiliserTauxSociauxDb => GetBool(ParametrePolitiquePaie.Cles.UtiliserTauxSociauxDb, true);
     public string ModeCalculPresence => GetString(ParametrePolitiquePaie.Cles.ModeCalculPresence, ParametrePolitiquePaie.ModePresencePointages);
 
+    public bool PeriodeDecalee => string.Equals(
+        GetString(ParametrePolitiquePaie.Cles.TypePeriodePaie, ParametrePolitiquePaie.TypePeriodeCalendaire),
+        ParametrePolitiquePaie.TypePeriodeDecalee,
+        StringComparison.OrdinalIgnoreCase);
+
+    public decimal JourDebutPeriodeDecalee => GetDecimal(ParametrePolitiquePaie.Cles.JourDebutPeriodeDecalee, 26m);
+    public decimal JourFinPeriodeDecalee => GetDecimal(ParametrePolitiquePaie.Cles.JourFinPeriodeDecalee, 25m);
+
+    public bool ForcerSamediOuvre => GetBool(ParametrePolitiquePaie.Cles.ForcerSamediOuvre, false);
+    public bool CompleterJoursSansSaisie => GetBool(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, false);
+
+    public bool RetardSanctionActive => GetBool(ParametrePolitiquePaie.Cles.RetardSanctionActive, false);
+    public int RetardSeuilMinutes => (int)GetDecimal(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, 120m);
+
+    public string RetardModeSanction => GetString(
+        ParametrePolitiquePaie.Cles.RetardModeSanction,
+        ParametrePolitiquePaie.RetardModeAucun);
+
     public string? LibelleRubrique(string code)
         => Rubriques.FirstOrDefault(r => string.Equals(r.Code, code, StringComparison.OrdinalIgnoreCase))?.Libelle;
 

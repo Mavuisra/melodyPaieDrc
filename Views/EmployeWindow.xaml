@@ -83,6 +83,13 @@
                             </ListBox>
                         </Border>
 
+                        <TextBlock Text="Heure limite entrée (tolérance retard)" FontSize="12" Foreground="#546E7A" Margin="0,0,0,4"/>
+                        <TextBox Text="{Binding Employe.HeureLimiteTolerance, UpdateSourceTrigger=PropertyChanged}" MaxLength="8" Margin="0,0,0,4"
+                                 materialDesign:HintAssist.Hint="Vide = horaire entreprise (ex. 09:00)"
+                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"/>
+                        <TextBlock Text="Optionnel — remplace l'heure limite globale pour cet employé (format HH:mm)."
+                                   FontSize="11" Foreground="#78909C" TextWrapping="Wrap" Margin="0,0,0,10"/>
+
                         <TextBlock Text="Employés déjà enregistrés (ID | Matricule | Nom)" FontSize="11" Foreground="#455A64" FontWeight="SemiBold" Margin="0,0,0,4"/>
                         <Border BorderBrush="#CFD8DC" BorderThickness="1" CornerRadius="8" Padding="8" Margin="0,0,0,10" Background="#FAFCFE">
                             <ScrollViewer Height="80" VerticalScrollBarVisibility="Auto">

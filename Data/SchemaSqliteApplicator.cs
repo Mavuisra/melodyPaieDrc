@@ -228,6 +228,7 @@ public static class SchemaSqliteApplicator
 
         AddColumnIfMissing("CommuneAffectation", "ALTER TABLE Employes ADD COLUMN \"CommuneAffectation\" TEXT");
         AddColumnIfMissing("TypeTravailleurCnss", "ALTER TABLE Employes ADD COLUMN \"TypeTravailleurCnss\" INTEGER NOT NULL DEFAULT 1");
+        AddColumnIfMissing("HeureLimiteTolerance", "ALTER TABLE Employes ADD COLUMN \"HeureLimiteTolerance\" TEXT");
     }
 
     /// <summary>

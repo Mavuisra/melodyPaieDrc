@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Politique de paie (configurable)"
-        Height="620" Width="720"
+        Height="780" Width="760"
         WindowStartupLocation="CenterOwner"
         Background="#F5F5F5"
         FontFamily="{materialDesign:MaterialDesignFont}">
@@ -16,30 +16,68 @@
         <StackPanel Grid.Row="0" Margin="0,0,0,16">
             <TextBlock Text="Politique de paie active" FontSize="20" FontWeight="SemiBold"/>
             <TextBlock TextWrapping="Wrap" Opacity="0.75" Margin="0,6,0,0"
-                       Text="Règles de calcul sans modifier le code : jours de référence, présence, rubriques bulletin. Spécifique à l'entreprise courante."/>
+                       Text="Règles configurables par entreprise : période, présence, retards, rubriques bulletin. Désactivé par défaut = comportement standard Melody."/>
         </StackPanel>
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" IsEnabled="{Binding PeutModifier}">
             <StackPanel>
                 <TextBox materialDesign:HintAssist.Hint="Libellé de la politique"
                          Text="{Binding LibellePolitique, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,0,12"/>
-                <UniformGrid Columns="2" Margin="0,0,0,12">
-                    <TextBox materialDesign:HintAssist.Hint="Jours de référence paie (ex. 26)"
+
+                <TextBlock Text="Référence salaire" FontWeight="SemiBold" Margin="0,4,0,8"/>
+                <UniformGrid Columns="2" Margin="0,0,0,4">
+                    <TextBox materialDesign:HintAssist.Hint="Jours de référence (ex. 26 pour prorata)"
                              Text="{Binding JoursReferencePaie, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
                     <TextBox materialDesign:HintAssist.Hint="Heures par jour (ex. 8)"
                              Text="{Binding HeuresParJour, UpdateSourceTrigger=PropertyChanged}" Margin="8,0,0,0"/>
                 </UniformGrid>
+                <TextBlock TextWrapping="Wrap" Opacity="0.65" FontSize="11" Margin="0,0,0,12"
+                           Text="Les « jours de référence » servent au prorata du salaire mensuel — distincts de la fenêtre calendaire de la période ci-dessous."/>
+
+                <TextBlock Text="Fenêtre de la période de paie" FontWeight="SemiBold" Margin="0,4,0,8"/>
+                <CheckBox Content="Période décalée (ex. du 26 au 25) au lieu du mois calendaire"
+                          IsChecked="{Binding PeriodeDecalee}" Margin="0,0,0,8"/>
+                <UniformGrid Columns="2" Margin="0,0,0,12" IsEnabled="{Binding PeriodeDecalee}">
+                    <TextBox materialDesign:HintAssist.Hint="Jour de début (ex. 26)"
+                             Text="{Binding JourDebutPeriode, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
+                    <TextBox materialDesign:HintAssist.Hint="Jour de fin (ex. 25)"
+                             Text="{Binding JourFinPeriode, UpdateSourceTrigger=PropertyChanged}" Margin="8,0,0,0"/>
+                </UniformGrid>
+
+                <TextBlock Text="Présence et grille" FontWeight="SemiBold" Margin="0,4,0,8"/>
                 <ComboBox materialDesign:HintAssist.Hint="Mode calcul présence"
-                          SelectedValue="{Binding ModeCalculPresence}" SelectedValuePath="Tag" Margin="0,0,0,12">
+                          SelectedValue="{Binding ModeCalculPresence}" SelectedValuePath="Tag" Margin="0,0,0,8">
                     <ComboBoxItem Content="Pointages terminal (ZKTeco)" Tag="POINTAGES_TERMINAL"/>
                     <ComboBoxItem Content="Saisie des jours" Tag="SAISIE_JOURS"/>
                     <ComboBoxItem Content="Hybride" Tag="HYBRIDE"/>
                 </ComboBox>
+                <CheckBox Content="Samedi ouvré pour tous (présent sans pointage)"
+                          IsChecked="{Binding ForcerSamediOuvre}" Margin="0,4"/>
+                <CheckBox Content="Compléter les jours ouvrés sans saisie (aligne grille, PDF et paie)"
+                          IsChecked="{Binding CompleterJoursSansSaisie}" Margin="0,4,0,12"/>
+
+                <TextBlock Text="Sanctions retards (bulletin)" FontWeight="SemiBold" Margin="0,4,0,8"/>
+                <CheckBox Content="Activer les sanctions automatiques sur retards"
+                          IsChecked="{Binding RetardSanctionActive}" Margin="0,4"/>
+                <UniformGrid Columns="2" Margin="0,8,0,8" IsEnabled="{Binding RetardSanctionActive}">
+                    <TextBox materialDesign:HintAssist.Hint="Seuil en minutes (ex. 120 = 2 h)"
+                             Text="{Binding RetardSeuilMinutes, UpdateSourceTrigger=PropertyChanged}" Margin="0,0,8,0"/>
+                    <ComboBox materialDesign:HintAssist.Hint="Mode de sanction"
+                              SelectedValue="{Binding RetardModeSanction}" SelectedValuePath="Tag">
+                        <ComboBoxItem Content="Aucune" Tag="AUCUN"/>
+                        <ComboBoxItem Content="Coût horaire" Tag="HORAIRE"/>
+                        <ComboBoxItem Content="Demi-journée" Tag="DEMI_JOUR"/>
+                    </ComboBox>
+                </UniformGrid>
+                <TextBlock TextWrapping="Wrap" Opacity="0.65" FontSize="11" Margin="0,0,0,12"
+                           Text="Les sanctions manuelles (saisie paie) s'ajoutent aux sanctions auto. Tolérance par employé : fiche employé ou horaire entreprise."/>
+
                 <CheckBox Content="Salaire du contrat exprimé en net" IsChecked="{Binding SalaireContratEnNet}" Margin="0,4"/>
                 <CheckBox Content="Utiliser le barème IPR en base" IsChecked="{Binding UtiliserBaremeIpr}" Margin="0,4"/>
-                <CheckBox Content="Utiliser les taux sociaux en base (CNSS, INPP…)" IsChecked="{Binding UtiliserTauxSociauxDb}" Margin="0,4,12,12"/>
+                <CheckBox Content="Utiliser les taux sociaux en base (CNSS, INPP…)" IsChecked="{Binding UtiliserTauxSociauxDb}" Margin="0,4,0,12"/>
+
                 <TextBlock Text="Rubriques du bulletin (libellés et ordre)" FontWeight="SemiBold" Margin="0,8,0,8"/>
                 <DataGrid ItemsSource="{Binding Rubriques}" AutoGenerateColumns="False" CanUserAddRows="False"
-                          HeadersVisibility="Column" MaxHeight="220" Background="White">
+                          HeadersVisibility="Column" MaxHeight="180" Background="White">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="Code" Binding="{Binding Code}" IsReadOnly="True" Width="140"/>
                         <DataGridTextColumn Header="Libellé" Binding="{Binding Libelle, UpdateSourceTrigger=PropertyChanged}" Width="*"/>

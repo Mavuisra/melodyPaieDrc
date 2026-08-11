@@ -67,6 +67,7 @@ public sealed class DetailJourEmployeVm : INotifyPropertyChanged
     {
         SuiviJournalier.TypeNormal,
         SuiviJournalier.TypeAbsence,
+        SuiviJournalier.TypeCongeAnnuel,
         SuiviJournalier.TypeCongeCirconstance,
         SuiviJournalier.TypeMaladie
     });

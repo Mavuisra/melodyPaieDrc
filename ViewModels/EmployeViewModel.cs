@@ -140,6 +140,13 @@ public class EmployeViewModel
             OnErreurValidation?.Invoke("Veuillez sélectionner un département.");
             return;
         }
+        if (!string.IsNullOrWhiteSpace(Employe.HeureLimiteTolerance)
+            && !RetardPaieHelper.TryParseHeure(Employe.HeureLimiteTolerance, out TimeSpan _))
+        {
+            OnErreurValidation?.Invoke("Heure limite invalide (format attendu : HH:mm, ex. 09:00).");
+            return;
+        }
+        Employe.HeureLimiteTolerance = NormaliserHeureLimiteEmploye(Employe.HeureLimiteTolerance);
         if (Employe.Id == 0)
         {
             if (_db.Employes.Any(e => e.Matricule == Employe.Matricule))
@@ -176,6 +183,7 @@ public class EmployeViewModel
 
         AppliquerInterchangeIdUtilisateurSiNecessaire();
         _db.SaveChanges();
+        UiFeedback.Succes(EstModeEdition ? "Employé modifié avec succès." : "Employé créé avec succès.");
         OnEnregistreReussi?.Invoke();
     }
 
@@ -346,7 +354,8 @@ public class EmployeViewModel
         CommuneAffectation = Employe.CommuneAffectation,
         TypeTravailleurCnss = Employe.TypeTravailleurCnss,
         Adresse = Employe.Adresse,
-        DepartementId = Employe.DepartementId
+        DepartementId = Employe.DepartementId,
+        HeureLimiteTolerance = Employe.HeureLimiteTolerance
     };
 
     private static void AppliquerSaisieSurEntite(Employe cible, EmployeSaisieSnapshot saisie)
@@ -365,6 +374,16 @@ public class EmployeViewModel
         cible.TypeTravailleurCnss = saisie.TypeTravailleurCnss is 1 or 2 ? saisie.TypeTravailleurCnss : 1;
         cible.Adresse = saisie.Adresse;
         cible.DepartementId = saisie.DepartementId;
+        cible.HeureLimiteTolerance = saisie.HeureLimiteTolerance;
+    }
+
+    private static string? NormaliserHeureLimiteEmploye(string? texte)
+    {
+        if (string.IsNullOrWhiteSpace(texte))
+            return null;
+        if (!RetardPaieHelper.TryParseHeure(texte, out var h))
+            return texte.Trim();
+        return h.ToString(@"hh\:mm", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private sealed class EmployeSaisieSnapshot
@@ -383,6 +402,7 @@ public class EmployeViewModel
         public int TypeTravailleurCnss { get; set; } = 1;
         public string? Adresse { get; set; }
         public int DepartementId { get; set; }
+        public string? HeureLimiteTolerance { get; set; }
     }
 
     /// <summary>

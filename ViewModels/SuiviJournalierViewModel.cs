@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -10,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 using MelodyPaieRDC.Services;
 using Microsoft.EntityFrameworkCore;
@@ -161,6 +163,7 @@ public class PresencePointageLigne
 /// <summary>Synthèse présence du jour : une ligne par employé avec les moments clés.</summary>
 public class PresenceEmployeSyntheseLigne
 {
+    public int? EmployeId { get; set; }
     public string Jour { get; set; } = "";
     public string Matricule { get; set; } = "";
     public string NomComplet { get; set; } = "";
@@ -173,6 +176,26 @@ public class PresenceEmployeSyntheseLigne
     public string Statut { get; set; } = "";
     public bool EstRetard { get; set; }
     public string IndicateurRetard { get; set; } = "À l'heure";
+    public int MinutesRetard { get; set; }
+    public string DureeRetardLibelle { get; set; } = "—";
+    public decimal TauxHoraireUsd { get; set; }
+    public decimal TauxHoraireCdf { get; set; }
+    public string DeviseContrat { get; set; } = "USD";
+    public decimal CoutRetardUsd { get; set; }
+    public decimal CoutRetardCdf { get; set; }
+    public string HeureLimiteLibelle { get; set; } = "—";
+
+    public string TauxHoraireLibelle =>
+        DeviseContrat == "CDF"
+            ? (TauxHoraireCdf > 0m ? $"{TauxHoraireCdf:N2} CDF/h" : "—")
+            : (TauxHoraireUsd > 0m ? $"{TauxHoraireUsd:N2} USD/h" : "—");
+
+    public string CoutRetardLibelle =>
+        !EstRetard || MinutesRetard <= 0
+            ? "—"
+            : DeviseContrat == "CDF"
+                ? $"{CoutRetardCdf:N2} CDF"
+                : $"{CoutRetardUsd:N2} USD";
 
     public string Initiales
     {
@@ -248,6 +271,12 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     private bool _diagnosticTechniqueVisible;
     private decimal _heuresMoyennesAujourdhui;
     private int _retardsAujourdhui;
+    private int _vuePointageIndex;
+    private PresenceEmployeSyntheseLigne? _presenceLigneSelectionnee;
+    private decimal _coutTotalRetardsUsd;
+    private decimal _coutTotalRetardsCdf;
+    private string _heureLimiteToleranceLibelle = "—";
+    private readonly Dictionary<int, (decimal TauxUsd, decimal TauxCdf, string Devise)> _remunerationParEmploye = new();
 
     public SuiviJournalierViewModel(PaieDbContext db)
     {
@@ -285,6 +314,13 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             ChargerPeriodes();
             RafraichirAffichageTerminalDepuisBase();
         });
+        SelectionnerVuePointageCommand = new RelayCommand(p =>
+        {
+            if (p is int i)
+                VuePointageIndex = i;
+            else if (p is string s && int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var idx))
+                VuePointageIndex = idx;
+        });
         PointageLiveNotificationService.EtatChange += NotifierBadgePointage;
         ZktecoSynchronisationService.SynchroReussie += OnSynchroZkReussie;
         ZkTerminalParametresNotifier.ParametresModifies += OnZkTerminalParametresModifiesDepuisAutreEcran;
@@ -296,7 +332,45 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public ObservableCollection<SuiviJournalierLigne> Lignes { get; }
     public ObservableCollection<PresencePointageLigne> PresencePointages { get; } = new();
     public ObservableCollection<PresenceEmployeSyntheseLigne> PresenceSyntheseEmployes { get; } = new();
+    public ObservableCollection<PresenceEmployeSyntheseLigne> RetardsDuJour { get; } = new();
     public ObservableCollection<PresenceHoraireBarre> PresenceParHeure { get; } = new();
+
+    /// <summary>0 = présence live, 1 = rapport mouvements, 2 = gestion retards.</summary>
+    public int VuePointageIndex
+    {
+        get => _vuePointageIndex;
+        set
+        {
+            if (_vuePointageIndex == value) return;
+            _vuePointageIndex = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public PresenceEmployeSyntheseLigne? PresenceLigneSelectionnee
+    {
+        get => _presenceLigneSelectionnee;
+        set
+        {
+            if (ReferenceEquals(_presenceLigneSelectionnee, value)) return;
+            _presenceLigneSelectionnee = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(PresenceLigneSelectionneeLibelle));
+        }
+    }
+
+    public string PresenceLigneSelectionneeLibelle =>
+        _presenceLigneSelectionnee == null
+            ? "Aucun agent sélectionné"
+            : $"{_presenceLigneSelectionnee.NomComplet} ({_presenceLigneSelectionnee.Matricule})";
+
+    public string HeureLimiteToleranceLibelle => _heureLimiteToleranceLibelle;
+
+    public string CoutTotalRetardsUsdLibelle =>
+        _coutTotalRetardsUsd > 0m ? $"{_coutTotalRetardsUsd:N2} USD" : "—";
+
+    public string CoutTotalRetardsCdfLibelle =>
+        _coutTotalRetardsCdf > 0m ? $"{_coutTotalRetardsCdf:N2} CDF" : "—";
 
     /// <summary>Résumé des durées du jour selon les règles LT de l’entreprise.</summary>
     public string PresenceResumeDureesAujourdhui
@@ -408,6 +482,9 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         ? "—"
         : $"{_heuresMoyennesAujourdhui:N2} h";
 
+    public string DateDuJourLibelle =>
+        DateTime.Today.ToString("dddd d MMMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"));
+
     public Employe? EmployeSelectionne
     {
         get => _employeSelectionne;
@@ -481,6 +558,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public ICommand EffacerEmployeSelectionneCommand { get; }
     public ICommand ForcerPeriodeMoisCourantCommand { get; }
     public ICommand ActualiserListesCommand { get; }
+    public ICommand SelectionnerVuePointageCommand { get; }
 
     private void NotifierBadgePointage()
     {
@@ -601,6 +679,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public static string[] TypesJour => new[]
     {
         SuiviJournalier.TypeNormal,
+        SuiviJournalier.TypeCongeAnnuel,
         SuiviJournalier.TypeCongeCirconstance,
         SuiviJournalier.TypeMaladie,
         SuiviJournalier.TypePreavis
@@ -631,9 +710,69 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
                 .Include(x => x.Departement)
                 .OrderBy(x => x.Nom)
                 .ThenBy(x => x.Prenom));
+        ActualiserRemunerationsEmployes();
         RechercherEmployes();
         OnPropertyChanged(nameof(MessageVide));
     }
+
+    private void ActualiserRemunerationsEmployes()
+    {
+        _remunerationParEmploye.Clear();
+        if (_sourceEmployes.Count == 0)
+            return;
+
+        var ids = _sourceEmployes.Select(e => e.Id).ToList();
+        var contratsParEmploye = _db.Contrats.AsNoTracking()
+            .Where(c => ids.Contains(c.EmployeId))
+            .OrderByDescending(c => c.DateDebut)
+            .ToList()
+            .GroupBy(c => c.EmployeId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        var tauxCdfUsd = ParametresApplicationHelper.GetTauxCdfParUsd(_db);
+        var entrepriseId = ContexteEntrepriseService.ObtenirEntrepriseCouranteId(_db);
+        var politiquePaie = new PolitiquePaieService(_db).Charger(entrepriseId);
+
+        foreach (var e in _sourceEmployes)
+        {
+            e.JoursReferencePaie = politiquePaie.JoursReferencePaie;
+            e.HeuresParJour = politiquePaie.HeuresParJour;
+
+            if (!contratsParEmploye.TryGetValue(e.Id, out var c))
+                continue;
+
+            var devise = (c.DeviseBase ?? "USD").Trim().ToUpperInvariant();
+            decimal tauxUsd;
+            decimal tauxCdf;
+            if (devise == "CDF")
+            {
+                tauxCdf = SalaireReferenceHelper.SalaireHeure(c.SalaireBase, politiquePaie.JoursReferencePaie, politiquePaie.HeuresParJour);
+                tauxUsd = tauxCdfUsd > 0
+                    ? decimal.Round(tauxCdf / tauxCdfUsd, 4, MidpointRounding.AwayFromZero)
+                    : 0m;
+            }
+            else
+            {
+                tauxUsd = SalaireReferenceHelper.SalaireHeure(c.SalaireBase, politiquePaie.JoursReferencePaie, politiquePaie.HeuresParJour);
+                tauxCdf = decimal.Round(tauxUsd * tauxCdfUsd, 2, MidpointRounding.AwayFromZero);
+                devise = "USD";
+            }
+
+            _remunerationParEmploye[e.Id] = (tauxUsd, tauxCdf, devise);
+        }
+    }
+
+    private (decimal TauxUsd, decimal TauxCdf, string Devise) ResoudreRemunerationEmploye(int? employeId)
+    {
+        if (employeId is null or <= 0 || !_remunerationParEmploye.TryGetValue(employeId.Value, out var rem))
+            return (0m, 0m, "USD");
+        return rem;
+    }
+
+    private static string FormaterDureeRetard(int minutes) => RetardPaieHelper.FormaterDureeRetard(minutes);
+
+    private PolitiquePaieContext ChargerPolitiqueCourante() =>
+        new PolitiquePaieService(_db).Charger(ContexteEntrepriseService.ObtenirEntrepriseCouranteId(_db));
 
     private void RechercherEmployes()
     {
@@ -945,14 +1084,26 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     private void RecalculerSynthesePresenceEmployes()
     {
         var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
+        var politique = ChargerPolitiqueCourante();
         MettreAJourEntetesPresenceColonnes(reglesLt);
+        _heureLimiteToleranceLibelle = RetardPaieHelper.LibelleHeureLimite(reglesLt);
+        OnPropertyChanged(nameof(HeureLimiteToleranceLibelle));
 
         PresenceSyntheseEmployes.Clear();
+        RetardsDuJour.Clear();
         var parPersonne = CollecterPersonnesPointeesAujourdhui();
         if (parPersonne.Count == 0)
+        {
+            _retardsAujourdhui = 0;
+            _coutTotalRetardsUsd = _coutTotalRetardsCdf = 0m;
+            NotifierTotauxRetards();
+            OnPropertyChanged(nameof(NbEmployesPresentsAujourdhui));
+            OnPropertyChanged(nameof(NbRetardsAujourdhui));
             return;
+        }
 
         var aujourdhui = DateTime.Today;
+        var heuresJour = politique.HeuresParJour > 0 ? politique.HeuresParJour : SalaireReferenceHelper.HeuresDefaut;
         static string HeureMin(DateTime dt) => dt.ToString("HH:mm");
 
         foreach (var bloc in parPersonne.Values
@@ -963,16 +1114,31 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             if (pointages.Count == 0)
                 continue;
 
-            var decoupe = PointagesMomentsHelper.Decouper(pointages, aujourdhui, reglesLt);
-            var estRetard = decoupe.Entree.HasValue && decoupe.Entree.Value.TimeOfDay > reglesLt.HeureLimiteTolerance;
+            var emp = bloc.Employe;
+            var reglesEmp = RetardPaieHelper.ReglesPourEmploye(reglesLt, emp);
+            var decoupe = PointagesMomentsHelper.Decouper(pointages, aujourdhui, reglesEmp);
+            var estRetard = RetardPaieHelper.EstRetard(decoupe.Entree, reglesEmp.HeureLimiteTolerance);
+            var minutesRetard = decoupe.Entree.HasValue
+                ? RetardPaieHelper.CalculerMinutesRetard(decoupe.Entree.Value, reglesEmp.HeureLimiteTolerance)
+                : 0;
             var autres = decoupe.PointagesSupplementaires.Count > 0
                 ? string.Join(", ", decoupe.PointagesSupplementaires.Select(HeureMin))
                 : "—";
 
-            var emp = bloc.Employe;
             var reconnu = emp != null;
-            PresenceSyntheseEmployes.Add(new PresenceEmployeSyntheseLigne
+            var rem = ResoudreRemunerationEmploye(emp?.Id);
+            var salaireJourUsd = rem.TauxUsd * heuresJour;
+            var salaireJourCdf = rem.TauxCdf * heuresJour;
+            var coutUsd = politique.RetardSanctionActive
+                ? RetardPaieHelper.CalculerSanctionJour(politique, minutesRetard, salaireJourUsd, rem.TauxUsd)
+                : 0m;
+            var coutCdf = politique.RetardSanctionActive
+                ? RetardPaieHelper.CalculerSanctionJour(politique, minutesRetard, salaireJourCdf, rem.TauxCdf)
+                : 0m;
+
+            var ligne = new PresenceEmployeSyntheseLigne
             {
+                EmployeId = emp?.Id,
                 Jour = aujourdhui.ToString("dd/MM/yyyy"),
                 Matricule = reconnu ? (string.IsNullOrWhiteSpace(emp!.Matricule) ? "—" : emp.Matricule) : bloc.CodeTerminal,
                 NomComplet = reconnu
@@ -986,13 +1152,33 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
                 Autres = autres,
                 Statut = reconnu ? "Reconnu Melody" : "Non reconnu Melody",
                 EstRetard = estRetard,
-                IndicateurRetard = estRetard ? "En retard" : "À l'heure"
-            });
+                IndicateurRetard = estRetard ? "En retard" : "À l'heure",
+                MinutesRetard = minutesRetard,
+                DureeRetardLibelle = FormaterDureeRetard(minutesRetard),
+                TauxHoraireUsd = rem.TauxUsd,
+                TauxHoraireCdf = rem.TauxCdf,
+                DeviseContrat = rem.Devise,
+                CoutRetardUsd = coutUsd,
+                CoutRetardCdf = coutCdf,
+                HeureLimiteLibelle = RetardPaieHelper.LibelleHeureLimite(reglesEmp)
+            };
+            PresenceSyntheseEmployes.Add(ligne);
+            if (estRetard)
+                RetardsDuJour.Add(ligne);
         }
 
-        _retardsAujourdhui = PresenceSyntheseEmployes.Count(x => x.EstRetard);
+        _retardsAujourdhui = RetardsDuJour.Count;
+        _coutTotalRetardsUsd = RetardsDuJour.Sum(x => x.CoutRetardUsd);
+        _coutTotalRetardsCdf = RetardsDuJour.Sum(x => x.CoutRetardCdf);
+        NotifierTotauxRetards();
         OnPropertyChanged(nameof(NbEmployesPresentsAujourdhui));
         OnPropertyChanged(nameof(NbRetardsAujourdhui));
+    }
+
+    private void NotifierTotauxRetards()
+    {
+        OnPropertyChanged(nameof(CoutTotalRetardsUsdLibelle));
+        OnPropertyChanged(nameof(CoutTotalRetardsCdfLibelle));
     }
 
     private void RecalculerResumeDureesAujourdhui()
@@ -1305,43 +1491,46 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         try
         {
             var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
-            var dateDebut = new DateTime(PeriodeSelectionnee.Annee, PeriodeSelectionnee.Mois, 1).Date;
-            var dateFin = dateDebut.AddMonths(1).AddDays(-1).Date; // Dernier jour du mois inclus
+            var (politique, dateDebut, dateFin) = PeriodePaieHelper.ResoudrePeriode(_db, PeriodeSelectionnee);
             var employeId = EmployeSelectionne.Id;
 
-            var existants = _db.SuivisJournaliers
+            var existantsList = _db.SuivisJournaliers
                 .Where(s => s.EmployeId == employeId && s.Date >= dateDebut && s.Date <= dateFin)
-                .ToDictionary(s => s.Date.Date);
+                .ToList();
+            var existants = existantsList.ToDictionary(s => s.Date.Date);
 
-            var calendrier = _db.JoursTravailCalendrier
-                .Where(j => j.Annee == PeriodeSelectionnee.Annee && j.DateJour >= dateDebut && j.DateJour <= dateFin)
-                .ToDictionary(j => j.DateJour.Date);
+            var calendrierCtx = SuiviJournalierCalculPaieHelper.ChargerCalendrierPaie(_db, dateDebut, dateFin);
+            var semaineSixJours = calendrierCtx.SemaineSixJours || politique.ForcerSamediOuvre;
 
-            // Si au moins un samedi est marqué "Ouvre", on considère un cycle 6 jours.
-            var semaineSixJours = calendrier.Any(kvp =>
-                kvp.Key.DayOfWeek == DayOfWeek.Saturday &&
-                string.Equals(kvp.Value.TypeJour, "Ouvre", StringComparison.OrdinalIgnoreCase));
+            var fusionnes = SuiviJournalierGrilleHelper.FusionnerMoisCompletPourCalculPaie(
+                employeId,
+                dateDebut,
+                dateFin,
+                existantsList,
+                semaineSixJours,
+                calendrierCtx.Calendrier,
+                politique.CompleterJoursSansSaisie,
+                politique.ForcerSamediOuvre);
 
-            for (var d = dateDebut; d <= dateFin; d = d.AddDays(1))
+            foreach (var s in fusionnes)
             {
-                var existant = existants.GetValueOrDefault(d);
-                var ligne = new SuiviJournalierLigne { Date = d };
-                ligne.TypeJour = NormaliserTypeJour(existant?.TypeJour);
+                existants.TryGetValue(s.Date.Date, out var existantDb);
+                var ligne = new SuiviJournalierLigne { Date = s.Date };
+                ligne.TypeJour = NormaliserTypeJour(existantDb?.TypeJour ?? s.TypeJour);
 
-                if (ligne.TypeJour == SuiviJournalier.TypeNormal && existant != null &&
-                    !string.IsNullOrEmpty(existant.PointagesJson) && !existant.HeuresManuelles)
+                if (ligne.TypeJour == SuiviJournalier.TypeNormal && existantDb != null &&
+                    !string.IsNullOrEmpty(existantDb.PointagesJson) && !existantDb.HeuresManuelles)
                 {
-                    var h = PointagesJournalierSerializer.CalculerHeuresLt(existant.PointagesJson, d, reglesLt);
-                    ligne.InitialiserDepuisDonneesBase(h, false, existant.PointagesJson);
+                    var h = PointagesJournalierSerializer.CalculerHeuresLt(existantDb.PointagesJson, s.Date, reglesLt);
+                    ligne.InitialiserDepuisDonneesBase(h, false, existantDb.PointagesJson);
                 }
-                else if (existant != null)
+                else if (existantDb != null)
                 {
-                    ligne.InitialiserDepuisDonneesBase(existant.HeuresPrestees, existant.HeuresManuelles, existant.PointagesJson);
+                    ligne.InitialiserDepuisDonneesBase(existantDb.HeuresPrestees, existantDb.HeuresManuelles, existantDb.PointagesJson);
                 }
                 else
                 {
-                    var heuresParDefaut = SuiviJournalierGrilleHelper.DeterminerHeuresParDefaut(d, semaineSixJours, calendrier);
-                    ligne.InitialiserDepuisDonneesBase(heuresParDefaut, false, null);
+                    ligne.InitialiserDepuisDonneesBase(s.HeuresPrestees, false, null);
                 }
 
                 Lignes.Add(ligne);
@@ -1380,6 +1569,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         return typeJour.Trim() switch
         {
             SuiviJournalier.TypeNormal => SuiviJournalier.TypeNormal,
+            SuiviJournalier.TypeCongeAnnuel => SuiviJournalier.TypeCongeAnnuel,
             SuiviJournalier.TypeCongeCirconstance => SuiviJournalier.TypeCongeCirconstance,
             SuiviJournalier.TypeMaladie => SuiviJournalier.TypeMaladie,
             SuiviJournalier.TypePreavis => SuiviJournalier.TypePreavis,
@@ -1397,8 +1587,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         try
         {
             var employeId = EmployeSelectionne.Id;
-            var dateDebut = new DateTime(PeriodeSelectionnee.Annee, PeriodeSelectionnee.Mois, 1).Date;
-            var dateFin = dateDebut.AddMonths(1).AddDays(-1).Date; // Jusqu'à la fin du mois inclus
+            var (_, dateDebut, dateFin) = PeriodePaieHelper.ResoudrePeriode(_db, PeriodeSelectionnee);
 
             var existants = _db.SuivisJournaliers
                 .Where(s => s.EmployeId == employeId && s.Date >= dateDebut && s.Date <= dateFin)
@@ -1438,6 +1627,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
 
             _db.SaveChanges();
             ChargerLignes();
+            UiFeedback.Succes("Pointage journalier enregistré.");
             OnSauvegardeReussie?.Invoke();
         }
         catch (Exception ex)
@@ -1473,89 +1663,121 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     /// <summary>
     /// Export PDF de toutes les personnes ayant pointé aujourd'hui (base + terminal, reconnus ou non).
     /// </summary>
-    public void ExporterPointesAujourdhuiPdf(string cheminFichier)
+    public bool ExporterPointesAujourdhuiPdf(string cheminFichier)
+        => ExporterMouvementsJourPdf(cheminFichier, null);
+
+    /// <summary>Export PDF mouvements du jour pour un agent (ligne sélectionnée).</summary>
+    public bool ExporterMouvementsJourPdfAgent(string cheminFichier, PresenceEmployeSyntheseLigne? ligne)
+    {
+        if (ligne == null)
+        {
+            OnErreur?.Invoke("Sélectionnez un agent dans la liste.");
+            return false;
+        }
+
+        return ExporterMouvementsJourPdf(cheminFichier, ligne);
+    }
+
+    /// <summary>Export PDF du rapport des retards du jour avec coût estimé.</summary>
+    public bool ExporterRetardsJourPdf(string cheminFichier)
     {
         if (string.IsNullOrWhiteSpace(cheminFichier))
-            return;
+            return false;
+
+        if (RetardsDuJour.Count == 0)
+        {
+            OnErreur?.Invoke("Aucun retard enregistré aujourd'hui.");
+            return false;
+        }
 
         var aujourdHui = DateTime.Today;
-        var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
-        var parPersonne = CollecterPersonnesPointeesAujourdhui();
-        if (parPersonne.Count == 0)
+        var lignes = RetardsDuJour
+            .OrderBy(x => x.NomComplet, StringComparer.CurrentCultureIgnoreCase)
+            .Select(x => new RetardPdfLigne(
+                x.Jour,
+                x.Matricule,
+                x.NomComplet,
+                x.Departement,
+                x.Entree,
+                x.DureeRetardLibelle,
+                x.TauxHoraireLibelle,
+                x.CoutRetardLibelle,
+                x.HeureLimiteLibelle))
+            .ToList();
+
+        try
         {
-            OnErreur?.Invoke("Aucun pointage trouvé aujourd'hui.");
-            return;
+            var service = new ExportPdfService();
+            service.ExporterRetardsJourPdf(
+                lignes,
+                aujourdHui,
+                _heureLimiteToleranceLibelle,
+                CoutTotalRetardsUsdLibelle,
+                CoutTotalRetardsCdfLibelle,
+                cheminFichier);
+            return File.Exists(cheminFichier);
         }
-
-        var lignesPdf = new List<PresencePdfLigne>();
-        foreach (var bloc in parPersonne.Values)
+        catch (Exception ex)
         {
-            var pointages = bloc.Pointages;
-            if (pointages.Count == 0)
-                continue;
-
-            var decoupe = PointagesMomentsHelper.Decouper(pointages, aujourdHui, reglesLt);
-            var entreeLabel = pointages[0].TimeOfDay <= reglesLt.HeureLimiteTolerance ? "Entrée" : "Entrée (retard)";
-            var entree = $"{entreeLabel} {pointages[0]:HH:mm}";
-            string debutPause;
-            string finPause;
-            string sortie;
-            if (reglesLt.UtiliseDeuxPointages)
-            {
-                debutPause = "—";
-                finPause = "—";
-                sortie = decoupe.Sortie.HasValue ? decoupe.Sortie.Value.ToString("HH:mm") : "—";
-            }
-            else if (reglesLt.UtiliseTroisPointages)
-            {
-                debutPause = decoupe.DebutPause.HasValue ? decoupe.DebutPause.Value.ToString("HH:mm") : "—";
-                finPause = "—";
-                sortie = decoupe.Sortie.HasValue ? decoupe.Sortie.Value.ToString("HH:mm") : "—";
-            }
-            else
-            {
-                debutPause = decoupe.DebutPause.HasValue ? decoupe.DebutPause.Value.ToString("HH:mm") : "—";
-                finPause = decoupe.FinPause.HasValue ? decoupe.FinPause.Value.ToString("HH:mm") : "—";
-                sortie = decoupe.Sortie.HasValue ? decoupe.Sortie.Value.ToString("HH:mm") : "—";
-            }
-
-            var nbMoments = reglesLt.NombrePointagesJourComplet;
-            var autres = pointages.Count > nbMoments
-                ? string.Join(", ", pointages.Skip(nbMoments).Select(p => p.ToString("HH:mm")))
-                : "—";
-
-            var emp = bloc.Employe;
-            var reconnu = emp != null;
-            var nom = reconnu
-                ? $"{emp!.Nom} {emp.Postnom} {emp.Prenom}".Trim()
-                : $"Non attribué (ID terminal {bloc.CodeTerminal})";
-            lignesPdf.Add(new PresencePdfLigne(
-                aujourdHui.ToString("dd/MM/yyyy"),
-                reconnu ? (emp!.Matricule ?? "—") : bloc.CodeTerminal,
-                nom,
-                reconnu ? (emp!.Departement?.NomDepartement ?? "—") : "—",
-                entree,
-                debutPause,
-                finPause,
-                sortie,
-                autres,
-                reconnu ? "Reconnu Melody" : "Non reconnu Melody"));
+            OnErreur?.Invoke(ex.Message);
+            return false;
         }
+    }
 
+    private bool ExporterMouvementsJourPdf(string cheminFichier, PresenceEmployeSyntheseLigne? filtreAgent)
+    {
+        if (string.IsNullOrWhiteSpace(cheminFichier))
+            return false;
+
+        var lignesPdf = ConstruireLignesPdfMouvements(filtreAgent);
         if (lignesPdf.Count == 0)
         {
-            OnErreur?.Invoke("Aucune personne pointée aujourd'hui n'a pu être exportée.");
-            return;
+            OnErreur?.Invoke(filtreAgent == null
+                ? "Aucun pointage trouvé aujourd'hui. Synchronisez le terminal ou enregistrez des pointages avant l'export."
+                : "Aucun mouvement trouvé pour cet agent aujourd'hui.");
+            return false;
         }
 
-        var service = new ExportPdfService();
-        service.ExporterPointesAujourdhuiSynthesePdf(
-            lignesPdf
-                .OrderBy(x => x.NomComplet, StringComparer.CurrentCultureIgnoreCase)
-                .ToList(),
-            aujourdHui.Month,
-            aujourdHui.Year,
-            cheminFichier);
+        var aujourdHui = DateTime.Today;
+        var titreAgent = filtreAgent == null
+            ? null
+            : $"{filtreAgent.NomComplet} ({filtreAgent.Matricule})";
+        try
+        {
+            var service = new ExportPdfService();
+            service.ExporterMouvementsJourPdf(
+                lignesPdf,
+                aujourdHui,
+                titreAgent,
+                _heureLimiteToleranceLibelle,
+                cheminFichier);
+            return File.Exists(cheminFichier);
+        }
+        catch (Exception ex)
+        {
+            OnErreur?.Invoke(ex.Message);
+            return false;
+        }
+    }
+
+    private List<MouvementJourPdfLigne> ConstruireLignesPdfMouvements(PresenceEmployeSyntheseLigne? filtreAgent)
+    {
+        IEnumerable<PresenceEmployeSyntheseLigne> source = PresenceSyntheseEmployes;
+        if (filtreAgent != null)
+            source = source.Where(x => x.Matricule == filtreAgent.Matricule && x.NomComplet == filtreAgent.NomComplet);
+
+        return source
+            .OrderBy(x => x.NomComplet, StringComparer.CurrentCultureIgnoreCase)
+            .Select(x => new MouvementJourPdfLigne(
+                x.Jour,
+                x.Matricule,
+                x.NomComplet,
+                x.Departement,
+                x.Entree,
+                x.Sortie,
+                x.EstRetard ? "En retard" : "À l'heure",
+                x.DureeRetardLibelle))
+            .ToList();
     }
 
     /// <summary>

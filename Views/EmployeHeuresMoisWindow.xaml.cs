@@ -69,37 +69,54 @@ public partial class EmployeHeuresMoisWindow : Window
 
     private void ChargerHeures(PeriodeOption periode)
     {
-        var dateDebut = new DateTime(periode.Annee, periode.Mois, 1);
-        var dateFin = dateDebut.AddMonths(1).AddDays(-1);
+        var periodePaie = new PeriodePaie { Mois = periode.Mois, Annee = periode.Annee };
+        var (politique, dateDebut, dateFin) = PeriodePaieHelper.ResoudrePeriode(_db, periodePaie);
         var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
 
-        var existants = _db.SuivisJournaliers
+        var existantsList = _db.SuivisJournaliers
             .AsNoTracking()
             .Where(s => s.EmployeId == _employeId && s.Date >= dateDebut && s.Date <= dateFin)
-            .ToDictionary(s => s.Date.Date);
+            .ToList();
+        var existants = existantsList.ToDictionary(s => s.Date.Date);
+
+        var calendrierCtx = SuiviJournalierCalculPaieHelper.ChargerCalendrierPaie(_db, dateDebut, dateFin);
+        var semaineSixJours = calendrierCtx.SemaineSixJours || politique.ForcerSamediOuvre;
+        var fusionnes = SuiviJournalierGrilleHelper.FusionnerMoisCompletPourCalculPaie(
+            _employeId,
+            dateDebut,
+            dateFin,
+            existantsList,
+            semaineSixJours,
+            calendrierCtx.Calendrier,
+            politique.CompleterJoursSansSaisie,
+            politique.ForcerSamediOuvre);
 
         _lignes.Clear();
-        for (var d = dateDebut.Date; d <= dateFin.Date; d = d.AddDays(1))
+        foreach (var s in fusionnes)
         {
-            existants.TryGetValue(d, out var s);
-            var typeJour = string.IsNullOrWhiteSpace(s?.TypeJour) ? SuiviJournalier.TypeNormal : s!.TypeJour.Trim();
+            existants.TryGetValue(s.Date.Date, out var row);
+            var typeJour = string.IsNullOrWhiteSpace(row?.TypeJour) ? s.TypeJour : row!.TypeJour.Trim();
             decimal heures;
-            var manuel = s?.HeuresManuelles ?? false;
-            if (s != null && typeJour == SuiviJournalier.TypeNormal && !string.IsNullOrEmpty(s.PointagesJson) && !s.HeuresManuelles)
+            var manuel = row?.HeuresManuelles ?? false;
+            if (row != null && typeJour == SuiviJournalier.TypeNormal && !string.IsNullOrEmpty(row.PointagesJson) && !row.HeuresManuelles)
             {
-                heures = PointagesJournalierSerializer.CalculerHeuresLt(s.PointagesJson, d, reglesLt);
+                heures = PointagesJournalierSerializer.CalculerHeuresLt(row.PointagesJson, s.Date, reglesLt);
+            }
+            else if (row != null)
+            {
+                heures = row.HeuresPrestees;
             }
             else
             {
-                heures = s?.HeuresPrestees ?? 0m;
+                heures = s.HeuresPrestees;
             }
 
             var ligne = new HeuresMoisLigne
             {
-                Date = d,
+                Date = s.Date,
                 TypeJour = typeJour,
                 HeuresPrestees = decimal.Round(Math.Max(0m, Math.Min(24m, heures)), 2, MidpointRounding.AwayFromZero),
-                PointagesJson = s?.PointagesJson,
+                PointagesJson = row?.PointagesJson,
                 HeuresManuelles = manuel
             };
             ligne.PropertyChanged += (_, _) => RecalculerTotal();
@@ -127,8 +144,8 @@ public partial class EmployeHeuresMoisWindow : Window
 
         try
         {
-            var dateDebut = new DateTime(periode.Annee, periode.Mois, 1).Date;
-            var dateFin = dateDebut.AddMonths(1).AddDays(-1).Date;
+            var periodePaie = new PeriodePaie { Mois = periode.Mois, Annee = periode.Annee };
+            var (_, dateDebut, dateFin) = PeriodePaieHelper.ResoudrePeriode(_db, periodePaie);
             var existants = _db.SuivisJournaliers
                 .Where(s => s.EmployeId == _employeId && s.Date >= dateDebut && s.Date <= dateFin)
                 .ToDictionary(s => s.Date.Date);

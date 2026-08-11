@@ -24,6 +24,17 @@ namespace MelodyPaieRDC.Views;
 
 public partial class MainWindow : Window
 {
+    private const int EmployeTabRepertoire = 0;
+    private const int EmployeTabFiche = 1;
+    private const int EmployeTabContrats = 2;
+    private const int EmployeTabAyantsDroit = 3;
+    private const int EmployeTabPrets = 4;
+    private const int EmployeTabPrimes = 5;
+    private const int EmployeTabHeures = 6;
+    private const int EmployeTabAbsences = 7;
+    private const int EmployeTabChamps = 8;
+    private const int EmployeTabRapport = 9;
+
     private readonly MainViewModel _viewModel;
     private SuiviJournalierWindow? _suiviJournalierWindow;
     private DispatcherTimer? _notificationTimer;
@@ -40,9 +51,11 @@ public partial class MainWindow : Window
         _viewModel.OnOuvrirModifierEmploye = OuvrirModifierEmploye;
         _viewModel.OnOuvrirContrats = OuvrirContrats;
         _viewModel.OnOuvrirAyantsDroit = OuvrirAyantsDroit;
+        _viewModel.OnOuvrirFicheEmploye = OuvrirFicheEmploye;
         _viewModel.OnOuvrirPretsAvances = OuvrirPretsAvances;
         _viewModel.OnOuvrirPrimesIndemnites = OuvrirPrimesIndemnites;
         _viewModel.OnOuvrirHeuresMoisEmploye = OuvrirHeuresMoisEmploye;
+        _viewModel.OnOuvrirAbsencesCongesEmploye = OuvrirAbsencesCongesEmploye;
         _viewModel.OnOuvrirCentreConfiguration = OuvrirCentreConfiguration;
         _viewModel.OnOuvrirParametresIpr = OuvrirParametresIpr;
         _viewModel.OnOuvrirTauxSociaux = OuvrirTauxSociaux;
@@ -109,6 +122,7 @@ public partial class MainWindow : Window
             ConfigurationUiHelper.AppliquerColonnesListeEmployes(GrilleEmployes);
             AfficherTableauDeBordEnPremier();
             AppliquerIdentiteVisuelleCourante();
+            AjusterDispositionContenu();
             AfficherBandeauRestaurationSiNecessaire();
             _ = ProposerMiseAJourAuDemarrageAsync();
         };
@@ -239,6 +253,8 @@ public partial class MainWindow : Window
             _viewModel.RafraichirChecklistMoisPaie();
             if (_viewModel.MenuSelectionne == 0)
                 _viewModel.ChargerTableauDeBord();
+            PanneauEmployeRapport?.RapportViewModel?.Rafraichir();
+            PanneauEmployeAyantsDroit?.AyantsDroitViewModel?.Charger();
         });
     }
 
@@ -249,6 +265,79 @@ public partial class MainWindow : Window
     {
         PanneauSuiviJournalier?.RafraichirPourEntrepriseCourante();
         PanneauHeuresPrestees?.RafraichirPourEntrepriseCourante();
+        PanneauEmployeRapport?.RafraichirPourEntrepriseCourante();
+        PanneauEmployeAyantsDroit?.AyantsDroitViewModel?.Charger();
+    }
+
+    private void SynchroniserPanneauxEmploye()
+    {
+        var employe = _viewModel.EmployeSelectionne;
+        var employeId = employe?.Id;
+        PanneauEmployeRapport?.SynchroniserEmployeDepuisRepertoire(employeId);
+        PanneauEmployeAyantsDroit?.SynchroniserEmployeDepuisRepertoire(employeId);
+        PanneauEmployeAyantsDroit?.AyantsDroitViewModel?.NotifierDroitsModification();
+        PanneauEmployeFiche?.SynchroniserEmploye(employe);
+        PanneauEmployePrets?.SynchroniserEmploye(employeId);
+        PanneauEmployePrimes?.SynchroniserEmploye(employeId);
+        PanneauEmployeAbsences?.SynchroniserEmploye(employeId);
+        PanneauEmployeContrats?.ActualiserEtat(employe);
+        PanneauEmployeHeures?.ActualiserEtat(employe);
+        PanneauEmployeChamps?.ActualiserEtat(employe);
+        ActualiserBanniereEmploye();
+    }
+
+    private void ActualiserBanniereEmploye()
+    {
+        if (EmployesTabControl == null || EmployeContextBanner == null) return;
+
+        var ongletDossier = EmployesTabControl.SelectedIndex > EmployeTabRepertoire;
+        var employe = _viewModel.EmployeSelectionne;
+        if (!ongletDossier || employe == null)
+        {
+            EmployeContextBanner.Visibility = Visibility.Collapsed;
+            return;
+        }
+
+        EmployeContextBanner.Visibility = Visibility.Visible;
+        EmployeContextNom.Text = employe.NomComplet;
+        var dept = employe.Departement?.NomDepartement;
+        EmployeContextMeta.Text = string.IsNullOrWhiteSpace(dept)
+            ? $"Matricule {employe.Matricule}"
+            : $"Matricule {employe.Matricule} · {dept}";
+    }
+
+    private void EmployesTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.Source != EmployesTabControl) return;
+        ActualiserBanniereEmploye();
+    }
+
+    private void OuvrirFicheEmploye()
+    {
+        PanneauEmployeFiche?.SynchroniserEmploye(_viewModel.EmployeSelectionne);
+        AfficherOngletEmploye(EmployeTabFiche);
+    }
+
+    private void GrilleEmployes_MouseDoubleClick(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (_viewModel.EmployeSelectionne == null) return;
+        OuvrirFicheEmploye();
+    }
+
+    private void RechercheEmployesTextBox_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key != System.Windows.Input.Key.Enter || !_viewModel.AfficherSuggestionsEmployes) return;
+        var premier = _viewModel.SuggestionsEmployes.FirstOrDefault();
+        if (premier == null) return;
+        _viewModel.SelectionnerSuggestionEmployeCommand.Execute(premier);
+        e.Handled = true;
+    }
+
+    private void AfficherOngletEmploye(int index)
+    {
+        if (EmployesTabControl == null) return;
+        if (index < 0 || index >= EmployesTabControl.Items.Count) return;
+        EmployesTabControl.SelectedIndex = index;
     }
 
     private void ExecuterDeconnexion()
@@ -286,10 +375,35 @@ public partial class MainWindow : Window
 
     private void ViewModelOnPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(MainViewModel.MenuSelectionne) && _viewModel.MenuSelectionne == 0)
-            AfficherTableauDeBordEnPremier();
+        if (e.PropertyName == nameof(MainViewModel.MenuSelectionne))
+        {
+            if (_viewModel.MenuSelectionne == 0)
+                AfficherTableauDeBordEnPremier();
+            AjusterDispositionContenu();
+        }
         if (e.PropertyName == nameof(MainViewModel.EntrepriseCouranteLibelle))
             Title = $"Melody Paie RDC — {_viewModel.EntrepriseCouranteLibelle}";
+        if (e.PropertyName == nameof(MainViewModel.EmployeSelectionne))
+            SynchroniserPanneauxEmploye();
+    }
+
+    private void MainContentScrollViewer_SizeChanged(object sender, SizeChangedEventArgs e) =>
+        AjusterDispositionContenu();
+
+    private void AjusterDispositionContenu()
+    {
+        if (MainContentScrollViewer == null || ContenuPrincipalGrid == null)
+            return;
+
+        var modePointage = _viewModel.MenuSelectionne == 1;
+        MainContentScrollViewer.VerticalScrollBarVisibility = modePointage
+            ? ScrollBarVisibility.Disabled
+            : ScrollBarVisibility.Auto;
+
+        if (modePointage && MainContentScrollViewer.ActualHeight > 80)
+            ContenuPrincipalGrid.MinHeight = MainContentScrollViewer.ActualHeight;
+        else
+            ContenuPrincipalGrid.MinHeight = 0;
     }
 
     protected override void OnClosing(CancelEventArgs e)
@@ -605,37 +719,49 @@ public partial class MainWindow : Window
     private void OuvrirChampsComplementairesEmploye()
     {
         if (_viewModel.EmployeSelectionne == null) return;
+        SynchroniserPanneauxEmploye();
+        AfficherOngletEmploye(EmployeTabChamps);
         DynamicFormNavigator.OuvrirChampsComplementairesEmploye(this, _viewModel.EmployeSelectionne);
     }
 
     private void OuvrirContrats(int employeId)
     {
+        SynchroniserPanneauxEmploye();
+        AfficherOngletEmploye(EmployeTabContrats);
         var win = new ContratsWindow(employeId) { Owner = this };
         win.ShowDialog();
     }
 
     private void OuvrirAyantsDroit(int employeId)
     {
-        var win = new AyantsDroitWindow(employeId) { Owner = this };
-        win.ShowDialog();
+        SynchroniserPanneauxEmploye();
+        AfficherOngletEmploye(EmployeTabAyantsDroit);
     }
 
     private void OuvrirPretsAvances(int employeId)
     {
-        var win = new PretsAvancesWindow(employeId) { Owner = this };
-        win.ShowDialog();
+        SynchroniserPanneauxEmploye();
+        AfficherOngletEmploye(EmployeTabPrets);
     }
 
     private void OuvrirPrimesIndemnites(int employeId)
     {
-        var win = new PrimesIndemnitesEmployeWindow(employeId) { Owner = this };
-        win.ShowDialog();
+        SynchroniserPanneauxEmploye();
+        AfficherOngletEmploye(EmployeTabPrimes);
     }
 
     private void OuvrirHeuresMoisEmploye(int employeId)
     {
+        SynchroniserPanneauxEmploye();
+        AfficherOngletEmploye(EmployeTabHeures);
         var win = new EmployeHeuresMoisWindow(employeId) { Owner = this };
         win.ShowDialog();
+    }
+
+    private void OuvrirAbsencesCongesEmploye(int employeId)
+    {
+        SynchroniserPanneauxEmploye();
+        AfficherOngletEmploye(EmployeTabAbsences);
     }
 
     private void OuvrirConfigPrimesIndemnites()
@@ -1090,7 +1216,7 @@ public partial class MainWindow : Window
         {
             var service = new ExportPdfService();
             service.ExporterBulletin(bulletin, dlg.FileName);
-            NotifierSucces("Bulletin exporté en PDF.");
+            NotifierSucces("Bulletin exporté en PDF (format A5).");
         }
         catch (Exception ex)
         {
@@ -1106,18 +1232,26 @@ public partial class MainWindow : Window
             return;
         }
 
-        var dlg = new OpenFolderDialog
+        var periode = bulletins
+            .Select(b => b.PeriodePaie)
+            .FirstOrDefault(p => p != null);
+        var periodeLabel = periode != null ? $"{periode.Mois:D2}_{periode.Annee}" : "periode";
+
+        var dlg = new SaveFileDialog
         {
-            Title = "Choisissez le dossier de destination des bulletins PDF"
+            Title = "Enregistrer la feuille A4 (2 bulletins A5 par page)",
+            Filter = "PDF (*.pdf)|*.pdf|Tous les fichiers (*.*)|*.*",
+            FileName = $"Bulletins_A5_2parA4_{periodeLabel}.pdf",
+            DefaultExt = ".pdf"
         };
 
-        if (dlg.ShowDialog(this) != true || string.IsNullOrWhiteSpace(dlg.FolderName))
+        if (dlg.ShowDialog(this) != true || string.IsNullOrWhiteSpace(dlg.FileName))
             return;
 
         try
         {
             var service = new ExportPdfService();
-            var succes = 0;
+            var complets = new List<BulletinPaie>();
             var erreurs = new List<string>();
 
             foreach (var item in bulletins.OrderBy(b => b.PeriodePaie?.Annee).ThenBy(b => b.PeriodePaie?.Mois).ThenBy(b => b.Employe?.Matricule))
@@ -1128,24 +1262,24 @@ public partial class MainWindow : Window
                     erreurs.Add($"ID {item.Id} introuvable");
                     continue;
                 }
-
-                var fileName = $"Bulletin_{SanitizeFileName(bulletin.Employe?.Matricule ?? "NA")}_{bulletin.PeriodePaie?.Mois:D2}_{bulletin.PeriodePaie?.Annee}_{SanitizeFileName(bulletin.NumeroBulletin ?? bulletin.Id.ToString())}.pdf";
-                var outputPath = Path.Combine(dlg.FolderName, fileName);
-                service.ExporterBulletin(bulletin, outputPath);
-                succes++;
+                complets.Add(bulletin);
             }
+
+            if (complets.Count == 0)
+            {
+                NotifierAvertissement("Aucun bulletin valide à exporter.");
+                return;
+            }
+
+            service.ExporterBulletinsFeuilleA4(complets, dlg.FileName);
 
             if (erreurs.Count == 0)
             {
-                NotifierSucces($"{succes} bulletin(s) exporté(s).");
+                NotifierSucces($"{complets.Count} bulletin(s) exporté(s) — format A5, 2 par feuille A4.");
             }
             else
             {
-                var resumeErreurs = string.Join(Environment.NewLine, erreurs.Take(10));
-                if (erreurs.Count > 10)
-                    resumeErreurs += $"{Environment.NewLine}... ({erreurs.Count - 10} autres erreurs)";
-
-                NotifierAvertissement($"{succes} bulletin(s) exporté(s), {erreurs.Count} erreur(s).");
+                NotifierAvertissement($"{complets.Count} bulletin(s) exporté(s), {erreurs.Count} ignoré(s).");
             }
         }
         catch (Exception ex)
@@ -1253,7 +1387,7 @@ public partial class MainWindow : Window
                 {
                     var service = new ExportPdfService();
                     service.ExporterBulletin(bulletin, dlg.FileName);
-                    UiFeedback.Succes("Bulletin exporté en PDF.");
+                    UiFeedback.Succes("Bulletin exporté en PDF (format A5).");
                 }
                 catch (Exception ex)
                 {

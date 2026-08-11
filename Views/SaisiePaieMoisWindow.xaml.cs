@@ -15,7 +15,6 @@ public partial class SaisiePaieMoisWindow : Window
         DataContext = vm;
         vm.OnFermer = () =>
         {
-            UiFeedback.Succes("Saisie de paie enregistrée.");
             DialogResult = true;
             Close();
         };

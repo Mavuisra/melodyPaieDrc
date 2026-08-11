@@ -111,6 +111,7 @@ public class PrimesIndemnitesEmployeViewModel : INotifyPropertyChanged
             Affectations.Add(a);
             Montant = 0;
             OnPropertyChanged(nameof(Montant));
+            UiFeedback.Succes("Prime / indemnité affectée à l'employé.");
         }
         catch (Exception ex)
         {
@@ -130,6 +131,7 @@ public class PrimesIndemnitesEmployeViewModel : INotifyPropertyChanged
                 _db.SaveChanges();
                 Affectations.Remove(Selectionne);
                 Selectionne = null;
+                UiFeedback.Succes("Affectation prime / indemnité supprimée.");
             }
         }
         catch (Exception ex)

@@ -13,7 +13,6 @@ public partial class PeriodesPaieWindow : Window
         var db = new PaieDbContext();
         var vm = new PeriodesPaieViewModel(db);
         DataContext = vm;
-        vm.OnSucces = msg => UiFeedback.Succes(msg);
         vm.OnErreur = msg => UiFeedback.Avertissement(msg);
         vm.OuvrirAssistantCloture = id =>
         {

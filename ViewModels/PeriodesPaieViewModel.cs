@@ -73,6 +73,7 @@ public class PeriodesPaieViewModel : INotifyPropertyChanged
         try
         {
             _db.SaveChanges();
+            UiFeedback.Succes("Modifications enregistrées.");
             OnSucces?.Invoke("Modifications enregistrées.");
         }
         catch (Exception ex) { OnErreur?.Invoke(ex.Message); }
@@ -93,6 +94,7 @@ public class PeriodesPaieViewModel : INotifyPropertyChanged
             _db.PeriodesPaie.Add(new PeriodePaie { Mois = Mois, Annee = Annee, TauxChangeBudget = TauxChangeBudget, Cloturee = Cloturee });
             _db.SaveChanges();
             Charger();
+            UiFeedback.Succes("Période créée avec succès.");
             OnSucces?.Invoke("Période créée avec succès.");
         }
         catch (Exception ex) { OnErreur?.Invoke(ex.Message); }
@@ -118,6 +120,7 @@ public class PeriodesPaieViewModel : INotifyPropertyChanged
                 _db.PeriodesPaie.Remove(entite);
                 _db.SaveChanges();
                 Charger();
+                UiFeedback.Succes("Période supprimée.");
                 OnSucces?.Invoke("Période supprimée.");
             }
         }

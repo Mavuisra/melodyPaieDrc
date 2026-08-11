@@ -1,0 +1,51 @@
+<UserControl x:Class="MelodyPaieRDC.Views.EmployeModuleAccesPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             x:Name="Root"
+             Background="Transparent"
+             FontFamily="Segoe UI">
+    <Grid Margin="0,8,0,0">
+        <Border x:Name="EtatVide" Background="#F8FAFC" CornerRadius="12" BorderBrush="#A7F3D0" BorderThickness="1"
+                Padding="32,28" HorizontalAlignment="Stretch" VerticalAlignment="Center" Visibility="Collapsed">
+            <StackPanel HorizontalAlignment="Center" MaxWidth="440">
+                <materialDesign:PackIcon Kind="AccountSearchOutline" Width="48" Height="48"
+                                         Foreground="{DynamicResource BrandPrimaryBrush}"
+                                         HorizontalAlignment="Center" Margin="0,0,0,16"/>
+                <TextBlock Text="Sélectionnez un employé dans le répertoire pour accéder à ce module."
+                           FontSize="14" Foreground="#64748B" TextWrapping="Wrap" TextAlignment="Center"/>
+            </StackPanel>
+        </Border>
+
+        <Border x:Name="ContenuModule" Style="{StaticResource EmployeOngletPanelCard}" Padding="24,20" Margin="0,4,0,12">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Width="52" Height="52" CornerRadius="26" Background="#ECFDF5" Margin="0,0,16,0">
+                    <materialDesign:PackIcon Width="28" Height="28"
+                                             Foreground="{DynamicResource BrandPrimaryBrush}"
+                                             Kind="{Binding IconKind, ElementName=Root}"
+                                             HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Titre, ElementName=Root}" FontSize="17" FontWeight="Bold" Foreground="#0F172A"/>
+                    <TextBlock Text="{Binding Description, ElementName=Root}" FontSize="13" Foreground="#64748B"
+                               TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    <TextBlock x:Name="EmployeLibelle" Margin="0,10,0,0" FontSize="12" Foreground="#94A3B8"/>
+                </StackPanel>
+                <Button Grid.Column="2" VerticalAlignment="Center"
+                        Command="{Binding OuvrirCommand, ElementName=Root}"
+                        Style="{StaticResource MaterialDesignRaisedButton}"
+                        materialDesign:ButtonAssist.CornerRadius="10" Padding="18,10">
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="OpenInNew" Width="18" Height="18" Margin="0,0,8,0"/>
+                        <TextBlock Text="{Binding ActionLibelle, ElementName=Root}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

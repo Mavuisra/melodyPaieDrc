@@ -6,11 +6,13 @@
              xmlns:helpers="clr-namespace:MelodyPaieRDC.Helpers"
              xmlns:models="clr-namespace:MelodyPaieRDC.Models"
              xmlns:views="clr-namespace:MelodyPaieRDC.Views"
+             xmlns:services="clr-namespace:MelodyPaieRDC.Services"
              Background="Transparent"
              TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
              FontFamily="{materialDesign:MaterialDesignFont}">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <helpers:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter"/>
         <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <Style x:Key="DashboardCardStyle" TargetType="Border">
             <Setter Property="Background" Value="#FFFFFF"/>
@@ -27,12 +29,12 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#F8FAFC"/>
-                    <Setter Property="BorderBrush" Value="#2563EB"/>
+                    <Setter Property="Background" Value="#F0FDF4"/>
+                    <Setter Property="BorderBrush" Value="#059669"/>
                     <Setter Property="BorderThickness" Value="2"/>
                     <Setter Property="Effect">
                         <Setter.Value>
-                            <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.20" Color="#2563EB"/>
+                            <DropShadowEffect BlurRadius="16" ShadowDepth="4" Opacity="0.18" Color="#047857"/>
                         </Setter.Value>
                     </Setter>
                 </Trigger>
@@ -49,34 +51,34 @@
                     <Setter Property="Background" Value="#F1F5F9"/>
                 </Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#EFF6FF"/>
-                    <Setter Property="BorderBrush" Value="#93C5FD"/>
+                    <Setter Property="Background" Value="#ECFDF5"/>
+                    <Setter Property="BorderBrush" Value="#6EE7B7"/>
                 </Trigger>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#DBEAFE"/>
-                    <Setter Property="BorderBrush" Value="#3B82F6"/>
+                    <Setter Property="Background" Value="#D1FAE5"/>
+                    <Setter Property="BorderBrush" Value="#059669"/>
                 </Trigger>
                 <MultiTrigger>
                     <MultiTrigger.Conditions>
                         <Condition Property="IsMouseOver" Value="True"/>
                         <Condition Property="IsSelected" Value="True"/>
                     </MultiTrigger.Conditions>
-                    <Setter Property="Background" Value="#BFDBFE"/>
+                    <Setter Property="Background" Value="#A7F3D0"/>
                 </MultiTrigger>
             </Style.Triggers>
         </Style>
 
         <Style x:Key="PresenceColumnHeaderStyle" TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#1E3A8A"/>
+            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
             <Setter Property="Foreground" Value="#FFFFFF"/>
-            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="Padding" Value="12,10"/>
-            <Setter Property="BorderBrush" Value="#1E40AF"/>
+            <Setter Property="BorderBrush" Value="#065F46"/>
             <Setter Property="BorderThickness" Value="0,0,1,0"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#1D4ED8"/>
+                    <Setter Property="Background" Value="{DynamicResource BrandPrimaryDarkBrush}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -125,8 +127,8 @@
 
         <Style x:Key="PointageChipButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#FFFFFF"/>
-            <Setter Property="Foreground" Value="#1E3A5F"/>
-            <Setter Property="BorderBrush" Value="#C7D2FE"/>
+            <Setter Property="Foreground" Value="#065F46"/>
+            <Setter Property="BorderBrush" Value="#A7F3D0"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,5"/>
             <Setter Property="FontSize" Value="12"/>
@@ -145,9 +147,9 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#EFF6FF"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="#3B82F6"/>
-                                <Setter Property="Foreground" Value="#1D4ED8"/>
+                                <Setter TargetName="Bd" Property="Background" Value="#ECFDF5"/>
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#059669"/>
+                                <Setter Property="Foreground" Value="#047857"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.5"/>
@@ -158,10 +160,10 @@
             </Setter>
         </Style>
         <Style x:Key="PointageChipPrimaryStyle" TargetType="Button">
-            <Setter Property="Background" Value="{DynamicResource BrandPrimaryBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource BrandGradientBrush}"/>
             <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="{DynamicResource BrandPrimaryBrush}"/>
-            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Padding" Value="10,5"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
@@ -175,11 +177,15 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="15" Padding="{TemplateBinding Padding}">
-                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{DynamicResource BrandPrimaryDarkBrush}"/>
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.88"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="Bd" Property="Opacity" Value="0.78"/>
                             </Trigger>
                             <Trigger Property="IsEnabled" Value="False">
                                 <Setter Property="Opacity" Value="0.5"/>
@@ -192,326 +198,291 @@
         <Style x:Key="PointageToolbarButtonStyle" TargetType="Button" BasedOn="{StaticResource PointageChipButtonStyle}"/>
         <x:Array x:Key="TypesJourSuivi" Type="{x:Type sys:String}">
             <sys:String>Normal</sys:String>
+            <sys:String>Congé annuel</sys:String>
             <sys:String>Congé de circonstance</sys:String>
             <sys:String>Maladie</sys:String>
             <sys:String>Préavis</sys:String>
         </x:Array>
     </UserControl.Resources>
 
-    <Grid>
-        <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
-        <StackPanel Margin="0,0,4,8">
+    <Grid Margin="0,0,4,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
 
-            <!-- Filtres + actions (style cohérent avec bandeau LIVE) -->
-            <Border CornerRadius="12" Margin="0,0,0,10" BorderBrush="#C7D2FE" BorderThickness="1">
-                <Border.Background>
-                    <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-                        <GradientStop Color="#FFFFFF" Offset="0"/>
-                        <GradientStop Color="#F8FAFF" Offset="1"/>
-                    </LinearGradientBrush>
-                </Border.Background>
+            <!-- En-tête -->
+            <Grid Grid.Row="0" Margin="0,0,0,12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="10" Height="10" Fill="#22C55E" Margin="0,0,8,8" VerticalAlignment="Center">
+                            <Ellipse.Triggers>
+                                <EventTrigger RoutedEvent="FrameworkElement.Loaded">
+                                    <BeginStoryboard>
+                                        <Storyboard RepeatBehavior="Forever" AutoReverse="True">
+                                            <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.35" Duration="0:0:0.8"/>
+                                        </Storyboard>
+                                    </BeginStoryboard>
+                                </EventTrigger>
+                            </Ellipse.Triggers>
+                        </Ellipse>
+                        <TextBlock Text="LIVE" FontWeight="Bold" FontSize="11" Foreground="#15803D" VerticalAlignment="Center" Margin="0,0,10,8"/>
+                    </StackPanel>
+                    <TextBlock Text="Pointage" FontSize="32" FontWeight="Bold" Foreground="#0F172A"/>
+                    <TextBlock Text="{Binding DateDuJourLibelle, Mode=OneWay}" FontSize="15" FontWeight="SemiBold" Foreground="#334155" Margin="0,4,0,0"/>
+                    <TextBlock Text="{Binding PresenceStatut}" FontSize="13" Foreground="#64748B" Margin="0,4,0,0"/>
+                </StackPanel>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                    <Button Command="{Binding RafraichirPresenceCommand}"
+                            Style="{StaticResource PointageChipPrimaryStyle}"
+                            Padding="16,10" Margin="0,0,8,0"
+                            ToolTip="Synchroniser le terminal ZKTeco">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="CloudSync" Width="18" Height="18" Margin="0,0,8,0"/>
+                            <TextBlock Text="Synchroniser" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding BasculerSonPointageCommand}"
+                            Style="{StaticResource PointageChipButtonStyle}"
+                            Margin="0,0,8,0"
+                            ToolTip="Son à chaque pointage">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="VolumeHigh" Width="16" Height="16" Margin="0,0,4,0"
+                                                     Visibility="{Binding SonPointageActif, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                            <materialDesign:PackIcon Kind="VolumeOff" Width="16" Height="16" Margin="0,0,4,0">
+                                <materialDesign:PackIcon.Style>
+                                    <Style TargetType="materialDesign:PackIcon">
+                                        <Setter Property="Visibility" Value="Collapsed"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding SonPointageActif}" Value="False">
+                                                <Setter Property="Visibility" Value="Visible"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </materialDesign:PackIcon.Style>
+                            </materialDesign:PackIcon>
+                            <TextBlock Text="{Binding SonPointageLibelle}" FontSize="12"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding DataContext.OuvrirSuiviJournalierCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                            Style="{StaticResource PointageChipButtonStyle}"
+                            ToolTip="Ouvrir dans une fenêtre séparée">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="OpenInNew" Width="16" Height="16" Margin="0,0,6,0"/>
+                            <TextBlock Text="Fenêtre"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding ReinitialiserBadgePointageCommand}"
+                            Style="{StaticResource MaterialDesignFlatButton}"
+                            Padding="4,2" Margin="4,0,0,0"
+                            Visibility="{Binding AfficherBadgePointagesNonLus, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Border Style="{StaticResource PointageBadgeStyle}">
+                            <TextBlock Text="{Binding BadgePointagesNonLusLibelle}" FontSize="10" FontWeight="Bold"
+                                       Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- Onglets pointage -->
+            <Border Grid.Row="1" Background="#F0FDF4" CornerRadius="12" Padding="6" Margin="0,0,0,12" BorderBrush="#A7F3D0" BorderThickness="1">
+                <UniformGrid Columns="3">
+                    <Button Command="{Binding SelectionnerVuePointageCommand}" CommandParameter="0" Margin="4,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource PointageChipButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding VuePointageIndex}" Value="0">
+                                        <Setter Property="Background" Value="{DynamicResource BrandGradientBrush}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Broadcast" Width="16" Height="16" Margin="0,0,6,0"/>
+                            <TextBlock Text="Présence live" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding SelectionnerVuePointageCommand}" CommandParameter="1" Margin="4,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource PointageChipButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding VuePointageIndex}" Value="1">
+                                        <Setter Property="Background" Value="{DynamicResource BrandGradientBrush}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="SwapHorizontal" Width="16" Height="16" Margin="0,0,6,0"/>
+                            <TextBlock Text="Mouvements du jour" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding SelectionnerVuePointageCommand}" CommandParameter="2" Margin="4,0">
+                        <Button.Style>
+                            <Style TargetType="Button" BasedOn="{StaticResource PointageChipButtonStyle}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding VuePointageIndex}" Value="2">
+                                        <Setter Property="Background" Value="{DynamicResource BrandGradientBrush}"/>
+                                        <Setter Property="Foreground" Value="White"/>
+                                        <Setter Property="BorderBrush" Value="Transparent"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="ClockAlertOutline" Width="16" Height="16" Margin="0,0,6,0"/>
+                            <TextBlock Text="Gestion des retards" FontWeight="Bold"/>
+                        </StackPanel>
+                    </Button>
+                </UniformGrid>
+            </Border>
+
+            <!-- Filtres -->
+            <StackPanel Grid.Row="2">
+            <Border CornerRadius="14" Margin="0,0,0,10" BorderBrush="#D1FAE5" BorderThickness="1" Background="White" Padding="16,14">
                 <Border.Effect>
-                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.06" Color="#1E3A5F"/>
+                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.06" Color="#047857"/>
                 </Border.Effect>
-                <StackPanel Margin="14,12">
-                    <Grid Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" MinWidth="160" MaxWidth="220"/>
-                            <ColumnDefinition Width="16"/>
-                            <ColumnDefinition Width="2*" MinWidth="280"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Grid.Column="0">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <materialDesign:PackIcon Kind="CalendarMonth" Width="16" Height="16" Foreground="#3B82F6" Margin="0,0,6,0"/>
-                                <TextBlock Text="Période" FontSize="11" FontWeight="SemiBold" Foreground="#64748B"/>
-                            </StackPanel>
-                            <ComboBox ItemsSource="{Binding PeriodesPaie}"
-                                      SelectedItem="{Binding PeriodeSelectionnee, Mode=TwoWay}"
-                                      materialDesign:HintAssist.Hint="Mois / année">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" MinWidth="160" MaxWidth="220"/>
+                        <ColumnDefinition Width="16"/>
+                        <ColumnDefinition Width="2*" MinWidth="280"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="0">
+                        <TextBlock Text="Période" FontSize="12" FontWeight="Bold" Foreground="#64748B" Margin="0,0,0,6"/>
+                        <ComboBox ItemsSource="{Binding PeriodesPaie}"
+                                  SelectedItem="{Binding PeriodeSelectionnee, Mode=TwoWay}"
+                                  materialDesign:HintAssist.Hint="Mois / année">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock FontSize="13" FontWeight="SemiBold">
+                                        <Run Text="{Binding Mois, Mode=OneWay}"/>
+                                        <Run Text=" / "/>
+                                        <Run Text="{Binding Annee, Mode=OneWay}"/>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
+                    </StackPanel>
+                    <StackPanel Grid.Column="2">
+                        <TextBlock Text="Employé" FontSize="12" FontWeight="Bold" Foreground="#64748B" Margin="0,0,0,6"/>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" MinWidth="120"/>
+                                <ColumnDefinition Width="10"/>
+                                <ColumnDefinition Width="1.4*" MinWidth="160"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox Grid.Column="0"
+                                     Text="{Binding RechercheEmployeText, UpdateSourceTrigger=PropertyChanged}"
+                                     materialDesign:HintAssist.Hint="Matricule, nom…"/>
+                            <ComboBox Grid.Column="2"
+                                      ItemsSource="{Binding Employes}"
+                                      SelectedItem="{Binding EmployeSelectionne, Mode=TwoWay}"
+                                      materialDesign:HintAssist.Hint="Sélectionner">
                                 <ComboBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBlock FontSize="13">
-                                            <Run Text="{Binding Mois, Mode=OneWay}"/>
-                                            <Run Text=" / "/>
-                                            <Run Text="{Binding Annee, Mode=OneWay}"/>
+                                    <DataTemplate DataType="{x:Type models:Employe}">
+                                        <TextBlock TextTrimming="CharacterEllipsis" FontSize="13">
+                                            <Run Text="{Binding Matricule, Mode=OneWay}" FontWeight="SemiBold"/>
+                                            <Run Text=" — "/>
+                                            <Run Text="{Binding Nom, Mode=OneWay}"/>
+                                            <Run Text=" "/>
+                                            <Run Text="{Binding Prenom, Mode=OneWay}"/>
                                         </TextBlock>
                                     </DataTemplate>
                                 </ComboBox.ItemTemplate>
                             </ComboBox>
-                        </StackPanel>
-                        <StackPanel Grid.Column="2">
-                            <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
-                                <materialDesign:PackIcon Kind="AccountSearch" Width="16" Height="16" Foreground="#3B82F6" Margin="0,0,6,0"/>
-                                <TextBlock Text="Employé (clic tableau ou liste)" FontSize="11" FontWeight="SemiBold" Foreground="#64748B"/>
-                            </StackPanel>
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" MinWidth="120"/>
-                                    <ColumnDefinition Width="10"/>
-                                    <ColumnDefinition Width="1.4*" MinWidth="160"/>
-                                </Grid.ColumnDefinitions>
-                                <TextBox Grid.Column="0"
-                                         Text="{Binding RechercheEmployeText, UpdateSourceTrigger=PropertyChanged}"
-                                         materialDesign:HintAssist.Hint="Matricule, nom…"/>
-                                <ComboBox Grid.Column="2"
-                                          ItemsSource="{Binding Employes}"
-                                          SelectedItem="{Binding EmployeSelectionne, Mode=TwoWay}"
-                                          materialDesign:HintAssist.Hint="Sélectionner">
-                                    <ComboBox.ItemTemplate>
-                                        <DataTemplate DataType="{x:Type models:Employe}">
-                                            <TextBlock TextTrimming="CharacterEllipsis" FontSize="13">
-                                                <Run Text="{Binding Matricule, Mode=OneWay}" FontWeight="SemiBold"/>
-                                                <Run Text=" — "/>
-                                                <Run Text="{Binding Nom, Mode=OneWay}"/>
-                                                <Run Text=" "/>
-                                                <Run Text="{Binding Prenom, Mode=OneWay}"/>
-                                            </TextBlock>
-                                        </DataTemplate>
-                                    </ComboBox.ItemTemplate>
-                                </ComboBox>
-                            </Grid>
-                        </StackPanel>
-                    </Grid>
-
-                    <Border Height="1" Background="#E2E8F0" Margin="0,0,0,10"/>
-                    <TextBlock Text="Actions" FontSize="11" FontWeight="SemiBold" Foreground="#94A3B8" Margin="0,0,0,8"/>
-                    <WrapPanel>
-                        <Button Command="{Binding RafraichirPresenceCommand}"
-                                Style="{StaticResource PointageChipPrimaryStyle}"
-                                ToolTip="Synchroniser le terminal ZKTeco">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="CloudSync" Width="15" Height="15" Margin="0,0,6,0"/>
-                                <TextBlock Text="Synchroniser"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding ImporterUtilisateursTerminalCommand}"
-                                Style="{StaticResource PointageChipButtonStyle}"
-                                ToolTip="Importer les utilisateurs du terminal">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="AccountArrowDown" Width="15" Height="15" Margin="0,0,6,0"/>
-                                <TextBlock Text="Importer terminal"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding ActualiserListesCommand}"
-                                Style="{StaticResource PointageChipButtonStyle}"
-                                ToolTip="Recharger employés et périodes">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Refresh" Width="15" Height="15" Margin="0,0,6,0"/>
-                                <TextBlock Text="Actualiser"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding ForcerPeriodeMoisCourantCommand}"
-                                Style="{StaticResource PointageChipButtonStyle}"
-                                ToolTip="Passer au mois en cours">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="CalendarToday" Width="15" Height="15" Margin="0,0,6,0"/>
-                                <TextBlock Text="Mois en cours"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding ChargerLignesCommand}"
-                                Style="{StaticResource PointageChipButtonStyle}"
-                                ToolTip="Afficher le détail mensuel">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="TableEye" Width="15" Height="15" Margin="0,0,6,0"/>
-                                <TextBlock Text="Détail mois"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding RetablirCalculAutomatiqueCommand}"
-                                Style="{StaticResource PointageChipButtonStyle}"
-                                ToolTip="Recalcul automatique des heures">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Calculator" Width="15" Height="15" Margin="0,0,6,0"/>
-                                <TextBlock Text="Recalcul LT"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Command="{Binding EffacerEmployeSelectionneCommand}"
-                                Style="{StaticResource PointageChipButtonStyle}"
-                                ToolTip="Retirer l'employé sélectionné">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="AccountRemove" Width="15" Height="15" Margin="0,0,6,0"/>
-                                <TextBlock Text="Effacer"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Click="ExporterPdf_Click"
-                                Style="{StaticResource PointageChipButtonStyle}"
-                                ToolTip="Exporter PDF — pointés aujourd'hui">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FilePdfBox" Width="15" Height="15" Margin="0,0,6,0"/>
-                                <TextBlock Text="PDF jour"/>
-                            </StackPanel>
-                        </Button>
-                        <Button Click="ExporterPdfTousEmployes_Click"
-                                Style="{StaticResource PointageChipButtonStyle}"
-                                ToolTip="Exporter PDF — toute la période">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="FileDocumentMultiple" Width="15" Height="15" Margin="0,0,6,0"/>
-                                <TextBlock Text="PDF période"/>
-                            </StackPanel>
-                        </Button>
-                    </WrapPanel>
-                </StackPanel>
-            </Border>
-
-            <!-- DASHBOARD LIVE MODERNE -->
-            <Border Background="#EEF2FF" CornerRadius="12" Padding="14,12" Margin="0,0,0,8"
-                    BorderBrush="#C7D2FE" BorderThickness="1">
-                <StackPanel>
-                    <Grid Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                            <Ellipse Width="10" Height="10" Fill="#22C55E" Margin="0,0,8,0">
-                                <Ellipse.Triggers>
-                                    <EventTrigger RoutedEvent="FrameworkElement.Loaded">
-                                        <BeginStoryboard>
-                                            <Storyboard RepeatBehavior="Forever" AutoReverse="True">
-                                                <DoubleAnimation Storyboard.TargetProperty="Opacity"
-                                                                 From="1" To="0.35" Duration="0:0:0.8"/>
-                                            </Storyboard>
-                                        </BeginStoryboard>
-                                    </EventTrigger>
-                                </Ellipse.Triggers>
-                            </Ellipse>
-                            <TextBlock Text="LIVE" FontWeight="Bold" FontSize="11" Foreground="#15803D" Margin="0,0,10,0"/>
-                            <TextBlock Text="Présence en direct" FontWeight="Bold" FontSize="16" Foreground="#0F172A"/>
-                        </StackPanel>
-                        <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
-                            <Button Command="{Binding BasculerSonPointageCommand}"
-                                    Style="{StaticResource PointageChipButtonStyle}"
-                                    Margin="0,0,6,0"
-                                    ToolTip="Activer ou couper le son à chaque pointage">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="VolumeHigh" Width="14" Height="14" Margin="0,0,4,0"
-                                                             Visibility="{Binding SonPointageActif, Converter={StaticResource BooleanToVisibilityConverter}}"/>
-                                    <materialDesign:PackIcon Kind="VolumeOff" Width="14" Height="14" Margin="0,0,4,0">
-                                        <materialDesign:PackIcon.Style>
-                                            <Style TargetType="materialDesign:PackIcon">
-                                                <Setter Property="Visibility" Value="Collapsed"/>
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding SonPointageActif}" Value="False">
-                                                        <Setter Property="Visibility" Value="Visible"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </materialDesign:PackIcon.Style>
-                                    </materialDesign:PackIcon>
-                                    <TextBlock Text="{Binding SonPointageLibelle}" FontSize="12"/>
-                                </StackPanel>
-                            </Button>
-                            <Button Command="{Binding RafraichirPresenceCommand}"
-                                    Style="{StaticResource PointageChipButtonStyle}"
-                                    Margin="0,0,0,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <materialDesign:PackIcon Kind="Refresh" Width="14" Height="14" Margin="0,0,4,0"/>
-                                    <TextBlock Text="Réessayer" FontSize="12"/>
-                                </StackPanel>
-                            </Button>
-                            <Button Command="{Binding ReinitialiserBadgePointageCommand}"
-                                    Style="{StaticResource MaterialDesignFlatButton}"
-                                    Padding="4,2"
-                                    ToolTip="Marquer comme lu"
-                                    Visibility="{Binding AfficherBadgePointagesNonLus, Converter={StaticResource BooleanToVisibilityConverter}}">
-                                <Border Style="{StaticResource PointageBadgeStyle}">
-                                    <TextBlock Text="{Binding BadgePointagesNonLusLibelle}" FontSize="10" FontWeight="Bold"
-                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                                </Border>
-                            </Button>
-                        </StackPanel>
-                    </Grid>
-
-                    <UniformGrid Columns="4">
-                        <Border Style="{StaticResource DashboardCardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="Terminal" Foreground="#475569" FontSize="11" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding TerminalEtatTitre}" FontWeight="Bold" FontSize="14" Margin="0,4,0,2" Foreground="#0F172A"/>
-                                <TextBlock Text="{Binding ZkStatutSync}" FontSize="11" Foreground="#334155"/>
-                                <TextBlock Text="{Binding TerminalEtatMessageCourt}" FontSize="11" FontWeight="SemiBold"
-                                           Foreground="{Binding TerminalEtatCouleur}" Margin="0,4,0,0"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource DashboardCardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="Employés pointés" Foreground="#475569" FontSize="11" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding NbEmployesPresentsAujourdhui}" FontSize="28" FontWeight="Bold" Foreground="#047857"/>
-                                <TextBlock Text="Aujourd'hui" FontSize="11" Foreground="#334155"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource DashboardCardStyle}">
-                            <StackPanel>
-                                <TextBlock Text="Temps moyen" Foreground="#475569" FontSize="11" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding HeuresMoyennesAujourdhuiLibelle}" FontSize="28" FontWeight="Bold" Foreground="#1D4ED8"/>
-                                <TextBlock Text="Par employé actif" FontSize="11" Foreground="#334155"/>
-                            </StackPanel>
-                        </Border>
-                        <Border Style="{StaticResource DashboardCardStyle}" Margin="0,0,0,10">
-                            <StackPanel>
-                                <TextBlock Text="Retards" Foreground="#475569" FontSize="11" FontWeight="SemiBold"/>
-                                <TextBlock Text="{Binding NbRetardsAujourdhui}" FontSize="28" FontWeight="Bold" Foreground="#DC2626"/>
-                                <TextBlock Text="Début de journée" FontSize="11" Foreground="#334155"/>
-                            </StackPanel>
-                        </Border>
-                    </UniformGrid>
-
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="{Binding PresenceStatut}" Foreground="#1E293B" FontSize="12.5" FontWeight="Medium" VerticalAlignment="Center"/>
-                        <Button Command="{Binding BasculerDiagnosticCommand}" Margin="12,0,0,0"
-                                Style="{StaticResource MaterialDesignFlatButton}" Padding="8,2" FontSize="11"
-                                Visibility="{Binding TerminalHorsLigne, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <TextBlock Text="{Binding BoutonDiagnosticLibelle}"/>
-                        </Button>
+                        </Grid>
                     </StackPanel>
-                    <Border Background="#FFF5F5" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="10" Padding="10,8"
-                            Visibility="{Binding DiagnosticTechniqueVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
-                        <TextBlock Text="{Binding DiagnosticTechniqueTerminal}" FontSize="11" Foreground="#7F1D1D" TextWrapping="Wrap"/>
-                    </Border>
-                </StackPanel>
+                </Grid>
             </Border>
 
-            <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="14,10" Margin="0,0,0,10">
-                <StackPanel>
-                    <TextBlock Text="Activité par heure (aujourd'hui)" FontWeight="Bold" FontSize="13" Foreground="#0F172A"/>
-                    <ItemsControl ItemsSource="{Binding PresenceParHeure}" Margin="0,8,0,0">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <UniformGrid Columns="15"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                                <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="2,0">
-                                    <Border Width="16" Height="{Binding Hauteur}" CornerRadius="6,6,2,2" Cursor="Hand">
-                                        <Border.Style>
-                                            <Style TargetType="Border">
-                                                <Setter Property="Background" Value="#2563EB"/>
-                                                <Style.Triggers>
-                                                    <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="#1D4ED8"/>
-                                                        <Setter Property="Effect">
-                                                            <Setter.Value>
-                                                                <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.35" Color="#1E40AF"/>
-                                                            </Setter.Value>
-                                                        </Setter>
-                                                    </Trigger>
-                                                    <DataTrigger Binding="{Binding NombrePointages}" Value="0">
-                                                        <Setter Property="Background" Value="#CBD5E1"/>
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </Border.Style>
-                                    </Border>
-                                    <TextBlock Text="{Binding HeureLabel}" FontSize="9.5" FontWeight="SemiBold"
-                                               Foreground="#334155" HorizontalAlignment="Center" Margin="0,4,0,0"/>
-                                </StackPanel>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
-            </Border>
+            <!-- Actions secondaires -->
+            <Expander Margin="0,0,0,0" IsExpanded="False" materialDesign:ColorZoneAssist.Mode="Light">
+                <Expander.Header>
+                    <TextBlock Text="Plus d'actions" FontWeight="Bold" FontSize="14" Foreground="#0F172A"/>
+                </Expander.Header>
+                <WrapPanel Margin="0,10,0,0">
+                    <Button Command="{Binding ImporterUtilisateursTerminalCommand}" Style="{StaticResource PointageChipButtonStyle}" ToolTip="Importer les utilisateurs du terminal">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AccountArrowDown" Width="15" Height="15" Margin="0,0,6,0"/>
+                            <TextBlock Text="Importer terminal"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding ActualiserListesCommand}" Style="{StaticResource PointageChipButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Refresh" Width="15" Height="15" Margin="0,0,6,0"/>
+                            <TextBlock Text="Actualiser"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding ForcerPeriodeMoisCourantCommand}" Style="{StaticResource PointageChipButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="CalendarToday" Width="15" Height="15" Margin="0,0,6,0"/>
+                            <TextBlock Text="Mois en cours"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding ChargerLignesCommand}" Style="{StaticResource PointageChipButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="TableEye" Width="15" Height="15" Margin="0,0,6,0"/>
+                            <TextBlock Text="Détail mois"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding RetablirCalculAutomatiqueCommand}" Style="{StaticResource PointageChipButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Calculator" Width="15" Height="15" Margin="0,0,6,0"/>
+                            <TextBlock Text="Recalcul LT"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding EffacerEmployeSelectionneCommand}" Style="{StaticResource PointageChipButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="AccountRemove" Width="15" Height="15" Margin="0,0,6,0"/>
+                            <TextBlock Text="Effacer"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="ExporterPdf_Click" Style="{StaticResource PointageChipButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FilePdfBox" Width="15" Height="15" Margin="0,0,6,0"/>
+                            <TextBlock Text="PDF jour"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Click="ExporterPdfTousEmployes_Click" Style="{StaticResource PointageChipButtonStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="FileDocumentMultiple" Width="15" Height="15" Margin="0,0,6,0"/>
+                            <TextBlock Text="PDF période"/>
+                        </StackPanel>
+                    </Button>
+                </WrapPanel>
+            </Expander>
+            </StackPanel>
 
-            <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="0"
-                    MinHeight="220" MaxHeight="420" Margin="0,0,0,10">
+            <!-- Présence live : grille principale + fil notifications -->
+            <Grid Grid.Row="3" MinHeight="460"
+                  Visibility="{Binding VuePointageIndex, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=0}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="280"/>
+                </Grid.ColumnDefinitions>
+
+                <Grid Grid.Column="0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+            <Border Grid.Row="0" Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="0"
+                    MinHeight="320" Margin="0,0,0,0">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.09" Color="{DynamicResource BrandPrimaryColor}"/>
                 </Border.Effect>
@@ -522,18 +493,17 @@
                     </Grid.RowDefinitions>
                     <Border Grid.Row="0" Padding="14,10" CornerRadius="12,12,0,0">
                         <Border.Background>
-                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-                                <GradientStop Color="#E8F5E9" Offset="0"/>
-                                <GradientStop Color="#E3F2FD" Offset="1"/>
+                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                <GradientStop Color="#ECFDF5" Offset="0"/>
+                                <GradientStop Color="#F0FDF4" Offset="1"/>
                             </LinearGradientBrush>
                         </Border.Background>
                         <StackPanel>
+                            <TextBlock Text="Présence du jour" FontSize="16" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,6"/>
                             <TextBlock Text="{Binding PresenceResumeDureesAujourdhui}" FontSize="12.5"
-                                       Foreground="#1E293B" TextWrapping="Wrap" LineHeight="18" FontWeight="Medium"/>
-                            <TextBlock Text="Cliquez une ligne pour suivre le mois de cet employé."
-                                       FontSize="11.5" Foreground="#1D4ED8" FontWeight="Bold" Margin="0,6,0,0"/>
-                            <TextBlock Text="{Binding PresenceLegendeColonnes}" FontSize="11" Foreground="#475569"
-                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+                                       Foreground="#334155" TextWrapping="Wrap" LineHeight="18"/>
+                            <TextBlock Text="Cliquez une ligne pour le détail mensuel."
+                                       FontSize="11.5" Foreground="#059669" FontWeight="Bold" Margin="0,6,0,0"/>
                         </StackPanel>
                     </Border>
                     <DataGrid x:Name="GrillePresenceSynthese" Grid.Row="1"
@@ -549,7 +519,9 @@
                               AlternatingRowBackground="#F8FAFC"
                               GridLinesVisibility="Horizontal"
                               HorizontalGridLinesBrush="#CBD5E1"
-                              RowHeight="44" BorderThickness="0">
+                              RowHeight="44" BorderThickness="0"
+                              VerticalAlignment="Stretch"
+                              VerticalScrollBarVisibility="Auto">
                         <DataGrid.RowStyle>
                             <Style TargetType="DataGridRow" BasedOn="{StaticResource PresenceRowStyle}"/>
                         </DataGrid.RowStyle>
@@ -561,8 +533,8 @@
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                            <Border Width="28" Height="28" CornerRadius="14" Background="#DBEAFE" Margin="0,0,8,0">
-                                                <TextBlock Text="{Binding Initiales}" Foreground="#1D4ED8" FontWeight="Bold"
+                                            <Border Width="28" Height="28" CornerRadius="14" Background="#D1FAE5" Margin="0,0,8,0">
+                                                <TextBlock Text="{Binding Initiales}" Foreground="#047857" FontWeight="Bold"
                                                            HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="10"/>
                                             </Border>
                                             <TextBlock Text="{Binding NomComplet}" FontWeight="SemiBold" FontSize="13" VerticalAlignment="Center"/>
@@ -702,8 +674,100 @@
                 </Grid>
             </Border>
 
+            <Expander Grid.Row="1" Margin="0,10,0,0" IsExpanded="False">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <materialDesign:PackIcon Kind="ChartBar" Width="18" Height="18" Foreground="#047857" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="Statistiques du jour" FontWeight="Bold" FontSize="13" Foreground="#0F172A"/>
+                    </StackPanel>
+                </Expander.Header>
+                <StackPanel Margin="0,10,0,0">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                        <Button Command="{Binding BasculerDiagnosticCommand}"
+                                Style="{StaticResource MaterialDesignFlatButton}" Padding="8,2" FontSize="11"
+                                Visibility="{Binding TerminalHorsLigne, Converter={StaticResource BooleanToVisibilityConverter}}">
+                            <TextBlock Text="{Binding BoutonDiagnosticLibelle}"/>
+                        </Button>
+                    </StackPanel>
+                    <Border Background="#FFF5F5" BorderBrush="#FECACA" BorderThickness="1" CornerRadius="10" Padding="10,8" Margin="0,0,0,12"
+                            Visibility="{Binding DiagnosticTechniqueVisible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <TextBlock Text="{Binding DiagnosticTechniqueTerminal}" FontSize="11" Foreground="#7F1D1D" TextWrapping="Wrap"/>
+                    </Border>
+                    <Border Background="#ECFDF5" CornerRadius="14" Padding="16,14" Margin="0,0,0,12"
+                            BorderBrush="#A7F3D0" BorderThickness="1">
+                        <UniformGrid Columns="4">
+                            <Border Style="{StaticResource DashboardCardStyle}" Margin="0,0,8,0">
+                                <StackPanel>
+                                    <TextBlock Text="Terminal" Foreground="#475569" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding TerminalEtatTitre}" FontWeight="Bold" FontSize="14" Margin="0,4,0,2" Foreground="#0F172A"/>
+                                    <TextBlock Text="{Binding ZkStatutSync}" FontSize="11" Foreground="#334155"/>
+                                    <TextBlock Text="{Binding TerminalEtatMessageCourt}" FontSize="11" FontWeight="SemiBold"
+                                               Foreground="{Binding TerminalEtatCouleur}" Margin="0,4,0,0"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource DashboardCardStyle}" Margin="4,0">
+                                <StackPanel>
+                                    <TextBlock Text="Pointés" Foreground="#475569" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding NbEmployesPresentsAujourdhui}" FontSize="28" FontWeight="Bold" Foreground="#047857"/>
+                                    <TextBlock Text="Aujourd'hui" FontSize="11" Foreground="#334155"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource DashboardCardStyle}" Margin="4,0">
+                                <StackPanel>
+                                    <TextBlock Text="Temps moyen" Foreground="#475569" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding HeuresMoyennesAujourdhuiLibelle}" FontSize="28" FontWeight="Bold" Foreground="#059669"/>
+                                    <TextBlock Text="Par employé actif" FontSize="11" Foreground="#334155"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Style="{StaticResource DashboardCardStyle}" Margin="8,0,0,0">
+                                <StackPanel>
+                                    <TextBlock Text="Retards" Foreground="#475569" FontSize="11" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding NbRetardsAujourdhui}" FontSize="28" FontWeight="Bold" Foreground="#DC2626"/>
+                                    <TextBlock Text="Début de journée" FontSize="11" Foreground="#334155"/>
+                                </StackPanel>
+                            </Border>
+                        </UniformGrid>
+                    </Border>
+                    <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="14,10">
+                        <StackPanel>
+                            <TextBlock Text="Activité par heure (aujourd'hui)" FontWeight="Bold" FontSize="13" Foreground="#0F172A"/>
+                            <ItemsControl ItemsSource="{Binding PresenceParHeure}" Margin="0,8,0,0">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Columns="15"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="2,0">
+                                            <Border Width="16" Height="{Binding Hauteur}" CornerRadius="6,6,2,2" Cursor="Hand">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#059669"/>
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#047857"/>
+                                                            </Trigger>
+                                                            <DataTrigger Binding="{Binding NombrePointages}" Value="0">
+                                                                <Setter Property="Background" Value="#CBD5E1"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                            </Border>
+                                            <TextBlock Text="{Binding HeureLabel}" FontSize="9.5" FontWeight="SemiBold"
+                                                       Foreground="#334155" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Expander>
+
             <!-- Détail mois — visible seulement si employé choisi -->
-            <Border Background="#F8FAFC" CornerRadius="12" Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="1"
+            <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="12" Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="1"
                     Visibility="{Binding AfficherDetailMois, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
@@ -772,24 +836,228 @@
                 </StackPanel>
             </Border>
 
-            <Border Background="#FFFDE7" CornerRadius="10" Padding="14,12" BorderBrush="#FFF59D" BorderThickness="1"
-                    Margin="0,0,0,4"
+            <Border Grid.Row="3" Background="#FFFBEB" CornerRadius="10" Padding="12,10" BorderBrush="#FDE68A" BorderThickness="1"
+                    Margin="0,10,0,0"
                     Visibility="{Binding AfficherInviteSelectionEmploye, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal">
-                    <materialDesign:PackIcon Kind="GestureTap" Width="22" Height="22" Foreground="#F9A825" Margin="0,0,10,0"/>
-                    <TextBlock TextWrapping="Wrap" Foreground="#5D4037" FontSize="12" VerticalAlignment="Center">
-                        <Run Text="Pour le détail mensuel : cliquez un employé dans le tableau « Présence en direct » ou choisissez-le dans la liste."/>
-                        <LineBreak/>
-                        <Run Text="Les totaux de tous les employés restent dans le menu « Totaux d'heures pour la paie »." FontStyle="Italic"/>
-                    </TextBlock>
+                    <materialDesign:PackIcon Kind="GestureTap" Width="20" Height="20" Foreground="#D97706" Margin="0,0,10,0"/>
+                    <TextBlock Text="Cliquez un employé pour le détail mensuel."
+                               TextWrapping="Wrap" Foreground="#78350F" FontSize="12" FontWeight="SemiBold" VerticalAlignment="Center"/>
                 </StackPanel>
             </Border>
 
-            <TextBlock Text="{Binding MessageVide}" Foreground="#78909C" FontSize="12" TextWrapping="Wrap"
-                       TextAlignment="Center" Margin="12,8"
+                </Grid>
+
+                <!-- Fil live des pointages -->
+                <Border Grid.Column="1" Margin="12,0,0,0" Background="#FFFFFF" CornerRadius="14"
+                        BorderBrush="#A7F3D0" BorderThickness="1" Padding="0" MinHeight="320">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Border Padding="14,12" CornerRadius="14,14,0,0" Background="{DynamicResource BrandGradientBrush}">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="BellRing" Width="18" Height="18" Foreground="White" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Pointages live" FontWeight="Bold" FontSize="14" Foreground="White" VerticalAlignment="Center"/>
+                                </StackPanel>
+                                <Button Grid.Column="1" Command="{Binding ReinitialiserBadgePointageCommand}"
+                                        Style="{StaticResource MaterialDesignFlatButton}" Foreground="White" Padding="4,2"
+                                        ToolTip="Marquer comme lus">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="CheckAll" Width="16" Height="16" Margin="0,0,4,0"/>
+                                        <TextBlock Text="Lu" FontSize="11" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+                        </Border>
+                        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="10,8">
+                            <ItemsControl ItemsSource="{x:Static services:PointageLiveNotificationService.Toasts}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type services:PointageToastItem}">
+                                        <Border CornerRadius="12" Padding="12,10" Margin="0,0,0,8"
+                                                Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding EstRetard}" Value="True">
+                                                            <Setter Property="Background" Value="#FEF2F2"/>
+                                                            <Setter Property="BorderBrush" Value="#FECACA"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Border Width="36" Height="36" CornerRadius="18" Background="{Binding CouleurAccent}" Margin="0,0,10,0">
+                                                    <TextBlock Text="{Binding Initiales}" FontWeight="Bold" FontSize="12"
+                                                               Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Border>
+                                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding NomComplet}" FontWeight="Bold" FontSize="13"
+                                                               Foreground="#0F172A" TextTrimming="CharacterEllipsis"/>
+                                                    <TextBlock Text="{Binding Moment}" FontSize="11" FontWeight="SemiBold"
+                                                               Foreground="{Binding CouleurAccent}" Margin="0,2,0,0"/>
+                                                    <TextBlock Text="{Binding SousTitre}" FontSize="10" Foreground="#64748B"/>
+                                                </StackPanel>
+                                                <TextBlock Grid.Column="2" Text="{Binding HeureAffichage}" FontSize="18" FontWeight="Bold"
+                                                           Foreground="#047857" VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <TextBlock Grid.Row="1" Text="En attente de pointages…"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                                   Foreground="#94A3B8" FontSize="12" FontStyle="Italic"
+                                   Visibility="{Binding Source={x:Static services:PointageLiveNotificationService.Toasts}, Path=Count, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=0}"/>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- Rapport journalier des mouvements -->
+            <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding VuePointageIndex, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=1}">
+            <StackPanel>
+                <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
+                    <StackPanel>
+                        <TextBlock Text="Rapport journalier des mouvements" FontSize="18" FontWeight="Bold" Foreground="#0F172A"/>
+                        <TextBlock Margin="0,6,0,0" FontSize="12.5" Foreground="#334155" TextWrapping="Wrap">
+                            <Run Text="Liste des agents avec heure d'arrivée et de sortie. Retards détectés automatiquement après"/>
+                            <Run Text="{Binding HeureLimiteToleranceLibelle, Mode=OneWay}" FontWeight="Bold"/>
+                            <Run Text="."/>
+                        </TextBlock>
+                        <WrapPanel Margin="0,12,0,0">
+                            <Button Click="ExporterPdfMouvementsTous_Click" Style="{StaticResource PointageChipPrimaryStyle}" Margin="0,0,8,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FilePdfBox" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="PDF — tous les agents" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Click="ExporterPdfMouvementsAgent_Click" Style="{StaticResource PointageChipButtonStyle}" Margin="0,0,8,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="AccountBox" Width="16" Height="16" Margin="0,0,6,0"/>
+                                    <TextBlock Text="PDF — agent sélectionné" FontWeight="Bold"/>
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                        <TextBlock Text="{Binding PresenceLigneSelectionneeLibelle, Mode=OneWay}" FontSize="11" Foreground="#64748B" Margin="0,4,0,0"/>
+                    </StackPanel>
+                </Border>
+                <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="0" MinHeight="260" MaxHeight="480" Margin="0,0,0,10">
+                    <DataGrid x:Name="GrilleMouvementsJour"
+                              ItemsSource="{Binding PresenceSyntheseEmployes}"
+                              SelectionChanged="GrilleMouvementsJour_SelectionChanged"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False" CanUserDeleteRows="False"
+                              SelectionMode="Single" SelectionUnit="FullRow"
+                              HeadersVisibility="Column"
+                              AlternationCount="2"
+                              RowHeight="42"
+                              GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="#CBD5E1">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource PresenceColumnHeaderStyle}"/>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Matricule" Binding="{Binding Matricule}" Width="90"/>
+                            <DataGridTextColumn Header="Agent" Binding="{Binding NomComplet}" Width="*" MinWidth="180"/>
+                            <DataGridTextColumn Header="Département" Binding="{Binding Departement}" Width="140"/>
+                            <DataGridTextColumn Header="Arrivée" Binding="{Binding Entree}" Width="80"/>
+                            <DataGridTextColumn Header="Sortie" Binding="{Binding Sortie}" Width="80"/>
+                            <DataGridTextColumn Header="Statut" Binding="{Binding IndicateurRetard}" Width="100"/>
+                            <DataGridTextColumn Header="Durée retard" Binding="{Binding DureeRetardLibelle}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+            </StackPanel>
+            </ScrollViewer>
+
+            <!-- Gestion des retards -->
+            <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto"
+                          Visibility="{Binding VuePointageIndex, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=2}">
+            <StackPanel>
+                <Border Background="#FEF2F2" CornerRadius="12" BorderBrush="#FECACA" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Text="Rapport des retards" FontSize="18" FontWeight="Bold" Foreground="#991B1B"/>
+                            <TextBlock Margin="0,6,0,0" FontSize="12.5" Foreground="#7F1D1D" TextWrapping="Wrap">
+                                <Run Text="Qui est en retard, combien de temps, taux horaire du contrat et coût estimé du retard. Limite :"/>
+                                <Run Text="{Binding HeureLimiteToleranceLibelle, Mode=OneWay}" FontWeight="Bold"/>
+                            </TextBlock>
+                            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                                <Border Background="White" CornerRadius="10" Padding="12,8" Margin="0,0,10,0" BorderBrush="#FECACA" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Text="Retards" FontSize="11" Foreground="#64748B" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding NbRetardsAujourdhui}" FontSize="22" FontWeight="Bold" Foreground="#DC2626"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="White" CornerRadius="10" Padding="12,8" Margin="0,0,10,0" BorderBrush="#FECACA" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Text="Coût total USD" FontSize="11" Foreground="#64748B" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding CoutTotalRetardsUsdLibelle}" FontSize="16" FontWeight="Bold" Foreground="#B45309"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Background="White" CornerRadius="10" Padding="12,8" BorderBrush="#FECACA" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Text="Coût total CDF" FontSize="11" Foreground="#64748B" FontWeight="Bold"/>
+                                        <TextBlock Text="{Binding CoutTotalRetardsCdfLibelle}" FontSize="16" FontWeight="Bold" Foreground="#B45309"/>
+                                    </StackPanel>
+                                </Border>
+                            </StackPanel>
+                        </StackPanel>
+                        <Button Grid.Column="1" Click="ExporterPdfRetards_Click"
+                                Style="{StaticResource PointageChipPrimaryStyle}" VerticalAlignment="Top">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="FilePdfBox" Width="16" Height="16" Margin="0,0,6,0"/>
+                                <TextBlock Text="PDF retards" FontWeight="Bold"/>
+                            </StackPanel>
+                        </Button>
+                    </Grid>
+                </Border>
+                <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="0" MinHeight="260" MaxHeight="480" Margin="0,0,0,10">
+                    <DataGrid ItemsSource="{Binding RetardsDuJour}"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False" CanUserDeleteRows="False"
+                              SelectionMode="Single" SelectionUnit="FullRow"
+                              HeadersVisibility="Column"
+                              AlternationCount="2"
+                              RowHeight="42"
+                              GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="#CBD5E1">
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource PresenceColumnHeaderStyle}"/>
+                        </DataGrid.ColumnHeaderStyle>
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Matricule" Binding="{Binding Matricule}" Width="90"/>
+                            <DataGridTextColumn Header="Qui ?" Binding="{Binding NomComplet}" Width="*" MinWidth="180"/>
+                            <DataGridTextColumn Header="Département" Binding="{Binding Departement}" Width="130"/>
+                            <DataGridTextColumn Header="Entrée" Binding="{Binding Entree}" Width="72"/>
+                            <DataGridTextColumn Header="Combien ?" Binding="{Binding DureeRetardLibelle}" Width="90"/>
+                            <DataGridTextColumn Header="Taux horaire" Binding="{Binding TauxHoraireLibelle}" Width="110"/>
+                            <DataGridTextColumn Header="Coût retard" Binding="{Binding CoutRetardLibelle}" Width="110"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+            </StackPanel>
+            </ScrollViewer>
+
+            <TextBlock Grid.Row="3" Text="{Binding MessageVide}" Foreground="#78909C" FontSize="12" TextWrapping="Wrap"
+                       TextAlignment="Center" Margin="12,8" VerticalAlignment="Bottom"
                        Visibility="{Binding MessageVide, Converter={StaticResource StringToVisibilityConverter}}"/>
-        </StackPanel>
-    </ScrollViewer>
-        <views:PointageLiveToastOverlay Panel.ZIndex="20"/>
     </Grid>
 </UserControl>

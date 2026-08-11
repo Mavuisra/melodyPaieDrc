@@ -23,7 +23,7 @@ public class SuiviJournalier
     [Column(TypeName = "decimal(5,2)")]
     public decimal HeuresPrestees { get; set; }
 
-    /// <summary>Type du jour : Normal, Congé de circonstance, Maladie, Préavis.</summary>
+    /// <summary>Type du jour : Normal, Congé annuel, Congé de circonstance, Maladie, Absence, Préavis.</summary>
     [MaxLength(50)]
     public string TypeJour { get; set; } = "Normal";
 
@@ -35,7 +35,14 @@ public class SuiviJournalier
 
     public const string TypeNormal = "Normal";
     public const string TypeAbsence = "Absence";
+    public const string TypeCongeAnnuel = "Congé annuel";
     public const string TypeCongeCirconstance = "Congé de circonstance";
     public const string TypeMaladie = "Maladie";
     public const string TypePreavis = "Préavis";
+
+    /// <summary>Jours spéciaux rémunérés à 100 % sans indemnités (hors pointage normal).</summary>
+    public static bool EstTypeJourSpecialPaye(string? typeJour) =>
+        string.Equals(typeJour, TypeMaladie, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(typeJour, TypeCongeCirconstance, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(typeJour, TypeCongeAnnuel, StringComparison.OrdinalIgnoreCase);
 }
