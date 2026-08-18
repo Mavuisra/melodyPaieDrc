@@ -1,8 +1,8 @@
-﻿{
-    "sha256":  "",
-    "version":  "1.0.8",
-    "releaseNotes":  "Correctifs du mode focus Presence du jour, synchronisation des onglets Declarations et Rapport avec la periode reelle, historique de pointage, quinzaines et synchro du livre de paie.",
-    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.8/MelodyPaieRDC_Setup_1.0.8.exe",
-    "publishedAt":  "2026-08-18",
-    "fileName":  "MelodyPaieRDC_Setup_1.0.8.exe"
+{
+  "version": "1.0.8",
+  "releaseNotes": "Release v1.0.8",
+  "sha256": "8D09242DEA96714447979CC80BFCA23DE3A3254823116423671624186B230507",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.8/MelodyPaieRDC_Setup_1.0.8.exe",
+  "publishedAt": "2026-08-18",
+  "fileName": "MelodyPaieRDC_Setup_1.0.8.exe"
 }
