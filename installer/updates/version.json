@@ -1,8 +1,8 @@
-{
-  "fileName": "MelodyPaieRDC_Setup_1.0.13.exe",
-  "publishedAt": "2026-08-18",
-  "releaseNotes": "Release v1.0.13",
-  "version": "1.0.13",
-  "sha256": "6538C8E409AE6999F7897ABC62127B9C69A6497D36BEA8E9EF5EF69B16D94199",
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.13/MelodyPaieRDC_Setup_1.0.13.exe"
+﻿{
+    "sha256":  "",
+    "version":  "1.0.14",
+    "releaseNotes":  "Correctif urgent : l\u0027application redémarre après la barre de recherche Pointage.",
+    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.14/MelodyPaieRDC_Setup_1.0.14.exe",
+    "publishedAt":  "2026-08-18",
+    "fileName":  "MelodyPaieRDC_Setup_1.0.14.exe"
 }
