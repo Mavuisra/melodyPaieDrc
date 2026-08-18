@@ -68,6 +68,7 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
     private ICommand? _selectionnerJourCommand;
     private ICommand? _enregistrerMomentsCommand;
     private ICommand? _enregistrerTypeJourCommand;
+    private ICommand? _marquerPresenceCommand;
     private ICommand? _actualiserTotauxCommand;
     private ICommand? _exporterRapportAgentCommand;
     private ICommand? _exporterRapportQuinzainesCommand;
@@ -263,6 +264,8 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
                 r.RaiseCanExecuteChanged();
             if (_enregistrerTypeJourCommand is RelayCommand rt)
                 rt.RaiseCanExecuteChanged();
+            if (_marquerPresenceCommand is RelayCommand rp)
+                rp.RaiseCanExecuteChanged();
         }
     }
 
@@ -292,6 +295,11 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
     public ICommand EnregistrerTypeJourCommand =>
         _enregistrerTypeJourCommand ??= new RelayCommand(
             _ => EnregistrerTypeJour(),
+            _ => DroitsUi.PeutModifier && DetailJour != null && EmployeSelectionne != null && _dateSelectionnee.HasValue);
+
+    public ICommand MarquerPresenceCommand =>
+        _marquerPresenceCommand ??= new RelayCommand(
+            _ => MarquerPresence(),
             _ => DroitsUi.PeutModifier && DetailJour != null && EmployeSelectionne != null && _dateSelectionnee.HasValue);
 
     public ICommand ActualiserTotauxCommand =>
@@ -371,6 +379,7 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
     {
         (EnregistrerMomentsCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (EnregistrerTypeJourCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (MarquerPresenceCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
     private void ChargerEmployes()
@@ -445,6 +454,8 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TitreTableauBas));
         if (_enregistrerTypeJourCommand is RelayCommand rt)
             rt.RaiseCanExecuteChanged();
+        if (_marquerPresenceCommand is RelayCommand rp)
+            rp.RaiseCanExecuteChanged();
     }
 
     private void SelectionnerJour(object? p)
@@ -633,6 +644,55 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(TotalJoursMoisAfficheLibelle));
         AppSessionEvents.NotifierDonneesMetierModifiees();
         UiFeedback.Succes("Type de jour enregistré et synchronisé avec l’historique.");
+    }
+
+    private void MarquerPresence()
+    {
+        if (DetailJour == null || EmployeSelectionne == null || !_dateSelectionnee.HasValue)
+            return;
+
+        var d = _dateSelectionnee.Value.Date;
+        var heures = SuiviJournalierCalculPaieHelper.DeterminerHeuresNominalesJourDepuisDb(_db, d);
+        if (heures <= 0m)
+        {
+            DetailJour.DefinirMessageStatut("Ce jour n’est pas ouvrable (0 h). Choisissez un jour de travail.");
+            UiFeedback.Avertissement("Impossible de signer la présence : ce jour n’est pas ouvrable.");
+            return;
+        }
+
+        var sj = _db.SuivisJournaliers.FirstOrDefault(s => s.EmployeId == EmployeSelectionne.Id && s.Date.Date == d);
+        if (sj == null)
+        {
+            sj = new SuiviJournalier
+            {
+                EmployeId = EmployeSelectionne.Id,
+                Date = d
+            };
+            _db.SuivisJournaliers.Add(sj);
+        }
+
+        sj.TypeJour = SuiviJournalier.TypeNormal;
+        sj.HeuresManuelles = true;
+        sj.HeuresPrestees = heures;
+
+        try
+        {
+            _db.SaveChanges();
+        }
+        catch (Exception ex)
+        {
+            DetailJour.DefinirMessageStatut($"Enregistrement impossible : {ex.Message}");
+            UiFeedback.Avertissement($"Enregistrement impossible : {ex.Message}");
+            return;
+        }
+
+        RafraichirDetailJour($"Présence signée : {heures.ToString("N2", CultureInfo.CurrentCulture)} h.");
+        ConstruireGrilleCalendrier();
+        ChargerTotaux();
+        OnPropertyChanged(nameof(TotalHeuresMoisAfficheLibelle));
+        OnPropertyChanged(nameof(TotalJoursMoisAfficheLibelle));
+        AppSessionEvents.NotifierDonneesMetierModifiees();
+        UiFeedback.Succes($"Présence enregistrée pour le {d:dd/MM/yyyy} ({heures.ToString("N2", CultureInfo.CurrentCulture)} h).");
     }
 
     private void ConstruireGrilleCalendrier()

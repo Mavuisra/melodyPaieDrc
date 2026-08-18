@@ -515,9 +515,32 @@
                                         </Style.Triggers>
                                     </Style>
                                 </StackPanel.Style>
-                                <TextBlock Text="Journée sélectionnée" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,4"/>
-                                <TextBlock Text="{Binding DetailJour.TitreDate}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource BrandPrimaryBrush}" TextWrapping="Wrap"/>
-                                <TextBlock Text="{Binding DetailJour.SousTitreJour}" FontSize="12" Foreground="#64748B" Margin="0,4,0,12" TextWrapping="Wrap"/>
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Grid.Column="0" Margin="0,0,10,0">
+                                        <TextBlock Text="Journée sélectionnée" FontSize="11" FontWeight="SemiBold" Foreground="#64748B" Margin="0,0,0,4"/>
+                                        <TextBlock Text="{Binding DetailJour.TitreDate}" FontSize="15" FontWeight="SemiBold" Foreground="{DynamicResource BrandPrimaryBrush}" TextWrapping="Wrap"/>
+                                        <TextBlock Text="{Binding DetailJour.SousTitreJour}" FontSize="12" Foreground="#64748B" Margin="0,4,0,0" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                    <Button Grid.Column="1"
+                                            Command="{Binding MarquerPresenceCommand}"
+                                            VerticalAlignment="Top"
+                                            Style="{StaticResource MaterialDesignRaisedButton}"
+                                            Background="#16A34A"
+                                            BorderBrush="#15803D"
+                                            Foreground="White"
+                                            materialDesign:ButtonAssist.CornerRadius="8"
+                                            Padding="12,8"
+                                            ToolTip="Signer la présence de l'employé pour ce jour (heures normales, sans saisir les horaires)">
+                                        <StackPanel Orientation="Horizontal">
+                                            <materialDesign:PackIcon Kind="CheckCircleOutline" Width="16" Height="16" Margin="0,0,6,0" Foreground="White"/>
+                                            <TextBlock Text="Présence" Foreground="White" FontWeight="SemiBold"/>
+                                        </StackPanel>
+                                    </Button>
+                                </Grid>
 
                                 <Border Background="#F8FAFC" BorderBrush="#E2E8F0" BorderThickness="1" CornerRadius="10" Padding="10,8" Margin="0,0,0,10">
                                     <Grid>
