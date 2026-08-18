@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="Mise à jour — Melody Paie RDC"
-        Height="220" Width="480"
+        Height="300" Width="540"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         Topmost="True"
@@ -11,8 +11,9 @@
         WindowStyle="SingleBorderWindow"
         Background="#F5F7FA"
         FontFamily="{materialDesign:MaterialDesignFont}">
-    <Grid Margin="28">
+    <Grid Margin="28,24">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -20,33 +21,109 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,16">
-            <materialDesign:PackIcon Kind="Download" Width="28" Height="28"
-                                     Foreground="{DynamicResource BrandPrimaryBrush}"
-                                     Margin="0,0,12,0" VerticalAlignment="Center"/>
+            <materialDesign:PackIcon Width="32" Height="32"
+                                     Margin="0,0,12,0" VerticalAlignment="Center">
+                <materialDesign:PackIcon.Style>
+                    <Style TargetType="materialDesign:PackIcon">
+                        <Setter Property="Kind" Value="Download"/>
+                        <Setter Property="Foreground" Value="{DynamicResource BrandPrimaryBrush}"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding EstErreur}" Value="True">
+                                <Setter Property="Kind" Value="AlertCircleOutline"/>
+                                <Setter Property="Foreground" Value="#B91C1C"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </materialDesign:PackIcon.Style>
+            </materialDesign:PackIcon>
             <StackPanel VerticalAlignment="Center">
-                <TextBlock Text="Mise à jour en cours" FontSize="17" FontWeight="SemiBold" Foreground="#0F172A"/>
-                <TextBlock Text="Ne fermez pas cette fenêtre." FontSize="11.5" Foreground="#64748B" Margin="0,4,0,0"/>
+                <TextBlock Text="{Binding Titre}" FontSize="17" FontWeight="SemiBold">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Foreground" Value="#0F172A"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding EstErreur}" Value="True">
+                                    <Setter Property="Foreground" Value="#B91C1C"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+                <TextBlock Text="{Binding Consigne}" FontSize="11.5" Foreground="#64748B"
+                           TextWrapping="Wrap" MaxWidth="400" Margin="0,4,0,0"/>
             </StackPanel>
         </StackPanel>
 
         <TextBlock Grid.Row="1"
                    Text="{Binding Statut}"
                    TextWrapping="Wrap"
-                   FontSize="12.5"
-                   Foreground="#475569"
-                   Margin="0,0,0,14"/>
+                   FontSize="13"
+                   Margin="0,0,0,16">
+            <TextBlock.Style>
+                <Style TargetType="TextBlock">
+                    <Setter Property="Foreground" Value="#334155"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding EstErreur}" Value="True">
+                            <Setter Property="Foreground" Value="#9F1239"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </TextBlock.Style>
+        </TextBlock>
 
         <ProgressBar Grid.Row="2"
                      Value="{Binding Progression, Mode=OneWay}"
                      Maximum="100"
                      Height="10"
-                     Margin="0,0,0,10"/>
+                     Margin="0,0,0,10">
+            <ProgressBar.Style>
+                <Style TargetType="ProgressBar">
+                    <Setter Property="Visibility" Value="Visible"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding EstErreur}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </ProgressBar.Style>
+        </ProgressBar>
 
-        <TextBlock Grid.Row="3"
-                   Text="{Binding Progression, StringFormat={}{0:0}%}"
-                   HorizontalAlignment="Right"
-                   FontSize="12"
-                   FontWeight="SemiBold"
-                   Foreground="{DynamicResource BrandPrimaryBrush}"/>
+        <Grid Grid.Row="3">
+            <TextBlock Text="{Binding Progression, StringFormat={}{0:0} %}"
+                       HorizontalAlignment="Right"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Foreground="{DynamicResource BrandPrimaryBrush}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding EstErreur}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </Grid>
+
+        <Button Grid.Row="4"
+                Content="Fermer"
+                Command="{Binding FermerCommand}"
+                HorizontalAlignment="Right"
+                Margin="0,16,0,0"
+                Padding="18,8"
+                materialDesign:ButtonAssist.CornerRadius="8">
+            <Button.Style>
+                <Style TargetType="Button" BasedOn="{StaticResource MaterialDesignOutlinedButton}">
+                    <Setter Property="Visibility" Value="Collapsed"/>
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding PeutFermer}" Value="True">
+                            <Setter Property="Visibility" Value="Visible"/>
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Button.Style>
+        </Button>
     </Grid>
 </Window>

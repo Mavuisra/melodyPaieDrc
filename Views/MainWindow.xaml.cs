@@ -1528,10 +1528,10 @@ public partial class MainWindow : Window
     {
         if (MessageBox.Show(
                 this,
-                "Melody Paie RDC va se fermer pour installer la mise à jour.\n\n" +
-                "Une barre de progression s'affichera pendant le téléchargement. " +
-                "L'application redémarrera automatiquement à la fin.\n\n" +
-                "Vos données (base SQLite dans AppData) seront conservées.\n\nContinuer ?",
+                "Une mise à jour de Melody Paie RDC est prête.\n\n" +
+                "Le téléchargement s'affiche dans une fenêtre. À la fin, l'application se ferme puis redémarre toute seule.\n\n" +
+                "Vos données (salaires, employés, pointages) restent sur cet ordinateur.\n\n" +
+                "Installer maintenant ?",
                 "Télécharger et installer",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question) != MessageBoxResult.Yes)

@@ -40,7 +40,11 @@ public sealed class UpdateDownloadResult
 /// </summary>
 public static class ApplicationUpdateService
 {
+    private const int DelaiTelechargementMinutes = 20;
+    private const int TentativesFichier = 8;
+
     private static readonly HttpClient Http = CreerHttpClient();
+    private static readonly HttpClient HttpTelechargement = CreerHttpClientTelechargement();
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -52,6 +56,13 @@ public static class ApplicationUpdateService
         var client = new HttpClient { Timeout = TimeSpan.FromSeconds(45) };
         client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "MelodyPaieRDC-Updater/1.0");
         client.DefaultRequestHeaders.TryAddWithoutValidation("Accept", "application/json");
+        return client;
+    }
+
+    private static HttpClient CreerHttpClientTelechargement()
+    {
+        var client = new HttpClient { Timeout = TimeSpan.FromMinutes(DelaiTelechargementMinutes) };
+        client.DefaultRequestHeaders.TryAddWithoutValidation("User-Agent", "MelodyPaieRDC-Updater/1.0");
         return client;
     }
 
@@ -89,7 +100,6 @@ public static class ApplicationUpdateService
         if (!urlsManifeste.Contains(ApplicationUpdateDefaults.ManifestUrlParDefaut, StringComparer.OrdinalIgnoreCase))
             urlsManifeste.Add(ApplicationUpdateDefaults.ManifestUrlParDefaut);
 
-        Exception? derniereErreur = null;
         foreach (var url in urlsManifeste)
         {
             try
@@ -98,11 +108,10 @@ public static class ApplicationUpdateService
                 if (result.Kind != UpdateCheckResultKind.Error ||
                     !result.Message.Contains("404", StringComparison.Ordinal))
                     return result;
-                derniereErreur = new HttpRequestException(result.Message);
             }
-            catch (Exception ex)
+            catch
             {
-                derniereErreur = ex;
+                // On tente l'URL suivante, puis GitHub Releases.
             }
         }
 
@@ -110,19 +119,17 @@ public static class ApplicationUpdateService
         {
             return await VerifierDepuisGitHubReleasesAsync(installee, cancellationToken).ConfigureAwait(false);
         }
-        catch (Exception ex)
+        catch
         {
-            derniereErreur = ex;
+            // Message utilisateur ci-dessous, sans détail technique anglais.
         }
 
-        var detail = derniereErreur?.Message ?? "réseau";
         return new UpdateCheckResult
         {
             Kind = UpdateCheckResultKind.Error,
             Message =
-                "Impossible de joindre le serveur de mises à jour (404). " +
-                "Vérifiez la connexion Internet et que le dépôt GitHub est public " +
-                $"(paramètres du dépôt {ApplicationUpdateDefaults.GitHubRepo}). Détail : {detail}",
+                "Impossible de joindre le serveur de mises à jour. " +
+                "Vérifiez votre connexion Internet, puis réessayez.",
             VersionInstallee = installee
         };
     }
@@ -219,7 +226,7 @@ public static class ApplicationUpdateService
             return new UpdateCheckResult
             {
                 Kind = UpdateCheckResultKind.Error,
-                Message = "URL de téléchargement manquante (downloadUrl).",
+                Message = "L'adresse de téléchargement est absente du serveur de mises à jour.",
                 VersionInstallee = installee,
                 VersionDisponible = disponible,
                 Manifest = manifest
@@ -273,62 +280,153 @@ public static class ApplicationUpdateService
         }
 
         Directory.CreateDirectory(DossierTelechargements);
-        var chemin = Path.Combine(DossierTelechargements, nomFichier);
+        var cheminFinal = Path.Combine(DossierTelechargements, nomFichier);
+        var cheminPartiel = cheminFinal + ".part";
+        SupprimerFichierSilencieux(cheminPartiel);
 
         try
         {
-            using var response = await Http.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+            using var response = await HttpTelechargement
+                .GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
                 .ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
 
             var total = response.Content.Headers.ContentLength;
-            await using var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            await using var fichier = new FileStream(chemin, FileMode.Create, FileAccess.Write, FileShare.None);
-
-            var buffer = new byte[81920];
-            long lu = 0;
-            int lus;
-            while ((lus = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+            string empreinte;
+            await using (var stream = await response.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false))
+            await using (var fichier = new FileStream(
+                             cheminPartiel,
+                             FileMode.Create,
+                             FileAccess.Write,
+                             FileShare.None,
+                             81920,
+                             FileOptions.SequentialScan | FileOptions.Asynchronous))
+            using (var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256))
             {
-                await fichier.WriteAsync(buffer.AsMemory(0, lus), cancellationToken).ConfigureAwait(false);
-                lu += lus;
-                if (total is > 0)
-                    progression?.Report(Math.Min(100.0, lu * 100.0 / total.Value));
-            }
+                var buffer = new byte[81920];
+                long lu = 0;
+                int lus;
+                while ((lus = await stream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken).ConfigureAwait(false)) > 0)
+                {
+                    await fichier.WriteAsync(buffer.AsMemory(0, lus), cancellationToken).ConfigureAwait(false);
+                    hasher.AppendData(buffer.AsSpan(0, lus));
+                    lu += lus;
+                    if (total is > 0)
+                        progression?.Report(Math.Min(99.0, lu * 99.0 / total.Value));
+                }
 
-            progression?.Report(100.0);
+                await fichier.FlushAsync(cancellationToken).ConfigureAwait(false);
+                empreinte = Convert.ToHexString(hasher.GetHashAndReset());
+            }
 
             if (!string.IsNullOrWhiteSpace(manifest.Sha256))
             {
                 var attendu = manifest.Sha256.Trim().Replace(" ", "", StringComparison.Ordinal);
-                var bytes = await File.ReadAllBytesAsync(chemin, cancellationToken).ConfigureAwait(false);
-                var calcule = Convert.ToHexString(SHA256.HashData(bytes));
-                if (!string.Equals(calcule, attendu, StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(empreinte, attendu, StringComparison.OrdinalIgnoreCase))
                 {
-                    try { File.Delete(chemin); } catch { /* ignore */ }
+                    SupprimerFichierSilencieux(cheminPartiel);
                     return new UpdateDownloadResult
                     {
                         Success = false,
-                        Message = "L'empreinte SHA-256 du fichier téléchargé ne correspond pas au manifeste."
+                        Message = "Le fichier téléchargé est incomplet ou altéré. Réessayez le téléchargement."
                     };
                 }
             }
 
+            var cheminPret = await FinaliserFichierTelechargeAsync(cheminPartiel, cheminFinal, cancellationToken)
+                .ConfigureAwait(false);
+            progression?.Report(100.0);
+
             return new UpdateDownloadResult
             {
                 Success = true,
-                Message = "Téléchargement terminé.",
-                CheminInstallateur = chemin
+                Message = "Téléchargement terminé. L'installation peut commencer.",
+                CheminInstallateur = cheminPret
             };
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
-            return new UpdateDownloadResult { Success = false, Message = "Téléchargement annulé ou expiré." };
+            SupprimerFichierSilencieux(cheminPartiel);
+            return new UpdateDownloadResult
+            {
+                Success = false,
+                Message = "Le téléchargement a été annulé ou a pris trop de temps. Vérifiez la connexion, puis réessayez."
+            };
         }
         catch (Exception ex)
         {
-            try { if (File.Exists(chemin)) File.Delete(chemin); } catch { /* ignore */ }
-            return new UpdateDownloadResult { Success = false, Message = $"Échec du téléchargement : {ex.Message}" };
+            SupprimerFichierSilencieux(cheminPartiel);
+            return new UpdateDownloadResult
+            {
+                Success = false,
+                Message = MessageUtilisateurTelechargement(ex)
+            };
+        }
+    }
+
+    internal static string MessageUtilisateurTelechargement(Exception ex)
+    {
+        if (EstFichierVerrouille(ex))
+            return "Le fichier d'installation est encore utilisé par Windows ou un antivirus. " +
+                   "Fermez les autres fenêtres Melody Paie RDC, attendez quelques secondes, puis réessayez.";
+
+        if (ex is HttpRequestException)
+            return "Le téléchargement a été interrompu. Vérifiez votre connexion Internet, puis réessayez.";
+
+        if (ex is IOException)
+            return "Impossible d'enregistrer le fichier d'installation sur cet ordinateur. Vérifiez l'espace disque, puis réessayez.";
+
+        return "La mise à jour n'a pas pu aboutir. Réessayez dans un instant.";
+    }
+
+    internal static bool EstFichierVerrouille(Exception ex)
+    {
+        for (var courant = ex; courant != null; courant = courant.InnerException)
+        {
+            if (courant is IOException io && (io.HResult & 0xFFFF) is 32 or 33)
+                return true;
+        }
+        return false;
+    }
+
+    private static async Task<string> FinaliserFichierTelechargeAsync(
+        string cheminPartiel,
+        string cheminFinal,
+        CancellationToken cancellationToken)
+    {
+        for (var i = 0; i < TentativesFichier; i++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            try
+            {
+                if (File.Exists(cheminFinal))
+                    File.Delete(cheminFinal);
+                File.Move(cheminPartiel, cheminFinal);
+                return cheminFinal;
+            }
+            catch (IOException) when (i < TentativesFichier - 1)
+            {
+                await Task.Delay(350, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        var unique = Path.Combine(
+            Path.GetDirectoryName(cheminFinal) ?? DossierTelechargements,
+            $"{Path.GetFileNameWithoutExtension(cheminFinal)}_{DateTime.Now:HHmmss}.exe");
+        File.Move(cheminPartiel, unique);
+        return unique;
+    }
+
+    private static void SupprimerFichierSilencieux(string chemin)
+    {
+        try
+        {
+            if (File.Exists(chemin))
+                File.Delete(chemin);
+        }
+        catch
+        {
+            // Antivirus ou explorateur : on n'empêche pas la suite.
         }
     }
 
@@ -349,12 +447,14 @@ public static class ApplicationUpdateService
                 UseShellExecute = true,
                 WorkingDirectory = Path.GetDirectoryName(cheminInstallateur) ?? DossierTelechargements
             });
-            message = "L'installateur a été lancé. L'application va se fermer.";
+            message = "L'installateur s'est ouvert. Fermez Melody Paie RDC pour terminer l'installation.";
             return true;
         }
         catch (Exception ex)
         {
-            message = $"Impossible de lancer l'installateur : {ex.Message}";
+            message = EstFichierVerrouille(ex)
+                ? "L'installateur est encore utilisé par Windows ou un antivirus. Attendez quelques secondes, puis réessayez."
+                : "Windows n'a pas pu ouvrir l'installateur. Réessayez, ou lancez le fichier depuis Paramètres > Mises à jour.";
             return false;
         }
     }
@@ -397,8 +497,13 @@ public static class ApplicationUpdateService
             script.AppendLine("$ErrorActionPreference = 'SilentlyContinue'");
             script.AppendLine($"$installer = '{EchapperPourPowerShell(cheminInstallateur)}'");
             script.AppendLine($"$exe = '{EchapperPourPowerShell(exePath)}'");
-            script.AppendLine("$p = Start-Process -FilePath $installer -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/CLOSEAPPLICATIONS','/NORESTART' -PassThru -Wait");
-            script.AppendLine("if ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010) {");
+            script.AppendLine("Start-Sleep -Seconds 2");
+            script.AppendLine("$p = $null");
+            script.AppendLine("for ($i = 0; $i -lt 8 -and $null -eq $p; $i++) {");
+            script.AppendLine("  $p = Start-Process -FilePath $installer -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/CLOSEAPPLICATIONS','/NORESTART' -PassThru -Wait");
+            script.AppendLine("  if ($null -eq $p) { Start-Sleep -Milliseconds 400 }");
+            script.AppendLine("}");
+            script.AppendLine("if ($null -ne $p -and ($p.ExitCode -eq 0 -or $p.ExitCode -eq 3010)) {");
             script.AppendLine("  Start-Sleep -Seconds 2");
             script.AppendLine("  if (Test-Path -LiteralPath $exe) { Start-Process -FilePath $exe }");
             script.AppendLine("}");
@@ -413,12 +518,14 @@ public static class ApplicationUpdateService
                 CreateNoWindow = true
             });
 
-            message = "Mise à jour en cours. L'application va redémarrer.";
+            message = "L'installation va se terminer, puis Melody Paie RDC redémarrera tout seul.";
             return true;
         }
         catch (Exception ex)
         {
-            message = $"Impossible de lancer la mise à jour : {ex.Message}";
+            message = EstFichierVerrouille(ex)
+                ? "Le fichier d'installation est encore utilisé par Windows ou un antivirus. Fermez les autres fenêtres Melody Paie RDC, puis réessayez."
+                : "L'installation n'a pas pu démarrer. Réessayez depuis Paramètres > Mises à jour.";
             return false;
         }
     }

@@ -229,7 +229,8 @@ public class MiseAJourViewModel : INotifyPropertyChanged
 
         if (MessageBox.Show(
                 "Melody Paie RDC va se fermer et l'installateur va démarrer.\n\n" +
-                "Vos données (base SQLite dans AppData) seront conservées.\n\nContinuer ?",
+                "Vos données (salaires, employés, pointages) restent sur cet ordinateur.\n\n" +
+                "Continuer ?",
                 "Installer la mise à jour",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question) != MessageBoxResult.Yes)

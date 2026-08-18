@@ -15,8 +15,10 @@ public partial class UpdateProgressWindow : Window
         InitializeComponent();
         _manifest = manifest;
         _viewModel = new UpdateProgressViewModel();
+        _viewModel.DemanderFermeture = Close;
         DataContext = _viewModel;
         Loaded += OnLoaded;
+        Closing += OnClosing;
     }
 
     public bool Succes { get; private set; }
@@ -25,31 +27,25 @@ public partial class UpdateProgressWindow : Window
     {
         Loaded -= OnLoaded;
         Succes = await _viewModel.ExecuterAsync(_manifest).ConfigureAwait(true);
-        if (Succes)
-        {
-            if (!ApplicationUpdateService.LancerMiseAJourSilencieuseEtRelancer(
-                    _viewModel.CheminInstallateur!, out _))
-            {
-                MessageBox.Show(
-                    "Impossible de lancer l'installateur. Relancez la mise à jour depuis Paramètres.",
-                    "Mise à jour",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-                DialogResult = false;
-                Close();
-                return;
-            }
+        if (!Succes)
+            return;
 
-            Application.Current.Shutdown();
+        if (!ApplicationUpdateService.LancerMiseAJourSilencieuseEtRelancer(
+                _viewModel.CheminInstallateur!, out var message))
+        {
+            Succes = false;
+            _viewModel.AfficherEchec(string.IsNullOrWhiteSpace(message)
+                ? "Impossible de lancer l'installation. Réessayez depuis Paramètres > Mises à jour."
+                : message);
             return;
         }
 
-        MessageBox.Show(
-            _viewModel.Statut,
-            "Mise à jour",
-            MessageBoxButton.OK,
-            MessageBoxImage.Warning);
-        DialogResult = false;
-        Close();
+        Application.Current.Shutdown();
+    }
+
+    private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (!Succes && !_viewModel.PeutFermer)
+            e.Cancel = true;
     }
 }

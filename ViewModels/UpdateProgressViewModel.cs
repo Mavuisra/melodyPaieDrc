@@ -1,7 +1,8 @@
 using System.ComponentModel;
-using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows;
+using System.Windows.Input;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 using MelodyPaieRDC.Services;
 
@@ -9,8 +10,24 @@ namespace MelodyPaieRDC.ViewModels;
 
 public class UpdateProgressViewModel : INotifyPropertyChanged
 {
-    private string _statut = "Préparation…";
+    private string _titre = "Mise à jour en cours";
+    private string _consigne = "Ne fermez pas cette fenêtre. Melody Paie RDC redémarrera tout seul.";
+    private string _statut = "Préparation du téléchargement…";
     private double _progression;
+    private bool _estErreur;
+    private bool _peutFermer;
+
+    public string Titre
+    {
+        get => _titre;
+        private set { _titre = value; OnPropertyChanged(); }
+    }
+
+    public string Consigne
+    {
+        get => _consigne;
+        private set { _consigne = value; OnPropertyChanged(); }
+    }
 
     public string Statut
     {
@@ -24,20 +41,51 @@ public class UpdateProgressViewModel : INotifyPropertyChanged
         private set { _progression = value; OnPropertyChanged(); }
     }
 
+    public bool EstErreur
+    {
+        get => _estErreur;
+        private set { _estErreur = value; OnPropertyChanged(); }
+    }
+
+    public bool PeutFermer
+    {
+        get => _peutFermer;
+        private set
+        {
+            _peutFermer = value;
+            OnPropertyChanged();
+            (FermerCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
+    }
+
     public string? CheminInstallateur { get; private set; }
+
+    public ICommand FermerCommand { get; }
+
+    public Action? DemanderFermeture { get; set; }
+
+    public UpdateProgressViewModel()
+    {
+        FermerCommand = new RelayCommand(_ => DemanderFermeture?.Invoke(), _ => PeutFermer);
+    }
 
     public async Task<bool> ExecuterAsync(UpdateManifest manifest)
     {
-        Progression = 0;
-        Statut = "Téléchargement de la mise à jour…";
+        Progression = 2;
+        EstErreur = false;
+        PeutFermer = false;
+        Titre = "Mise à jour en cours";
+        Consigne = "Ne fermez pas cette fenêtre. Melody Paie RDC redémarrera tout seul.";
+        var version = string.IsNullOrWhiteSpace(manifest.Version) ? "" : $" {manifest.Version.Trim()}";
+        Statut = $"Téléchargement de la version{version}…";
 
         var progress = new Progress<double>(p =>
         {
             Application.Current?.Dispatcher.Invoke(() =>
             {
-                Progression = Math.Min(90, p * 0.9);
-                if (p >= 100)
-                    Statut = "Téléchargement terminé. Installation…";
+                Progression = Math.Min(92, Math.Max(2, p * 0.92));
+                if (p >= 99)
+                    Statut = "Vérification du fichier téléchargé…";
             });
         });
 
@@ -45,19 +93,35 @@ public class UpdateProgressViewModel : INotifyPropertyChanged
 
         if (!result.Success || string.IsNullOrEmpty(result.CheminInstallateur))
         {
-            Statut = result.Message;
-            Progression = 0;
+            MarquerEchec(result.Message);
             return false;
         }
 
         CheminInstallateur = result.CheminInstallateur;
-        Progression = 95;
-        Statut = $"Installation de {Path.GetFileName(result.CheminInstallateur)}…";
-        await Task.Delay(400).ConfigureAwait(true);
+        Progression = 96;
+        Titre = "Installation en cours";
+        Consigne = "Ne fermez pas cette fenêtre. Melody Paie RDC va redémarrer tout seul.";
+        Statut = "Préparation de l'installation…";
+        await Task.Delay(250).ConfigureAwait(true);
         Progression = 100;
-        Statut = "Redémarrage de l'application…";
-        await Task.Delay(300).ConfigureAwait(true);
+        Statut = "Lancement de l'installateur…";
+        await Task.Delay(250).ConfigureAwait(true);
         return true;
+    }
+
+    public void AfficherEchec(string message) => MarquerEchec(message);
+
+    private void MarquerEchec(string message)
+    {
+        EstErreur = true;
+        PeutFermer = true;
+        Progression = 0;
+        Titre = "Mise à jour interrompue";
+        Consigne = "Vos données n'ont pas été modifiées. Fermez cette fenêtre, puis réessayez.";
+        Statut = string.IsNullOrWhiteSpace(message)
+            ? "La mise à jour n'a pas pu aboutir."
+            : message;
+        CheminInstallateur = null;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

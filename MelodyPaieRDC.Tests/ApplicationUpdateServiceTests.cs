@@ -81,4 +81,29 @@ public class ApplicationUpdateServiceTests
         var v = new Version(1, 0, 7, 0);
         Assert.Equal("1.0.7", ApplicationUpdateService.FormaterVersion(v));
     }
+
+    [Fact]
+    public void MessageUtilisateurTelechargement_FichierVerrouille_TexteFrancaisSansAnglais()
+    {
+        var ex = new IOException("The process cannot access the file because it is being used by another process.")
+        {
+            HResult = unchecked((int)0x80070020)
+        };
+
+        var message = ApplicationUpdateService.MessageUtilisateurTelechargement(ex);
+
+        Assert.Contains("antivirus", message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("cannot access", message, StringComparison.OrdinalIgnoreCase);
+        Assert.True(ApplicationUpdateService.EstFichierVerrouille(ex));
+    }
+
+    [Fact]
+    public void MessageUtilisateurTelechargement_Http_InviteAReessayer()
+    {
+        var message = ApplicationUpdateService.MessageUtilisateurTelechargement(
+            new HttpRequestException("connection reset"));
+
+        Assert.Contains("connexion", message, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("connection reset", message, StringComparison.OrdinalIgnoreCase);
+    }
 }

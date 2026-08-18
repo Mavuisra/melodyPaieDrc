@@ -99,7 +99,7 @@
         </StackPanel>
 
         <TextBlock Grid.Row="6"
-                   Text="Après installation, relancez Melody Paie RDC. La base de données locale n'est pas supprimée."
+                   Text="Après l'installation, Melody Paie RDC redémarre tout seul. Vos données restent sur cet ordinateur."
                    FontSize="11"
                    Foreground="#90A4AE"
                    TextWrapping="Wrap"/>
