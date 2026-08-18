@@ -1,8 +1,8 @@
-﻿{
-    "sha256":  "",
-    "version":  "1.0.9",
-    "releaseNotes":  "Correctif du téléchargement de mise à jour (fichier encore utilisé par Windows) et messages entièrement en français.",
-    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.9/MelodyPaieRDC_Setup_1.0.9.exe",
-    "publishedAt":  "2026-08-18",
-    "fileName":  "MelodyPaieRDC_Setup_1.0.9.exe"
+{
+  "publishedAt": "2026-08-18",
+  "releaseNotes": "Release v1.0.9",
+  "version": "1.0.9",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.9/MelodyPaieRDC_Setup_1.0.9.exe",
+  "sha256": "EB687F8308CF3BD8EF1376A6B98FC45449CCB4238321DAC4CCA7582650A87907",
+  "fileName": "MelodyPaieRDC_Setup_1.0.9.exe"
 }
