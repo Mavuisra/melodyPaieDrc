@@ -19,6 +19,7 @@ public sealed class PaieTestDbFactory : IDisposable
         using var db = CreateContext();
         db.Database.EnsureCreated();
         SchemaSqliteApplicator.AppliquerSchema(db);
+        SchemaSqliteApplicatorExtensible.AppliquerSiNecessaire(db);
         db.SeedSiVide();
     }
 

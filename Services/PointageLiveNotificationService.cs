@@ -152,11 +152,20 @@ public static class PointageLiveNotificationService
 
     private static void Publier(PointageRecuEventArgs args)
     {
-        NonLus++;
-        PointageRecu?.Invoke(args);
-        AjouterToast(args);
-        if (SonActif)
-            JouerSon(args.EstRetard);
+        void Executer()
+        {
+            NonLus++;
+            PointageRecu?.Invoke(args);
+            AjouterToast(args);
+            if (SonActif)
+                JouerSon(args.EstRetard);
+        }
+
+        var dispatcher = Application.Current?.Dispatcher;
+        if (dispatcher != null && !dispatcher.CheckAccess())
+            dispatcher.BeginInvoke(Executer);
+        else
+            Executer();
     }
 
     private static void AjouterToast(PointageRecuEventArgs args)
@@ -179,26 +188,17 @@ public static class PointageLiveNotificationService
             Horodatage = args.HorodatageLocal
         };
 
-        void AjouterSurUi()
+        Toasts.Insert(0, toast);
+        while (Toasts.Count > 12)
+            Toasts.RemoveAt(Toasts.Count - 1);
+
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(45) };
+        timer.Tick += (_, _) =>
         {
-            Toasts.Insert(0, toast);
-            while (Toasts.Count > 12)
-                Toasts.RemoveAt(Toasts.Count - 1);
-
-            var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(45) };
-            timer.Tick += (_, _) =>
-            {
-                timer.Stop();
-                Toasts.Remove(toast);
-            };
-            timer.Start();
-        }
-
-        var dispatcher = Application.Current?.Dispatcher;
-        if (dispatcher != null && !dispatcher.CheckAccess())
-            dispatcher.Invoke(AjouterSurUi);
-        else
-            AjouterSurUi();
+            timer.Stop();
+            Toasts.Remove(toast);
+        };
+        timer.Start();
     }
 
     private static void JouerSon(bool estRetard)

@@ -61,6 +61,13 @@ public partial class PaieDbContext
                     && s.Employe.Departement.Etablissement != null
                     && s.Employe.Departement.Etablissement.EntrepriseId == TenantId)));
 
+        modelBuilder.Entity<QuinzaineOctroi>()
+            .HasQueryFilter(q => q.Employe != null && (
+                q.Employe.EntrepriseId == TenantId
+                || ((q.Employe.EntrepriseId <= 0 || EF.Property<int?>(q.Employe, nameof(Employe.EntrepriseId)) == null) && q.Employe.Departement != null
+                    && q.Employe.Departement.Etablissement != null
+                    && q.Employe.Departement.Etablissement.EntrepriseId == TenantId)));
+
         modelBuilder.Entity<SuiviJournalier>()
             .HasQueryFilter(s => s.Employe != null && (
                 s.Employe.EntrepriseId == TenantId

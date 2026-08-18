@@ -101,6 +101,19 @@ public static class SchemaSqliteApplicatorExtensible
             ""DerniereSyncUtc"" TEXT,
             ""JetonAcces"" TEXT
         )");
+
+        Executer(db, @"CREATE TABLE IF NOT EXISTS ""QuinzaineOctrois"" (
+            ""Id"" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+            ""EmployeId"" INTEGER NOT NULL,
+            ""PeriodePaieId"" INTEGER NOT NULL,
+            ""DateOctroi"" TEXT NOT NULL,
+            ""Montant"" REAL NOT NULL,
+            ""Commentaire"" TEXT,
+            CONSTRAINT ""FK_QuinzaineOctrois_Employes"" FOREIGN KEY (""EmployeId"") REFERENCES ""Employes"" (""Id""),
+            CONSTRAINT ""FK_QuinzaineOctrois_PeriodesPaie"" FOREIGN KEY (""PeriodePaieId"") REFERENCES ""PeriodesPaie"" (""Id"")
+        )");
+        Executer(db, @"CREATE INDEX IF NOT EXISTS ""IX_QuinzaineOctrois_EmployeId"" ON ""QuinzaineOctrois"" (""EmployeId"")");
+        Executer(db, @"CREATE INDEX IF NOT EXISTS ""IX_QuinzaineOctrois_PeriodePaieId"" ON ""QuinzaineOctrois"" (""PeriodePaieId"")");
     }
 
     private static void AjouterColonnesMultiEntreprise(DbContext db)
@@ -138,6 +151,8 @@ public static class SchemaSqliteApplicatorExtensible
         AjouterColonne(db, "BulletinsPaie", "UpdatedAtUtc", "TEXT");
         AjouterColonne(db, "ParametresApplication", "ForcerAssistantProchainDemarrage", "INTEGER NOT NULL DEFAULT 0");
         AjouterColonne(db, "ParametresApplication", "VersionParcoursDemarrage", "INTEGER NOT NULL DEFAULT 0");
+        AjouterColonne(db, "ParametresApplication", "LivrePaieDerniereSyncUtc", "TEXT");
+        AjouterColonne(db, "PretsAvances", "DateDebutEcheance", "TEXT");
     }
 
     /// <summary>Renomme les libellés par défaut sans écraser une personnalisation utilisateur.</summary>

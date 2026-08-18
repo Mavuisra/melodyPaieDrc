@@ -40,6 +40,8 @@ public partial class MainWindow : Window
     private DispatcherTimer? _notificationTimer;
     private global::System.Windows.Forms.NotifyIcon? _notifyIcon;
     private bool _quitterApplicationDemandee;
+    private bool _presenceFocusActif;
+    private Thickness _margeContenuAvantFocus;
 
     public MainWindow()
     {
@@ -56,6 +58,8 @@ public partial class MainWindow : Window
         _viewModel.OnOuvrirPrimesIndemnites = OuvrirPrimesIndemnites;
         _viewModel.OnOuvrirHeuresMoisEmploye = OuvrirHeuresMoisEmploye;
         _viewModel.OnOuvrirAbsencesCongesEmploye = OuvrirAbsencesCongesEmploye;
+        _viewModel.OnOuvrirHistoriquePointageEmploye = OuvrirHistoriquePointageEmploye;
+        _viewModel.OnOuvrirQuinzaines = OuvrirQuinzaines;
         _viewModel.OnOuvrirCentreConfiguration = OuvrirCentreConfiguration;
         _viewModel.OnOuvrirParametresIpr = OuvrirParametresIpr;
         _viewModel.OnOuvrirTauxSociaux = OuvrirTauxSociaux;
@@ -127,6 +131,8 @@ public partial class MainWindow : Window
             AjusterDispositionContenu();
             AfficherBandeauRestaurationSiNecessaire();
             _ = ProposerMiseAJourAuDemarrageAsync();
+            if (PanneauSuiviJournalier != null)
+                PanneauSuiviJournalier.PresenceFocusModeChanged += OnPresenceFocusModeChanged;
         };
         _viewModel.PropertyChanged += ViewModelOnPropertyChanged;
     }
@@ -179,22 +185,34 @@ public partial class MainWindow : Window
 
     private void OnPointageRecu(PointageRecuEventArgs args)
     {
-        if (_notifyIcon == null)
-            return;
+        void Afficher()
+        {
+            var message = $"{args.NomComplet} — {args.Moment} ({args.HeureAffichage})";
+            var kind = args.EstRetard ? NotificationKind.Warning : NotificationKind.Info;
+            AfficherNotification($"Pointage : {message}", kind);
 
-        try
-        {
-            _notifyIcon.BalloonTipTitle = "Nouveau pointage";
-            _notifyIcon.BalloonTipText = $"{args.NomComplet} — {args.Moment} ({args.HeureAffichage})";
-            _notifyIcon.BalloonTipIcon = args.EstRetard
-                ? global::System.Windows.Forms.ToolTipIcon.Warning
-                : global::System.Windows.Forms.ToolTipIcon.Info;
-            _notifyIcon.ShowBalloonTip(3000);
+            if (_notifyIcon == null)
+                return;
+
+            try
+            {
+                _notifyIcon.BalloonTipTitle = args.EstRetard ? "Pointage — retard" : "Nouveau pointage";
+                _notifyIcon.BalloonTipText = message;
+                _notifyIcon.BalloonTipIcon = args.EstRetard
+                    ? global::System.Windows.Forms.ToolTipIcon.Warning
+                    : global::System.Windows.Forms.ToolTipIcon.Info;
+                _notifyIcon.ShowBalloonTip(5000);
+            }
+            catch
+            {
+                // Repli : bandeau in-app + toasts overlay.
+            }
         }
-        catch
-        {
-            // Ne pas interrompre l'application si la notification système échoue.
-        }
+
+        if (!Dispatcher.CheckAccess())
+            Dispatcher.Invoke(Afficher);
+        else
+            Afficher();
     }
 
     private void AfficherNotification(string message, NotificationKind kind = NotificationKind.Info)
@@ -255,6 +273,8 @@ public partial class MainWindow : Window
             _viewModel.RafraichirChecklistMoisPaie();
             if (_viewModel.MenuSelectionne == 0)
                 _viewModel.ChargerTableauDeBord();
+            _viewModel.ChargerDeclarations();
+            _viewModel.ChargerRapportPaie();
             PanneauEmployeRapport?.RapportViewModel?.Rafraichir();
             PanneauEmployeAyantsDroit?.AyantsDroitViewModel?.Charger();
         });
@@ -379,6 +399,8 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(MainViewModel.MenuSelectionne))
         {
+            if (_viewModel.MenuSelectionne != 1)
+                PanneauSuiviJournalier?.QuitterPresenceFocusDepuisUi();
             if (_viewModel.MenuSelectionne == 0)
                 AfficherTableauDeBordEnPremier();
             AjusterDispositionContenu();
@@ -397,15 +419,51 @@ public partial class MainWindow : Window
         if (MainContentScrollViewer == null || ContenuPrincipalGrid == null)
             return;
 
-        var modePointage = _viewModel.MenuSelectionne == 1;
-        MainContentScrollViewer.VerticalScrollBarVisibility = modePointage
-            ? ScrollBarVisibility.Disabled
-            : ScrollBarVisibility.Auto;
+        if (_presenceFocusActif)
+        {
+            MainContentScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+            if (MainContentScrollViewer.ActualHeight > 80)
+                ContenuPrincipalGrid.MinHeight = MainContentScrollViewer.ActualHeight;
+            return;
+        }
 
-        if (modePointage && MainContentScrollViewer.ActualHeight > 80)
-            ContenuPrincipalGrid.MinHeight = MainContentScrollViewer.ActualHeight;
+        MainContentScrollViewer.VerticalScrollBarVisibility = ScrollBarVisibility.Auto;
+        ContenuPrincipalGrid.MinHeight = 0;
+    }
+
+    private void OnPresenceFocusModeChanged(bool actif)
+    {
+        _presenceFocusActif = actif;
+        if (actif)
+        {
+            _margeContenuAvantFocus = ContenuPrincipalGrid.Margin;
+            ContenuPrincipalGrid.Margin = new Thickness(12);
+            ColonneMenu.Width = new GridLength(0);
+            PanneauMenuLateral.Visibility = Visibility.Hidden;
+        }
         else
-            ContenuPrincipalGrid.MinHeight = 0;
+        {
+            ContenuPrincipalGrid.Margin = _margeContenuAvantFocus.Equals(new Thickness(0))
+                ? new Thickness(24)
+                : _margeContenuAvantFocus;
+            ColonneMenu.Width = new GridLength(268);
+            PanneauMenuLateral.Visibility = Visibility.Visible;
+            _viewModel.RafraichirIndicateurMenu();
+        }
+
+        AjusterDispositionContenu();
+    }
+
+    protected override void OnPreviewKeyDown(KeyEventArgs e)
+    {
+        if (e.Key == Key.Escape && PanneauSuiviJournalier?.SuiviViewModel?.IsPresenceFocusMode == true)
+        {
+            PanneauSuiviJournalier.QuitterPresenceFocusDepuisUi();
+            e.Handled = true;
+            return;
+        }
+
+        base.OnPreviewKeyDown(e);
     }
 
     protected override void OnClosing(CancelEventArgs e)
@@ -432,6 +490,8 @@ public partial class MainWindow : Window
         AppNotificationService.NotificationPubliee -= OnNotificationService;
         AppSessionEvents.EntrepriseCouranteChanged -= OnEntrepriseCouranteChanged;
         AppSessionEvents.DonneesMetierModifiees -= OnDonneesMetierModifiees;
+        if (PanneauSuiviJournalier != null)
+            PanneauSuiviJournalier.PresenceFocusModeChanged -= OnPresenceFocusModeChanged;
         base.OnClosed(e);
     }
 
@@ -643,6 +703,21 @@ public partial class MainWindow : Window
             AppSessionEvents.NotifierDonneesMetierModifiees();
         };
         _suiviJournalierWindow.Show();
+    }
+
+    private void OuvrirQuinzaines(int? periodePaieId)
+    {
+        var win = new QuinzainesWindow(periodePaieId) { Owner = this };
+        win.ShowDialog();
+        AppSessionEvents.NotifierDonneesMetierModifiees();
+        _viewModel.ChargerDeclarations();
+        _viewModel.ChargerBulletinsPeriodeCalculPaie();
+    }
+
+    private void OuvrirHistoriquePointageEmploye(int employeId)
+    {
+        Dispatcher.BeginInvoke(new Action(() =>
+            PanneauSuiviJournalier?.AfficherHistoriquePourEmploye(employeId)), DispatcherPriority.Loaded);
     }
 
     private void OuvrirSaisiePaieMois(int periodePaieId)

@@ -22,6 +22,9 @@ public class PretAvance
 
     public DateTime DateOctroi { get; set; }
 
+    /// <summary>Premier mois d'échéance. Null = même date que l'octroi (bases existantes).</summary>
+    public DateTime? DateDebutEcheance { get; set; }
+
     public int NbEcheances { get; set; }
 
     [Column(TypeName = "decimal(18,2)")]

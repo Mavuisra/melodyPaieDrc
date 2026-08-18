@@ -17,6 +17,7 @@ public class PretsAvancesViewModel : INotifyPropertyChanged
 
     private decimal _montantTotal;
     private DateTime _dateOctroi = DateTime.Today;
+    private DateTime _dateDebutEcheance = DateTime.Today;
     private int _nbEcheances = 1;
 
     public PretsAvancesViewModel(PaieDbContext db, int employeId)
@@ -39,7 +40,18 @@ public class PretsAvancesViewModel : INotifyPropertyChanged
     public ObservableCollection<PretAvance> PretsAvances { get; }
 
     public decimal MontantTotal { get => _montantTotal; set { _montantTotal = value; OnPropertyChanged(); } }
-    public DateTime DateOctroi { get => _dateOctroi; set { _dateOctroi = value; OnPropertyChanged(); } }
+    public DateTime DateOctroi
+    {
+        get => _dateOctroi;
+        set
+        {
+            _dateOctroi = value;
+            if (_dateDebutEcheance == default || _dateDebutEcheance == DateTime.Today && MontantTotal == 0)
+                DateDebutEcheance = value;
+            OnPropertyChanged();
+        }
+    }
+    public DateTime DateDebutEcheance { get => _dateDebutEcheance; set { _dateDebutEcheance = value; OnPropertyChanged(); } }
     public int NbEcheances { get => _nbEcheances; set { _nbEcheances = value < 1 ? 1 : value; OnPropertyChanged(); } }
 
     public PretAvance? Selectionne
@@ -81,6 +93,11 @@ public class PretsAvancesViewModel : INotifyPropertyChanged
             OnErreur?.Invoke("Le nombre d'échéances doit être au moins 1.");
             return;
         }
+        if (DateDebutEcheance == default)
+        {
+            OnErreur?.Invoke("La date de début de l’échéance est obligatoire.");
+            return;
+        }
 
         try
         {
@@ -90,6 +107,7 @@ public class PretsAvancesViewModel : INotifyPropertyChanged
                 EmployeId = _employeId,
                 MontantTotal = MontantTotal,
                 DateOctroi = DateOctroi,
+                DateDebutEcheance = DateDebutEcheance.Date,
                 NbEcheances = NbEcheances,
                 MontantMensuel = montantMensuel,
                 SoldeRestant = MontantTotal,
@@ -99,9 +117,11 @@ public class PretsAvancesViewModel : INotifyPropertyChanged
             Charger();
             MontantTotal = 0;
             DateOctroi = DateTime.Today;
+            DateDebutEcheance = DateTime.Today;
             NbEcheances = 1;
             OnPropertyChanged(nameof(MontantTotal));
             OnPropertyChanged(nameof(DateOctroi));
+            OnPropertyChanged(nameof(DateDebutEcheance));
             OnPropertyChanged(nameof(NbEcheances));
             UiFeedback.Succes("Prêt / avance enregistré(e).");
         }

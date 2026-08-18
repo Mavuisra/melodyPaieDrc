@@ -112,6 +112,7 @@ public partial class PaieDbContext : DbContext
     public DbSet<AffectationPrimeIndemnite> AffectationsPrimesIndemnites { get; set; } = null!;
     public DbSet<EmployeLibelleBulletin> EmployesLibellesBulletin { get; set; } = null!;
     public DbSet<AbsenceConge> AbsencesConges { get; set; } = null!;
+    public DbSet<QuinzaineOctroi> QuinzaineOctrois { get; set; } = null!;
     public DbSet<SaisiePaie> SaisiesPaie { get; set; } = null!;
     public DbSet<SuiviJournalier> SuivisJournaliers { get; set; } = null!;
 
@@ -219,6 +220,12 @@ public partial class PaieDbContext : DbContext
             .HasMany(e => e.AbsencesConges)
             .WithOne(a => a.Employe)
             .HasForeignKey(a => a.EmployeId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        modelBuilder.Entity<Employe>()
+            .HasMany(e => e.QuinzaineOctrois)
+            .WithOne(q => q.Employe)
+            .HasForeignKey(q => q.EmployeId)
             .OnDelete(DeleteBehavior.Restrict);
 
         modelBuilder.Entity<Employe>()

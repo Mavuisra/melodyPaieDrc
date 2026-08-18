@@ -76,11 +76,8 @@ public sealed class PointageImportService
                 continue;
 
             var anciens = PointagesJournalierSerializer.Deserialiser(existant?.PointagesJson, jour);
-            var fusion = anciens
-                .Concat(nouveaux)
-                .Distinct()
-                .OrderBy(t => t)
-                .ToList();
+            var fusion = PointagesJournalierSerializer.DedupliquerParMinute(
+                anciens.Concat(nouveaux).Distinct());
 
             var heures = LtServicesPointageCalcul.CalculerHeuresPrestees(fusion, jour, reglesLt);
             var json = PointagesJournalierSerializer.Serialiser(fusion);

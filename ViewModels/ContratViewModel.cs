@@ -213,6 +213,17 @@ public class ContratViewModel : INotifyPropertyChanged
     {
         if (Selectionne is null) return;
 
+        var diagnostic = ContratSuppressionGuard.Analyser(_db, _employeId);
+        if (!diagnostic.PeutSupprimer)
+        {
+            System.Windows.MessageBox.Show(
+                diagnostic.Message,
+                "Suppression impossible",
+                System.Windows.MessageBoxButton.OK,
+                System.Windows.MessageBoxImage.Warning);
+            return;
+        }
+
         var type = Selectionne.TypeContrat;
         var debut = Selectionne.DateDebut.ToString("dd/MM/yyyy");
         var confirm = System.Windows.MessageBox.Show(
@@ -222,6 +233,17 @@ public class ContratViewModel : INotifyPropertyChanged
             System.Windows.MessageBoxImage.Warning);
         if (confirm != System.Windows.MessageBoxResult.Yes)
             return;
+
+        if (diagnostic.DemanderConfirmationPrimes)
+        {
+            var confirmPrimes = System.Windows.MessageBox.Show(
+                diagnostic.Message,
+                "Primes liées à l'employé",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning);
+            if (confirmPrimes != System.Windows.MessageBoxResult.Yes)
+                return;
+        }
 
         try
         {

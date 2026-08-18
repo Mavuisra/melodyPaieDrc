@@ -12,6 +12,7 @@
              FontFamily="{materialDesign:MaterialDesignFont}">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+        <helpers:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
         <helpers:EqualityToVisibilityConverter x:Key="EqualityToVisibilityConverter"/>
         <helpers:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         <Style x:Key="DashboardCardStyle" TargetType="Border">
@@ -214,7 +215,8 @@
         </Grid.RowDefinitions>
 
             <!-- En-tête -->
-            <Grid Grid.Row="0" Margin="0,0,0,12">
+            <Grid x:Name="BlocEntetePointage" Grid.Row="0" Margin="0,0,0,12"
+                  Visibility="{Binding IsPresenceFocusMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
@@ -291,7 +293,8 @@
             </Grid>
 
             <!-- Onglets pointage -->
-            <Border Grid.Row="1" Background="#F0FDF4" CornerRadius="12" Padding="6" Margin="0,0,0,12" BorderBrush="#A7F3D0" BorderThickness="1">
+            <Border x:Name="BlocOngletsPointage" Grid.Row="1" Background="#F0FDF4" CornerRadius="12" Padding="6" Margin="0,0,0,12" BorderBrush="#A7F3D0" BorderThickness="1"
+                    Visibility="{Binding IsPresenceFocusMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <UniformGrid Columns="3">
                     <Button Command="{Binding SelectionnerVuePointageCommand}" CommandParameter="0" Margin="4,0">
                         <Button.Style>
@@ -323,8 +326,8 @@
                             </Style>
                         </Button.Style>
                         <StackPanel Orientation="Horizontal">
-                            <materialDesign:PackIcon Kind="SwapHorizontal" Width="16" Height="16" Margin="0,0,6,0"/>
-                            <TextBlock Text="Mouvements du jour" FontWeight="Bold"/>
+                            <materialDesign:PackIcon Kind="History" Width="16" Height="16" Margin="0,0,6,0"/>
+                            <TextBlock Text="Historique période" FontWeight="Bold"/>
                         </StackPanel>
                     </Button>
                     <Button Command="{Binding SelectionnerVuePointageCommand}" CommandParameter="2" Margin="4,0">
@@ -348,7 +351,8 @@
             </Border>
 
             <!-- Filtres -->
-            <StackPanel Grid.Row="2">
+            <StackPanel x:Name="BlocFiltresPointage" Grid.Row="2"
+                        Visibility="{Binding IsPresenceFocusMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
             <Border CornerRadius="14" Margin="0,0,0,10" BorderBrush="#D1FAE5" BorderThickness="1" Background="White" Padding="16,14">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.06" Color="#047857"/>
@@ -466,11 +470,11 @@
             </StackPanel>
 
             <!-- Présence live : grille principale + fil notifications -->
-            <Grid Grid.Row="3" MinHeight="460"
+            <Grid x:Name="GrillePresenceLive" Grid.Row="3" MinHeight="460"
                   Visibility="{Binding VuePointageIndex, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=0}">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="280"/>
+                    <ColumnDefinition x:Name="ColonnePointagesLive" Width="280"/>
                 </Grid.ColumnDefinitions>
 
                 <Grid Grid.Column="0">
@@ -481,7 +485,7 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-            <Border Grid.Row="0" Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="0"
+            <Border x:Name="CartePresenceJour" Grid.Row="0" Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="0"
                     MinHeight="320" Margin="0,0,0,0">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="18" ShadowDepth="3" Opacity="0.09" Color="{DynamicResource BrandPrimaryColor}"/>
@@ -498,15 +502,45 @@
                                 <GradientStop Color="#F0FDF4" Offset="1"/>
                             </LinearGradientBrush>
                         </Border.Background>
-                        <StackPanel>
-                            <TextBlock Text="Présence du jour" FontSize="16" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,6"/>
-                            <TextBlock Text="{Binding PresenceResumeDureesAujourdhui}" FontSize="12.5"
-                                       Foreground="#334155" TextWrapping="Wrap" LineHeight="18"/>
-                            <TextBlock Text="Cliquez une ligne pour le détail mensuel."
-                                       FontSize="11.5" Foreground="#059669" FontWeight="Bold" Margin="0,6,0,0"/>
-                        </StackPanel>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Présence du jour" FontSize="16" FontWeight="Bold" Foreground="#0F172A" Margin="0,0,0,6"/>
+                                <TextBlock Text="{Binding PresenceResumeDureesAujourdhui}" FontSize="12.5"
+                                           Foreground="#334155" TextWrapping="Wrap" LineHeight="18"/>
+                                <TextBlock Text="Cliquez une ligne pour le détail mensuel."
+                                           FontSize="11.5" Foreground="#059669" FontWeight="Bold" Margin="0,6,0,0"
+                                           Visibility="{Binding IsPresenceFocusMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top" Margin="12,0,0,0">
+                                <Button Command="{Binding ActiverPresenceFocusCommand}"
+                                        Style="{StaticResource PointageChipButtonStyle}"
+                                        Padding="12,8"
+                                        ToolTip="Agrandir la liste dans la fenêtre"
+                                        Visibility="{Binding IsPresenceFocusMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="ArrowExpand" Width="16" Height="16" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Agrandir" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Command="{Binding QuitterPresenceFocusCommand}"
+                                        Style="{StaticResource PointageChipPrimaryStyle}"
+                                        Padding="14,8"
+                                        ToolTip="Quitter le mode focus (Échap)"
+                                        Visibility="{Binding IsPresenceFocusMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <StackPanel Orientation="Horizontal">
+                                        <materialDesign:PackIcon Kind="ArrowCollapse" Width="16" Height="16" Margin="0,0,6,0"/>
+                                        <TextBlock Text="Quitter le mode focus" FontWeight="Bold"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
                     </Border>
-                    <DataGrid x:Name="GrillePresenceSynthese" Grid.Row="1"
+                    <Grid Grid.Row="1">
+                    <DataGrid x:Name="GrillePresenceSynthese"
                               ItemsSource="{Binding PresenceSyntheseEmployes}"
                               SelectionChanged="GrillePresenceSynthese_SelectionChanged"
                               AutoGenerateColumns="False"
@@ -671,10 +705,23 @@
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
                     </DataGrid>
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,48,0,0"
+                                Visibility="{Binding PresenceListeVide, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <materialDesign:PackIcon Kind="ClockOutline" Width="36" Height="36" Foreground="#94A3B8"
+                                                 HorizontalAlignment="Center" Margin="0,0,0,8"/>
+                        <TextBlock Text="Aucun pointage pour le moment"
+                                   FontSize="14" FontWeight="SemiBold" Foreground="#64748B"
+                                   HorizontalAlignment="Center"/>
+                        <TextBlock Text="Les présences du jour apparaîtront ici dès le premier passage."
+                                   FontSize="12" Foreground="#94A3B8" Margin="0,4,0,0"
+                                   HorizontalAlignment="Center" TextWrapping="Wrap"/>
+                    </StackPanel>
+                    </Grid>
                 </Grid>
             </Border>
 
-            <Expander Grid.Row="1" Margin="0,10,0,0" IsExpanded="False">
+            <Expander x:Name="BlocStatsPresence" Grid.Row="1" Margin="0,10,0,0" IsExpanded="False"
+                      Visibility="{Binding IsPresenceFocusMode, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
                 <Expander.Header>
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="ChartBar" Width="18" Height="18" Foreground="#047857" Margin="0,0,8,0" VerticalAlignment="Center"/>
@@ -767,8 +814,8 @@
             </Expander>
 
             <!-- Détail mois — visible seulement si employé choisi -->
-            <Border Grid.Row="2" Background="#F8FAFC" CornerRadius="12" Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="1"
-                    Visibility="{Binding AfficherDetailMois, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Border x:Name="BlocDetailMois" Grid.Row="2" Background="#F8FAFC" CornerRadius="12" Padding="14,12" BorderBrush="#E2E8F0" BorderThickness="1"
+                    Visibility="{Binding AfficherDetailMoisHorsFocus, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                         <materialDesign:PackIcon Kind="CalendarMonth" Width="20" Height="20" Foreground="#0D9488" Margin="0,0,8,0"/>
@@ -836,9 +883,9 @@
                 </StackPanel>
             </Border>
 
-            <Border Grid.Row="3" Background="#FFFBEB" CornerRadius="10" Padding="12,10" BorderBrush="#FDE68A" BorderThickness="1"
+            <Border x:Name="BlocInviteEmploye" Grid.Row="3" Background="#FFFBEB" CornerRadius="10" Padding="12,10" BorderBrush="#FDE68A" BorderThickness="1"
                     Margin="0,10,0,0"
-                    Visibility="{Binding AfficherInviteSelectionEmploye, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    Visibility="{Binding AfficherInviteSelectionEmployeHorsFocus, Converter={StaticResource BooleanToVisibilityConverter}}">
                 <StackPanel Orientation="Horizontal">
                     <materialDesign:PackIcon Kind="GestureTap" Width="20" Height="20" Foreground="#D97706" Margin="0,0,10,0"/>
                     <TextBlock Text="Cliquez un employé pour le détail mensuel."
@@ -849,7 +896,7 @@
                 </Grid>
 
                 <!-- Fil live des pointages -->
-                <Border Grid.Column="1" Margin="12,0,0,0" Background="#FFFFFF" CornerRadius="14"
+                <Border x:Name="PanneauPointagesLive" Grid.Column="1" Margin="12,0,0,0" Background="#FFFFFF" CornerRadius="14"
                         BorderBrush="#A7F3D0" BorderThickness="1" Padding="0" MinHeight="320">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -925,17 +972,17 @@
                 </Border>
             </Grid>
 
-            <!-- Rapport journalier des mouvements -->
+            <!-- Historique des pointages de la période sélectionnée -->
             <ScrollViewer Grid.Row="3" VerticalScrollBarVisibility="Auto"
                           Visibility="{Binding VuePointageIndex, Converter={StaticResource EqualityToVisibilityConverter}, ConverterParameter=1}">
             <StackPanel>
                 <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="14,12" Margin="0,0,0,10">
                     <StackPanel>
-                        <TextBlock Text="Rapport journalier des mouvements" FontSize="18" FontWeight="Bold" Foreground="#0F172A"/>
-                        <TextBlock Margin="0,6,0,0" FontSize="12.5" Foreground="#334155" TextWrapping="Wrap">
-                            <Run Text="Liste des agents avec heure d'arrivée et de sortie. Retards détectés automatiquement après"/>
-                            <Run Text="{Binding HeureLimiteToleranceLibelle, Mode=OneWay}" FontWeight="Bold"/>
-                            <Run Text="."/>
+                        <TextBlock Text="Historique des pointages" FontSize="18" FontWeight="Bold" Foreground="#0F172A"/>
+                        <TextBlock Margin="0,6,0,0" FontSize="12.5" Foreground="#334155" TextWrapping="Wrap"
+                                   Text="{Binding HistoriquePeriodeResume}"/>
+                        <TextBlock Margin="0,4,0,0" FontSize="12" Foreground="#64748B" TextWrapping="Wrap">
+                            Filtrez par période et par employé. Les jours sans enregistrement s’affichent comme « Aucune donnée ».
                         </TextBlock>
                         <WrapPanel Margin="0,12,0,0">
                             <Button Click="ExporterPdfMouvementsTous_Click" Style="{StaticResource PointageChipPrimaryStyle}" Margin="0,0,8,8">
@@ -951,12 +998,12 @@
                                 </StackPanel>
                             </Button>
                         </WrapPanel>
-                        <TextBlock Text="{Binding PresenceLigneSelectionneeLibelle, Mode=OneWay}" FontSize="11" Foreground="#64748B" Margin="0,4,0,0"/>
                     </StackPanel>
                 </Border>
-                <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="0" MinHeight="260" MaxHeight="480" Margin="0,0,0,10">
+                <Border Background="#FFFFFF" CornerRadius="12" BorderBrush="#94A3B8" BorderThickness="1" Padding="0" MinHeight="260" MaxHeight="520" Margin="0,0,0,10">
+                    <Grid>
                     <DataGrid x:Name="GrilleMouvementsJour"
-                              ItemsSource="{Binding PresenceSyntheseEmployes}"
+                              ItemsSource="{Binding HistoriquePeriodeLignes}"
                               SelectionChanged="GrilleMouvementsJour_SelectionChanged"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False" CanUserDeleteRows="False"
@@ -965,20 +1012,27 @@
                               AlternationCount="2"
                               RowHeight="42"
                               GridLinesVisibility="Horizontal"
-                              HorizontalGridLinesBrush="#CBD5E1">
+                              HorizontalGridLinesBrush="#CBD5E1"
+                              VerticalScrollBarVisibility="Auto">
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource PresenceColumnHeaderStyle}"/>
                         </DataGrid.ColumnHeaderStyle>
                         <DataGrid.Columns>
+                            <DataGridTextColumn Header="Date" Binding="{Binding Jour}" Width="100"/>
+                            <DataGridTextColumn Header="Employé" Binding="{Binding NomComplet}" Width="*" MinWidth="160"/>
                             <DataGridTextColumn Header="Matricule" Binding="{Binding Matricule}" Width="90"/>
-                            <DataGridTextColumn Header="Agent" Binding="{Binding NomComplet}" Width="*" MinWidth="180"/>
-                            <DataGridTextColumn Header="Département" Binding="{Binding Departement}" Width="140"/>
-                            <DataGridTextColumn Header="Arrivée" Binding="{Binding Entree}" Width="80"/>
+                            <DataGridTextColumn Header="Entrée" Binding="{Binding Entree}" Width="80"/>
                             <DataGridTextColumn Header="Sortie" Binding="{Binding Sortie}" Width="80"/>
-                            <DataGridTextColumn Header="Statut" Binding="{Binding IndicateurRetard}" Width="100"/>
-                            <DataGridTextColumn Header="Durée retard" Binding="{Binding DureeRetardLibelle}" Width="100"/>
+                            <DataGridTextColumn Header="Retard" Binding="{Binding IndicateurRetard}" Width="110"/>
+                            <DataGridTextColumn Header="Absence" Binding="{Binding AbsenceLibelle}" Width="120"/>
+                            <DataGridTextColumn Header="Statut" Binding="{Binding Statut}" Width="140"/>
                         </DataGrid.Columns>
                     </DataGrid>
+                    <TextBlock Text="Aucune donnée pour cette période."
+                               HorizontalAlignment="Center" VerticalAlignment="Center"
+                               Foreground="#94A3B8" FontStyle="Italic"
+                               Visibility="{Binding HistoriquePeriodeVide, Converter={StaticResource BooleanToVisibilityConverter}}"/>
+                    </Grid>
                 </Border>
             </StackPanel>
             </ScrollViewer>

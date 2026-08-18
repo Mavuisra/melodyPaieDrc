@@ -160,6 +160,7 @@ public partial class EmployeHeuresMoisWindow : Window
                     s.HeuresPrestees = heures;
                     s.TypeJour = typeJour;
                     s.HeuresManuelles = true;
+                    // Conserver les horodatages déjà saisis / importés.
                 }
                 else
                 {
@@ -169,14 +170,15 @@ public partial class EmployeHeuresMoisWindow : Window
                         Date = ligne.Date.Date,
                         HeuresPrestees = heures,
                         TypeJour = typeJour,
-                        PointagesJson = null,
+                        PointagesJson = ligne.PointagesJson,
                         HeuresManuelles = true
                     });
                 }
             }
 
             _db.SaveChanges();
-            UiFeedback.Succes("Heures du mois enregistrées.");
+            AppSessionEvents.NotifierDonneesMetierModifiees();
+            UiFeedback.Succes("Heures du mois enregistrées et synchronisées avec l’historique.");
             ChargerHeures(periode);
         }
         catch (Exception ex)

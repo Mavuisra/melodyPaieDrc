@@ -92,6 +92,9 @@ public class MainViewModel : INotifyPropertyChanged
     private decimal _dashboardTauxPresenceAujourdhui;
     private string _entrepriseCouranteLibelle = "";
     private int _entrepriseCouranteId;
+    private string _livrePaieSyncStatut = "Livre de paie : pas encore synchronisé.";
+    private bool _livrePaieSyncEnCours;
+    private bool _livrePaieSyncOk;
 
     public MainViewModel()
     {
@@ -134,6 +137,16 @@ public class MainViewModel : INotifyPropertyChanged
         OuvrirPrimesIndemnitesCommand = new RelayCommand(_ => OnOuvrirPrimesIndemnites?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
         OuvrirHeuresMoisEmployeCommand = new RelayCommand(_ => OnOuvrirHeuresMoisEmploye?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
         OuvrirAbsencesCongesEmployeCommand = new RelayCommand(_ => OnOuvrirAbsencesCongesEmploye?.Invoke(EmployeSelectionne!.Id), _ => EmployeSelectionne != null);
+        OuvrirHistoriquePointageEmployeCommand = new RelayCommand(_ =>
+        {
+            MenuSelectionne = 1;
+            OnOuvrirHistoriquePointageEmploye?.Invoke(EmployeSelectionne!.Id);
+        }, _ => EmployeSelectionne != null);
+        OuvrirPaieEmployeCommand = new RelayCommand(_ =>
+        {
+            EmployeSelectionnePourPaie = EmployeSelectionne;
+            MenuSelectionne = 4;
+        }, _ => EmployeSelectionne != null);
         OuvrirChampsComplementairesEmployeCommand = new RelayCommand(_ => OnOuvrirChampsComplementairesEmploye?.Invoke(), _ => EmployeSelectionne != null);
         OuvrirFormulairesDynamiquesCommand = new RelayCommand(_ => OnOuvrirFormulairesDynamiques?.Invoke());
         OuvrirChampsComplementairesEntrepriseCommand = new RelayCommand(_ => OnOuvrirChampsComplementairesEntreprise?.Invoke());
@@ -162,23 +175,24 @@ public class MainViewModel : INotifyPropertyChanged
                 PointageLiveNotificationService.ReinitialiserBadge();
             if (menu == 0) { ChargerStatistiques(); ChargerTableauDeBord(); }
             // 1 = Pointage journalier, 2 = Totaux heures (paie)
-            if (menu == 4) { ChargerPeriodes(); SelectionnerPremierePeriodeSiVide(); ChargerBulletinsPeriodeCalculPaie(); }
+            if (menu == 4)
+            {
+                ChargerPeriodes();
+                AlignerPeriodesSurSituationReelle();
+                ChargerBulletinsPeriodeCalculPaie();
+            }
             if (menu == 5)
             {
                 ChargerPeriodes();
-                if (PeriodeSelectionneePourDeclarations == null && PeriodesPaie.Count > 0)
-                    PeriodeSelectionneePourDeclarations = PeriodesPaie[0];
-                else
-                    ChargerDeclarations();
+                AlignerPeriodesSurSituationReelle();
+                ChargerDeclarations();
             }
             if (menu == 7) ChargerTousBulletins();
             if (menu == 8)
             {
                 ChargerPeriodes();
-                if (PeriodeSelectionneePourRapport == null && PeriodesPaie.Count > 0)
-                    PeriodeSelectionneePourRapport = PeriodesPaie[0];
-                else
-                    ChargerRapportPaie();
+                AlignerPeriodesSurSituationReelle();
+                ChargerRapportPaie();
             }
             if (menu == 6)
             {
@@ -241,6 +255,10 @@ public class MainViewModel : INotifyPropertyChanged
             else
                 OnErreurCalculPaie?.Invoke("Sélectionnez d'abord une période de paie.");
         });
+        OuvrirQuinzainesCommand = new RelayCommand(_ =>
+            OnOuvrirQuinzaines?.Invoke(PeriodeSelectionneePourPaie?.Id ?? PeriodeSelectionneePourDeclarations?.Id));
+        SynchroniserLivrePaieCommand = new RelayCommand(_ => SynchroniserLivrePaie(),
+            _ => PeriodeSelectionneePourDeclarations != null && !LivrePaieSyncEnCours);
         OuvrirSuiviJournalierCommand = new RelayCommand(_ => OnOuvrirSuiviJournalier?.Invoke());
         EnregistrerTauxChangeGlobalCommand = new RelayCommand(_ => EnregistrerTauxChangeGlobal(), _ => PeutMod());
         EnregistrerParametresZkCommand = new RelayCommand(_ => EnregistrerParametresZk(), _ => PeutMod());
@@ -298,6 +316,30 @@ public class MainViewModel : INotifyPropertyChanged
     {
         get => _entrepriseCouranteLibelle;
         private set { _entrepriseCouranteLibelle = value ?? ""; OnPropertyChanged(); }
+    }
+
+    public string LivrePaieSyncStatut
+    {
+        get => _livrePaieSyncStatut;
+        private set { _livrePaieSyncStatut = value ?? ""; OnPropertyChanged(); }
+    }
+
+    public bool LivrePaieSyncEnCours
+    {
+        get => _livrePaieSyncEnCours;
+        private set
+        {
+            if (_livrePaieSyncEnCours == value) return;
+            _livrePaieSyncEnCours = value;
+            OnPropertyChanged();
+            (SynchroniserLivrePaieCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        }
+    }
+
+    public bool LivrePaieSyncOk
+    {
+        get => _livrePaieSyncOk;
+        private set { _livrePaieSyncOk = value; OnPropertyChanged(); }
     }
 
     public int EntrepriseCouranteId
@@ -477,8 +519,21 @@ public class MainViewModel : INotifyPropertyChanged
     public int MenuSelectionne
     {
         get => _menuSelectionne;
-        set { _menuSelectionne = value; OnPropertyChanged(); OnPropertyChanged(nameof(AfficherContenuGenerique)); }
+        set
+        {
+            if (_menuSelectionne == value)
+            {
+                OnPropertyChanged();
+                return;
+            }
+            _menuSelectionne = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(AfficherContenuGenerique));
+        }
     }
+
+    /// <summary>Réapplique l’état visuel du menu (après mode focus, etc.).</summary>
+    public void RafraichirIndicateurMenu() => OnPropertyChanged(nameof(MenuSelectionne));
 
     /// <summary>True uniquement pour le tableau de bord (0). Paramètres (4) a son propre panneau.</summary>
     public bool AfficherContenuGenerique => MenuSelectionne == 0;
@@ -636,6 +691,10 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand VoirRapportBulletinCommand { get; }
     public ICommand TelechargerRapportBulletinCommand { get; }
     public ICommand OuvrirSaisiePaieMoisCommand { get; }
+    public ICommand OuvrirQuinzainesCommand { get; }
+    public ICommand SynchroniserLivrePaieCommand { get; }
+    public ICommand OuvrirHistoriquePointageEmployeCommand { get; }
+    public ICommand OuvrirPaieEmployeCommand { get; }
     public ICommand OuvrirSuiviJournalierCommand { get; }
     public ICommand EnregistrerParametresZkCommand { get; }
     public ICommand EnregistrerReglesLtCommand { get; }
@@ -941,6 +1000,7 @@ public class MainViewModel : INotifyPropertyChanged
             _periodeSelectionneePourDeclarations = value;
             OnPropertyChanged();
             ChargerDeclarations();
+            ActualiserLivrePaieSyncStatut();
             NotifierExportsDeclarationsCanExecute();
         }
     }
@@ -1018,6 +1078,8 @@ public class MainViewModel : INotifyPropertyChanged
         (OuvrirPrimesIndemnitesCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (OuvrirHeuresMoisEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (OuvrirAbsencesCongesEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (OuvrirHistoriquePointageEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (OuvrirPaieEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
     }
 
     private void NotifierExportsDeclarationsCanExecute()
@@ -1028,6 +1090,7 @@ public class MainViewModel : INotifyPropertyChanged
         (ExportDeclarationIprExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (ExportLivrePaiePdfCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (ExportLivrePaieExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (SynchroniserLivrePaieCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (ExportCnssEdeclarationCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (ExportFeuillePaieCnssCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (ExportCnssEdeclarationExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
@@ -1223,10 +1286,49 @@ public class MainViewModel : INotifyPropertyChanged
 
     public void ChargerPeriodes()
     {
+        var idPaie = PeriodeSelectionneePourPaie?.Id;
+        var idDecl = PeriodeSelectionneePourDeclarations?.Id;
+        var idRapport = PeriodeSelectionneePourRapport?.Id;
+        var idDash = PeriodeSelectionneeDashboard?.Id;
+
         PeriodesPaie.Clear();
         foreach (var p in _db.PeriodesPaie.AsNoTracking().OrderByDescending(p => p.Annee).ThenByDescending(p => p.Mois))
             PeriodesPaie.Add(p);
+
+        PeriodeSelectionneePourPaie = ResoudrePeriodeDansListe(idPaie) ?? PeriodeSelectionneePourPaie;
+        PeriodeSelectionneePourDeclarations = ResoudrePeriodeDansListe(idDecl) ?? PeriodeSelectionneePourDeclarations;
+        PeriodeSelectionneePourRapport = ResoudrePeriodeDansListe(idRapport) ?? PeriodeSelectionneePourRapport;
+        if (idDash is int dashId)
+        {
+            var dash = ResoudrePeriodeDansListe(dashId);
+            if (dash != null)
+                PeriodeSelectionneeDashboard = dash;
+        }
+
         SelectionnerPeriodeDashboardCourante();
+        AlignerPeriodesSurSituationReelle();
+    }
+
+    private PeriodePaie? ResoudrePeriodeDansListe(int? id) =>
+        id is int i ? PeriodesPaie.FirstOrDefault(p => p.Id == i) : null;
+
+    /// <summary>
+    /// Déclarations, Rapport et Calcul de paie affichent la même période réelle
+    /// (mois en cours, sinon la plus récente), dès qu'aucune sélection n'existe.
+    /// </summary>
+    private void AlignerPeriodesSurSituationReelle()
+    {
+        var courante = PeriodesPaie.FirstOrDefault(p => p.Mois == DateTime.Today.Month && p.Annee == DateTime.Today.Year)
+                       ?? PeriodesPaie.FirstOrDefault();
+        if (courante == null)
+            return;
+
+        if (PeriodeSelectionneePourPaie == null)
+            PeriodeSelectionneePourPaie = courante;
+        if (PeriodeSelectionneePourDeclarations == null)
+            PeriodeSelectionneePourDeclarations = courante;
+        if (PeriodeSelectionneePourRapport == null)
+            PeriodeSelectionneePourRapport = courante;
     }
 
     private void SelectionnerPeriodeDashboardCourante()
@@ -1253,14 +1355,8 @@ public class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(DashboardIprLibelle));
     }
 
-    /// <summary>En Calcul de paie, sélectionne la première période si aucune n'est choisie.</summary>
-    private void SelectionnerPremierePeriodeSiVide()
-    {
-        if (PeriodeSelectionneePourPaie != null) return;
-        var premiere = PeriodesPaie.FirstOrDefault();
-        if (premiere != null)
-            PeriodeSelectionneePourPaie = premiere;
-    }
+    /// <summary>En Calcul de paie, sélectionne la période du mois en cours si aucune n'est choisie.</summary>
+    private void SelectionnerPremierePeriodeSiVide() => AlignerPeriodesSurSituationReelle();
 
     public void ChargerStatistiques()
     {
@@ -1331,6 +1427,7 @@ public class MainViewModel : INotifyPropertyChanged
         ChargerContexteEntreprise();
         ChargerEmployes();
         ChargerPeriodes();
+        ActualiserLivrePaieSyncStatut();
         ChargerStatistiques();
         // Tableau de bord : requêtes lourdes — après le premier rendu UI pour éviter un blocage au démarrage
         if (System.Windows.Application.Current?.Dispatcher != null)
@@ -1895,6 +1992,8 @@ public class MainViewModel : INotifyPropertyChanged
     public Action<int>? OnOuvrirPrimesIndemnites { get; set; }
     public Action<int>? OnOuvrirHeuresMoisEmploye { get; set; }
     public Action<int>? OnOuvrirAbsencesCongesEmploye { get; set; }
+    public Action<int>? OnOuvrirHistoriquePointageEmploye { get; set; }
+    public Action<int?>? OnOuvrirQuinzaines { get; set; }
     public Action? OnOuvrirChampsComplementairesEmploye { get; set; }
     public Action? OnOuvrirFormulairesDynamiques { get; set; }
     public Action? OnOuvrirChampsComplementairesEntreprise { get; set; }
@@ -2388,6 +2487,63 @@ public class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private void ActualiserLivrePaieSyncStatut()
+    {
+        var p = _db.ParametresApplication.AsNoTracking()
+            .FirstOrDefault(x => x.Id == ParametresApplication.SingletonId);
+        if (p?.LivrePaieDerniereSyncUtc is DateTime utc)
+        {
+            var local = DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime();
+            LivrePaieSyncOk = true;
+            LivrePaieSyncStatut = $"Dernière synchronisation du livre : {local:dd/MM/yyyy HH:mm}";
+            return;
+        }
+
+        LivrePaieSyncOk = false;
+        LivrePaieSyncStatut = "Livre de paie : pas encore synchronisé.";
+    }
+
+    private void SynchroniserLivrePaie()
+    {
+        if (PeriodeSelectionneePourDeclarations == null)
+        {
+            LivrePaieSyncOk = false;
+            LivrePaieSyncStatut = "Livre de paie : sélectionnez une période.";
+            OnErreurCalculPaie?.Invoke("Sélectionnez d'abord une période de paie.");
+            return;
+        }
+
+        LivrePaieSyncEnCours = true;
+        LivrePaieSyncStatut = "Synchronisation du livre de paie en cours…";
+        try
+        {
+            var resultat = LivrePaieSyncService.Synchroniser(_db, PeriodeSelectionneePourDeclarations.Id);
+            ChargerDeclarations();
+            if (PeriodeSelectionneePourPaie?.Id == PeriodeSelectionneePourDeclarations.Id)
+                ChargerBulletinsPeriodeCalculPaie();
+
+            LivrePaieSyncOk = resultat.Ok;
+            LivrePaieSyncStatut = resultat.Ok
+                ? $"Livre de paie : synchronisation réussie — {resultat.Message}"
+                : $"Livre de paie : synchronisation échouée — {resultat.Message}";
+
+            if (resultat.Ok)
+                OnSuccessCalculPaie?.Invoke(resultat.Message);
+            else
+                OnErreurCalculPaie?.Invoke(resultat.Message);
+        }
+        catch (Exception ex)
+        {
+            LivrePaieSyncOk = false;
+            LivrePaieSyncStatut = $"Livre de paie : synchronisation échouée — {ex.Message}";
+            OnErreurCalculPaie?.Invoke(ex.Message);
+        }
+        finally
+        {
+            LivrePaieSyncEnCours = false;
+        }
+    }
+
     private void GenererBulletin()
     {
         if (PeriodeSelectionneePourPaie is null)
@@ -2437,8 +2593,12 @@ public class MainViewModel : INotifyPropertyChanged
                 _db.ChangeTracker.Clear();
                 ChargerBulletinsPeriodeCalculPaie();
                 ChargerTousBulletins();
-                if (PeriodeSelectionneePourRapport != null && PeriodeSelectionneePourRapport.Id == PeriodeSelectionneePourPaie.Id)
-                    ChargerRapportPaie();
+                if (PeriodeSelectionneePourDeclarations == null)
+                    PeriodeSelectionneePourDeclarations = PeriodeSelectionneePourPaie;
+                if (PeriodeSelectionneePourRapport == null)
+                    PeriodeSelectionneePourRapport = PeriodeSelectionneePourPaie;
+                ChargerDeclarations();
+                ChargerRapportPaie();
                 AppSessionEvents.NotifierDonneesMetierModifiees();
             }
         }

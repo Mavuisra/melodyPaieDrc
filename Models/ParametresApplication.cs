@@ -85,6 +85,9 @@ public class ParametresApplication
     /// <summary>Dernière entreprise sélectionnée dans l'interface (ligne globale Id=1).</summary>
     public int? DerniereEntrepriseActiveId { get; set; }
 
-    /// <summary>Configuration JSON : modules visibles, colonnes employés, etc.</summary>
+    /// <summary>JSON de configuration UI (modules, colonnes visibles, etc.).</summary>
     public string? ConfigurationUiJson { get; set; }
+
+    /// <summary>Dernière synchronisation du livre de paie (UTC).</summary>
+    public DateTime? LivrePaieDerniereSyncUtc { get; set; }
 }

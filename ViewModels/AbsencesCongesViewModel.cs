@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 using MelodyPaieRDC.Services;
 
@@ -19,6 +20,9 @@ public class AbsencesCongesViewModel : INotifyPropertyChanged
     private DateTime _dateDebut = DateTime.Today;
     private DateTime _dateFin = DateTime.Today;
     private bool _estPaye = true;
+    private string _dateEmbaucheLibelle = "Non renseignée";
+    private string _ancienneteLibelle = "—";
+    private string _droitsCongeLibelle = "—";
 
     public AbsencesCongesViewModel(PaieDbContext db, int employeId)
     {
@@ -78,6 +82,10 @@ public class AbsencesCongesViewModel : INotifyPropertyChanged
     public DateTime DateFin { get => _dateFin; set { _dateFin = value; OnPropertyChanged(); } }
     public bool EstPaye { get => _estPaye; set { _estPaye = value; OnPropertyChanged(); } }
 
+    public string DateEmbaucheLibelle { get => _dateEmbaucheLibelle; private set { _dateEmbaucheLibelle = value; OnPropertyChanged(); } }
+    public string AncienneteLibelle { get => _ancienneteLibelle; private set { _ancienneteLibelle = value; OnPropertyChanged(); } }
+    public string DroitsCongeLibelle { get => _droitsCongeLibelle; private set { _droitsCongeLibelle = value; OnPropertyChanged(); } }
+
     public AbsenceConge? Selectionne
     {
         get => _selectionne;
@@ -93,6 +101,23 @@ public class AbsencesCongesViewModel : INotifyPropertyChanged
     {
         var employe = _db.Employes.Find(_employeId);
         NomEmploye = employe != null ? $"{employe.Nom} {employe.Prenom}".Trim() : "";
+        OnPropertyChanged(nameof(NomEmploye));
+
+        var contrats = _db.Contrats.Where(c => c.EmployeId == _employeId).ToList();
+        var embauche = AncienneteCongeHelper.ResoudreDateEmbauche(contrats);
+        if (embauche == null)
+        {
+            DateEmbaucheLibelle = "Non renseignée (aucun contrat)";
+            AncienneteLibelle = "—";
+            DroitsCongeLibelle = "0 jour (date d’embauche manquante)";
+        }
+        else
+        {
+            DateEmbaucheLibelle = embauche.Value.ToString("dd/MM/yyyy");
+            AncienneteLibelle = AncienneteCongeHelper.FormaterAnciennete(embauche.Value);
+            var jours = AncienneteCongeHelper.CalculerJoursCongesAnnuels(embauche.Value);
+            DroitsCongeLibelle = $"{jours:N1} jour(s) de congé annuel (1,5 j / mois d’ancienneté)";
+        }
 
         AbsencesConges.Clear();
         foreach (var a in _db.AbsencesConges

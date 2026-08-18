@@ -164,6 +164,7 @@ public class PresencePointageLigne
 public class PresenceEmployeSyntheseLigne
 {
     public int? EmployeId { get; set; }
+    public DateTime? DateJour { get; set; }
     public string Jour { get; set; } = "";
     public string Matricule { get; set; } = "";
     public string NomComplet { get; set; } = "";
@@ -174,6 +175,8 @@ public class PresenceEmployeSyntheseLigne
     public string Sortie { get; set; } = "—";
     public string Autres { get; set; } = "—";
     public string Statut { get; set; } = "";
+    public string AbsenceLibelle { get; set; } = "—";
+    public bool AucuneDonnee { get; set; }
     public bool EstRetard { get; set; }
     public string IndicateurRetard { get; set; } = "À l'heure";
     public int MinutesRetard { get; set; }
@@ -272,6 +275,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     private decimal _heuresMoyennesAujourdhui;
     private int _retardsAujourdhui;
     private int _vuePointageIndex;
+    private bool _isPresenceFocusMode;
     private PresenceEmployeSyntheseLigne? _presenceLigneSelectionnee;
     private decimal _coutTotalRetardsUsd;
     private decimal _coutTotalRetardsCdf;
@@ -321,6 +325,12 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             else if (p is string s && int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var idx))
                 VuePointageIndex = idx;
         });
+        ActiverPresenceFocusCommand = new RelayCommand(
+            _ => ActiverPresenceFocus(),
+            _ => !IsPresenceFocusMode && VuePointageIndex == 0);
+        QuitterPresenceFocusCommand = new RelayCommand(
+            _ => QuitterPresenceFocus(),
+            _ => IsPresenceFocusMode);
         PointageLiveNotificationService.EtatChange += NotifierBadgePointage;
         ZktecoSynchronisationService.SynchroReussie += OnSynchroZkReussie;
         ZkTerminalParametresNotifier.ParametresModifies += OnZkTerminalParametresModifiesDepuisAutreEcran;
@@ -332,6 +342,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public ObservableCollection<SuiviJournalierLigne> Lignes { get; }
     public ObservableCollection<PresencePointageLigne> PresencePointages { get; } = new();
     public ObservableCollection<PresenceEmployeSyntheseLigne> PresenceSyntheseEmployes { get; } = new();
+    public ObservableCollection<PresenceEmployeSyntheseLigne> HistoriquePeriodeLignes { get; } = new();
     public ObservableCollection<PresenceEmployeSyntheseLigne> RetardsDuJour { get; } = new();
     public ObservableCollection<PresenceHoraireBarre> PresenceParHeure { get; } = new();
 
@@ -344,6 +355,10 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             if (_vuePointageIndex == value) return;
             _vuePointageIndex = value;
             OnPropertyChanged();
+            if (_vuePointageIndex != 0)
+                QuitterPresenceFocus();
+            if (_vuePointageIndex == 1)
+                ChargerHistoriquePeriode();
         }
     }
 
@@ -498,9 +513,12 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             (RetablirCalculAutomatiqueCommand as RelayCommand)?.RaiseCanExecuteChanged();
             if (value != null && PeriodeSelectionnee != null)
                 ChargerLignes();
+            ChargerHistoriquePeriode();
             OnPropertyChanged(nameof(ContexteSaisieLibelle));
             OnPropertyChanged(nameof(AfficherDetailMois));
             OnPropertyChanged(nameof(AfficherInviteSelectionEmploye));
+            OnPropertyChanged(nameof(AfficherDetailMoisHorsFocus));
+            OnPropertyChanged(nameof(AfficherInviteSelectionEmployeHorsFocus));
         }
     }
 
@@ -517,9 +535,12 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             (RetablirCalculAutomatiqueCommand as RelayCommand)?.RaiseCanExecuteChanged();
             if (value != null && EmployeSelectionne != null)
                 ChargerLignes();
+            ChargerHistoriquePeriode();
             OnPropertyChanged(nameof(ContexteSaisieLibelle));
             OnPropertyChanged(nameof(AfficherDetailMois));
             OnPropertyChanged(nameof(AfficherInviteSelectionEmploye));
+            OnPropertyChanged(nameof(AfficherDetailMoisHorsFocus));
+            OnPropertyChanged(nameof(AfficherInviteSelectionEmployeHorsFocus));
         }
     }
 
@@ -527,6 +548,33 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
 
     public bool AfficherInviteSelectionEmploye =>
         PeriodeSelectionnee != null && EmployeSelectionne == null && Employes.Count > 0;
+
+    public bool AfficherDetailMoisHorsFocus => AfficherDetailMois && !IsPresenceFocusMode;
+
+    public bool AfficherInviteSelectionEmployeHorsFocus =>
+        AfficherInviteSelectionEmploye && !IsPresenceFocusMode;
+
+    public bool PresenceListeVide => PresenceSyntheseEmployes.Count == 0;
+
+    public string HistoriquePeriodeResume
+    {
+        get
+        {
+            if (PeriodeSelectionnee == null)
+                return "Sélectionnez une période (mois / année) pour consulter l’historique.";
+            var filtre = EmployeSelectionne == null
+                ? "tous les employés"
+                : $"{EmployeSelectionne.Nom} {EmployeSelectionne.Prenom}".Trim();
+            if (HistoriquePeriodeLignes.Count == 0)
+                return $"Aucun pointage pour {PeriodeSelectionnee.Mois:D2}/{PeriodeSelectionnee.Annee} ({filtre}).";
+            var vides = HistoriquePeriodeLignes.Count(l => l.AucuneDonnee);
+            return vides > 0
+                ? $"{HistoriquePeriodeLignes.Count} ligne(s) — {vides} jour(s) sans donnée ({filtre})."
+                : $"{HistoriquePeriodeLignes.Count} ligne(s) pour {PeriodeSelectionnee.Mois:D2}/{PeriodeSelectionnee.Annee} ({filtre}).";
+        }
+    }
+
+    public bool HistoriquePeriodeVide => HistoriquePeriodeLignes.Count == 0;
 
     public string ContexteSaisieLibelle
     {
@@ -559,6 +607,35 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public ICommand ForcerPeriodeMoisCourantCommand { get; }
     public ICommand ActualiserListesCommand { get; }
     public ICommand SelectionnerVuePointageCommand { get; }
+    public ICommand ActiverPresenceFocusCommand { get; }
+    public ICommand QuitterPresenceFocusCommand { get; }
+
+    /// <summary>Agrandit « Présence du jour » dans la fenêtre actuelle, sans plein écran Windows.</summary>
+    public bool IsPresenceFocusMode
+    {
+        get => _isPresenceFocusMode;
+        private set
+        {
+            if (_isPresenceFocusMode == value) return;
+            _isPresenceFocusMode = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(AfficherDetailMoisHorsFocus));
+            OnPropertyChanged(nameof(AfficherInviteSelectionEmployeHorsFocus));
+            PresenceFocusModeChanged?.Invoke(value);
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    public event Action<bool>? PresenceFocusModeChanged;
+
+    public void ActiverPresenceFocus()
+    {
+        if (VuePointageIndex != 0)
+            return;
+        IsPresenceFocusMode = true;
+    }
+
+    public void QuitterPresenceFocus() => IsPresenceFocusMode = false;
 
     private void NotifierBadgePointage()
     {
@@ -792,6 +869,8 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
 
         if (EmployeSelectionne != null && !Employes.Any(x => x.Id == EmployeSelectionne.Id))
             EmployeSelectionne = null;
+        else
+            ChargerHistoriquePeriode();
 
         OnPropertyChanged(nameof(MessageVide));
     }
@@ -859,7 +938,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             }
 
             PresenceStatut = "Synchronisation du terminal…";
-            var (ok, logs, err) = await ZktecoSynchronisationService.TrySynchroniserAvecLogsAsync().ConfigureAwait(true);
+            var (ok, logs, err, nbNouveaux) = await ZktecoSynchronisationService.TrySynchroniserAvecLogsAsync().ConfigureAwait(true);
             if (!ok)
             {
                 TerminalHorsLigne = true;
@@ -875,9 +954,9 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
                 ChargerLignes();
 
             MettreAJourLogsTerminalAujourdhui(logs);
-            var nbNouveaux = PointageLiveNotificationService.TraiterNouveauxLogs(logs);
             RecalculerSynthesePresenceEmployes();
             RecalculerResumeDureesAujourdhui();
+            ChargerHistoriquePeriode();
             NotifierBadgePointage();
 
             var nbPersonnes = PresenceSyntheseEmployes.Count;
@@ -942,7 +1021,9 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         var cles = _historiquePointageParUserJour.Keys.Where(k => !k.EndsWith(suffixeJour, StringComparison.Ordinal)).ToList();
         foreach (var c in cles)
             _historiquePointageParUserJour.Remove(c);
-        _logsTerminalAujourdhui.Clear();
+
+        var aujourdhui = DateTime.Today;
+        _logsTerminalAujourdhui.RemoveAll(l => l.HorodatageLocal.Date != aujourdhui);
     }
 
     private void MettreAJourLogsTerminalAujourdhui(IReadOnlyList<(string CodePin, DateTime Horodatage)>? logs)
@@ -1099,6 +1180,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
             NotifierTotauxRetards();
             OnPropertyChanged(nameof(NbEmployesPresentsAujourdhui));
             OnPropertyChanged(nameof(NbRetardsAujourdhui));
+            OnPropertyChanged(nameof(PresenceListeVide));
             return;
         }
 
@@ -1173,6 +1255,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         NotifierTotauxRetards();
         OnPropertyChanged(nameof(NbEmployesPresentsAujourdhui));
         OnPropertyChanged(nameof(NbRetardsAujourdhui));
+        OnPropertyChanged(nameof(PresenceListeVide));
     }
 
     private void NotifierTotauxRetards()
@@ -1465,6 +1548,14 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     }
 
     /// <summary>Sélectionne l'employé depuis une ligne du tableau présence (suivi en direct).</summary>
+    public void SelectionnerEmployeParId(int employeId)
+    {
+        var emp = Employes.FirstOrDefault(e => e.Id == employeId)
+                  ?? _sourceEmployes.FirstOrDefault(e => e.Id == employeId);
+        if (emp != null)
+            EmployeSelectionne = emp;
+    }
+
     public void SelectionnerEmployeParMatricule(string? matricule)
     {
         if (string.IsNullOrWhiteSpace(matricule) || matricule == "—")
@@ -1478,6 +1569,42 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
 
         if (emp != null)
             EmployeSelectionne = emp;
+    }
+
+    public void ChargerHistoriquePeriode()
+    {
+        HistoriquePeriodeLignes.Clear();
+        if (PeriodeSelectionnee == null)
+        {
+            OnPropertyChanged(nameof(HistoriquePeriodeResume));
+            OnPropertyChanged(nameof(HistoriquePeriodeVide));
+            return;
+        }
+
+        try
+        {
+            var lignes = HistoriquePointagePeriodeService.Charger(
+                _db,
+                PeriodeSelectionnee,
+                EmployeSelectionne?.Id,
+                string.IsNullOrWhiteSpace(RechercheEmployeText) ? null : RechercheEmployeText);
+            foreach (var l in lignes)
+                HistoriquePeriodeLignes.Add(l);
+        }
+        catch
+        {
+            // L'historique ne doit pas interrompre la surveillance live.
+        }
+
+        OnPropertyChanged(nameof(HistoriquePeriodeResume));
+        OnPropertyChanged(nameof(HistoriquePeriodeVide));
+    }
+
+    public void AfficherHistoriquePourEmploye(int employeId)
+    {
+        SelectionnerEmployeParId(employeId);
+        VuePointageIndex = 1;
+        ChargerHistoriquePeriode();
     }
 
     public void ChargerLignes()

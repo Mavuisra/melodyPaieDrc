@@ -43,6 +43,16 @@ public static class PointagesJournalierSerializer
         }
     }
 
+    /// <summary>Évite les doublons terminal / saisie manuelle à la même minute.</summary>
+    public static IReadOnlyList<DateTime> DedupliquerParMinute(IEnumerable<DateTime> pointages)
+    {
+        return pointages
+            .OrderBy(t => t)
+            .GroupBy(t => new DateTime(t.Year, t.Month, t.Day, t.Hour, t.Minute, 0, DateTimeKind.Unspecified))
+            .Select(g => g.First())
+            .ToList();
+    }
+
     /// <summary>Recalcule les heures prestées à partir du JSON stocké (règles LTservices).</summary>
     public static decimal CalculerHeuresLt(string? pointagesJson, DateTime jour, LtServicesRegles? regles = null)
     {

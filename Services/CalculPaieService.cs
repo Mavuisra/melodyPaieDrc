@@ -337,9 +337,17 @@ public class CalculPaieService
             ? RoundPaie(rbrut)
             : baseCotisable;
 
-        // Échéances de prêts / avances en cours (retenues mensuelles)
+        // Échéances de prêts / avances en cours (retenues mensuelles à partir de la date de début d'échéance)
+        var periodeDebut = new DateTime(periode.Annee, periode.Mois, 1);
         var pretsEnCours = _db.PretsAvances
             .Where(p => p.EmployeId == employeId && p.SoldeRestant > 0)
+            .ToList()
+            .Where(p =>
+            {
+                var debut = (p.DateDebutEcheance ?? p.DateOctroi).Date;
+                var debutMois = new DateTime(debut.Year, debut.Month, 1);
+                return periodeDebut >= debutMois;
+            })
             .ToList();
         var retenuePrets = pretsEnCours.Sum(p => p.MontantMensuel);
 

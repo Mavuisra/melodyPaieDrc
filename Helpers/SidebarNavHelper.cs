@@ -12,7 +12,7 @@ public static class SidebarNavHelper
             "IsActive",
             typeof(bool),
             typeof(SidebarNavHelper),
-            new FrameworkPropertyMetadata(false));
+            new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender));
 
     public static void SetIsActive(DependencyObject element, bool value) => element.SetValue(IsActiveProperty, value);
     public static bool GetIsActive(DependencyObject element) => (bool)element.GetValue(IsActiveProperty);

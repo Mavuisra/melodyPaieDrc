@@ -66,6 +66,8 @@ public class Employe
 
     public ICollection<AbsenceConge> AbsencesConges { get; set; } = new List<AbsenceConge>();
 
+    public ICollection<QuinzaineOctroi> QuinzaineOctrois { get; set; } = new List<QuinzaineOctroi>();
+
     public ICollection<AffectationPrimeIndemnite> AffectationsPrimesIndemnites { get; set; } = new List<AffectationPrimeIndemnite>();
     public ICollection<EmployeLibelleBulletin> LibellesBulletin { get; set; } = new List<EmployeLibelleBulletin>();
 

@@ -549,13 +549,24 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
             ? 0m
             : PointagesJournalierSerializer.CalculerHeuresLt(sj.PointagesJson, d, reglesLt);
 
-        _db.SaveChanges();
+        try
+        {
+            _db.SaveChanges();
+        }
+        catch (Exception ex)
+        {
+            DetailJour.DefinirMessageStatut($"Enregistrement impossible : {ex.Message}");
+            UiFeedback.Avertissement($"Enregistrement impossible : {ex.Message}");
+            return;
+        }
+
         RafraichirDetailJour("Enregistré.");
         ConstruireGrilleCalendrier();
         ChargerTotaux();
         OnPropertyChanged(nameof(TotalHeuresMoisAfficheLibelle));
         OnPropertyChanged(nameof(TotalJoursMoisAfficheLibelle));
-        UiFeedback.Succes("Pointages du jour enregistrés.");
+        AppSessionEvents.NotifierDonneesMetierModifiees();
+        UiFeedback.Succes("Pointages du jour enregistrés et synchronisés avec l’historique.");
     }
 
     private void EnregistrerTypeJour()
@@ -604,13 +615,24 @@ public sealed class HeuresPresteesTotauxViewModel : INotifyPropertyChanged
             sj.HeuresManuelles = false;
         }
 
-        _db.SaveChanges();
+        try
+        {
+            _db.SaveChanges();
+        }
+        catch (Exception ex)
+        {
+            DetailJour.DefinirMessageStatut($"Enregistrement impossible : {ex.Message}");
+            UiFeedback.Avertissement($"Enregistrement impossible : {ex.Message}");
+            return;
+        }
+
         RafraichirDetailJour("Type de jour enregistré.");
         ConstruireGrilleCalendrier();
         ChargerTotaux();
         OnPropertyChanged(nameof(TotalHeuresMoisAfficheLibelle));
         OnPropertyChanged(nameof(TotalJoursMoisAfficheLibelle));
-        UiFeedback.Succes("Type de jour enregistré.");
+        AppSessionEvents.NotifierDonneesMetierModifiees();
+        UiFeedback.Succes("Type de jour enregistré et synchronisé avec l’historique.");
     }
 
     private void ConstruireGrilleCalendrier()

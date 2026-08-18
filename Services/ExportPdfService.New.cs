@@ -796,6 +796,70 @@ public class ExportPdfService
         document.GeneratePdf(cheminFichier);
     }
 
+    /// <summary>Justificatif des octrois de quinzaine d'une période.</summary>
+    public void ExporterOctroisQuinzainesPdf(
+        IReadOnlyList<QuinzaineOctroi> octrois,
+        int mois,
+        int annee,
+        string cheminFichier)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(cheminFichier);
+        if (octrois == null || octrois.Count == 0)
+            throw new ArgumentException("Aucun octroi à exporter.", nameof(octrois));
+
+        var branding = LoadBranding();
+        var periode = $"{mois:D2}/{annee}";
+        var total = octrois.Sum(o => o.Montant);
+
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(24);
+                page.DefaultTextStyle(x => x.FontFamily("Segoe UI").FontSize(9));
+                ComposeHeaderBand(page.Header(), branding, "OCTROIS DE QUINZAINE", $"Période {periode}");
+                page.Content().Column(col =>
+                {
+                    col.Spacing(8);
+                    col.Item().Text($"{octrois.Count} octroi(s) — total {total:N2}")
+                        .FontSize(10).SemiBold();
+                    col.Item().Border(1).BorderColor(BorderColor).Table(t =>
+                    {
+                        t.ColumnsDefinition(c =>
+                        {
+                            c.ConstantColumn(80);
+                            c.ConstantColumn(90);
+                            c.RelativeColumn(2);
+                            c.ConstantColumn(90);
+                            c.RelativeColumn(1.5f);
+                        });
+                        t.Header(h =>
+                        {
+                            h.Cell().Background(DefaultPrimary).Padding(4).Text("Date").FontColor("#FFFFFF").SemiBold();
+                            h.Cell().Background(DefaultPrimary).Padding(4).Text("Matricule").FontColor("#FFFFFF").SemiBold();
+                            h.Cell().Background(DefaultPrimary).Padding(4).Text("Employé").FontColor("#FFFFFF").SemiBold();
+                            h.Cell().Background(DefaultPrimary).Padding(4).Text("Montant").FontColor("#FFFFFF").SemiBold();
+                            h.Cell().Background(DefaultPrimary).Padding(4).Text("Commentaire").FontColor("#FFFFFF").SemiBold();
+                        });
+                        foreach (var o in octrois.OrderBy(x => x.DateOctroi))
+                        {
+                            var nom = o.Employe == null
+                                ? "—"
+                                : $"{o.Employe.Nom} {o.Employe.Postnom} {o.Employe.Prenom}".Trim();
+                            t.Cell().Padding(4).Text(o.DateOctroi.ToString("dd/MM/yyyy"));
+                            t.Cell().Padding(4).Text(o.Employe?.Matricule ?? "—");
+                            t.Cell().Padding(4).Text(nom);
+                            t.Cell().Padding(4).Text($"{o.Montant:N2}");
+                            t.Cell().Padding(4).Text(o.Commentaire ?? "");
+                        }
+                    });
+                });
+            });
+        });
+        document.GeneratePdf(cheminFichier);
+    }
+
     /// <summary>Rapport périodique des quinzaines (acomptes sur salaire).</summary>
     public void ExporterRapportQuinzainesPdf(
         IReadOnlyList<SituationPaieAgentLigne> lignes,

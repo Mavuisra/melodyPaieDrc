@@ -14,6 +14,7 @@
     <Window.Resources>
         <!-- Sidebar : palette entreprise (clés définies dans Themes/BrandResources.xaml) -->
         <helpers:MenuIndexEqualsConverter x:Key="MenuIndexEqualsConverter"/>
+        <helpers:MenuIndexActiveConverter x:Key="MenuIndexActiveConverter"/>
         <helpers:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter"/>
         <!-- Barre latérale — style moderne épuré -->
         <Style x:Key="SidebarSectionLabelStyle" TargetType="TextBlock">
@@ -108,19 +109,13 @@
                 <Trigger Property="IsPressed" Value="True">
                     <Setter Property="Background" Value="#1E293B"/>
                 </Trigger>
-                <DataTrigger Value="True">
-                    <DataTrigger.Binding>
-                        <MultiBinding Converter="{StaticResource MenuIndexEqualsConverter}">
-                            <Binding Path="MenuSelectionne"/>
-                            <Binding Path="Tag" RelativeSource="{RelativeSource Self}"/>
-                        </MultiBinding>
-                    </DataTrigger.Binding>
+                <Trigger Property="helpers:SidebarNavHelper.IsActive" Value="True">
                     <Setter Property="Background" Value="{DynamicResource SidebarSelectedBrush}"/>
                     <Setter Property="Foreground" Value="#FFFFFF"/>
                     <Setter Property="BorderBrush" Value="{DynamicResource SidebarAccentBrush}"/>
                     <Setter Property="BorderThickness" Value="4,0,0,0"/>
                     <Setter Property="Padding" Value="18,11,14,11"/>
-                </DataTrigger>
+                </Trigger>
             </Style.Triggers>
         </Style>
 
@@ -272,12 +267,12 @@
     </Window.Resources>
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="268"/>
+            <ColumnDefinition x:Name="ColonneMenu" Width="268"/>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
         <!-- Menu latéral — navigation moderne -->
-        <Border Grid.Column="0" ClipToBounds="True" BorderBrush="{DynamicResource SidebarHoverBrush}" BorderThickness="0,0,1,0"
+        <Border x:Name="PanneauMenuLateral" Grid.Column="0" ClipToBounds="True" BorderBrush="{DynamicResource SidebarHoverBrush}" BorderThickness="0,0,1,0"
                 Background="{DynamicResource SidebarBrush}">
             <Grid>
                 <Grid.RowDefinitions>
@@ -320,7 +315,9 @@
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                               Padding="0,4,0,8">
                     <StackPanel>
-                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="0" Command="{Binding SelectionnerMenuCommand}" CommandParameter="0">
+                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="0"
+                                helpers:SidebarNavHelper.IsActive="{Binding MenuSelectionne, Converter={StaticResource MenuIndexActiveConverter}, ConverterParameter=0}"
+                                Command="{Binding SelectionnerMenuCommand}" CommandParameter="0">
                                                         <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -338,7 +335,9 @@
                             </Grid>
                         </Button>
 
-                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="1" Command="{Binding SelectionnerMenuCommand}" CommandParameter="1">
+                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="1"
+                                helpers:SidebarNavHelper.IsActive="{Binding MenuSelectionne, Converter={StaticResource MenuIndexActiveConverter}, ConverterParameter=1}"
+                                Command="{Binding SelectionnerMenuCommand}" CommandParameter="1">
                                                         <Grid>
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
@@ -356,7 +355,9 @@
                             </Grid>
                         </Button>
 
-                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="2" Command="{Binding SelectionnerMenuCommand}" CommandParameter="2">
+                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="2"
+                                helpers:SidebarNavHelper.IsActive="{Binding MenuSelectionne, Converter={StaticResource MenuIndexActiveConverter}, ConverterParameter=2}"
+                                Command="{Binding SelectionnerMenuCommand}" CommandParameter="2">
                                                         <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="ClockOutline" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center"
                                                          Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
@@ -364,7 +365,9 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="3" Command="{Binding SelectionnerMenuCommand}" CommandParameter="3">
+                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="3"
+                                helpers:SidebarNavHelper.IsActive="{Binding MenuSelectionne, Converter={StaticResource MenuIndexActiveConverter}, ConverterParameter=3}"
+                                Command="{Binding SelectionnerMenuCommand}" CommandParameter="3">
                                                         <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="AccountGroup" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center"
                                                          Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
@@ -373,7 +376,9 @@
                         </Button>
 
                         <Border Height="1" Background="{DynamicResource SidebarHoverBrush}" Margin="20,10" Opacity="0.55"/>
-                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="4" Command="{Binding SelectionnerMenuCommand}" CommandParameter="4">
+                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="4"
+                                helpers:SidebarNavHelper.IsActive="{Binding MenuSelectionne, Converter={StaticResource MenuIndexActiveConverter}, ConverterParameter=4}"
+                                Command="{Binding SelectionnerMenuCommand}" CommandParameter="4">
                                                         <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Calculator" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center"
                                                          Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
@@ -381,7 +386,9 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="7" Command="{Binding SelectionnerMenuCommand}" CommandParameter="7">
+                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="7"
+                                helpers:SidebarNavHelper.IsActive="{Binding MenuSelectionne, Converter={StaticResource MenuIndexActiveConverter}, ConverterParameter=7}"
+                                Command="{Binding SelectionnerMenuCommand}" CommandParameter="7">
                                                         <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Receipt" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center"
                                                          Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
@@ -389,7 +396,9 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="5" Command="{Binding SelectionnerMenuCommand}" CommandParameter="5">
+                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="5"
+                                helpers:SidebarNavHelper.IsActive="{Binding MenuSelectionne, Converter={StaticResource MenuIndexActiveConverter}, ConverterParameter=5}"
+                                Command="{Binding SelectionnerMenuCommand}" CommandParameter="5">
                                                         <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FileDocument" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center"
                                                          Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
@@ -397,7 +406,9 @@
                             </StackPanel>
                         </Button>
 
-                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="8" Command="{Binding SelectionnerMenuCommand}" CommandParameter="8">
+                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="8"
+                                helpers:SidebarNavHelper.IsActive="{Binding MenuSelectionne, Converter={StaticResource MenuIndexActiveConverter}, ConverterParameter=8}"
+                                Command="{Binding SelectionnerMenuCommand}" CommandParameter="8">
                                                         <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="FileChart" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center"
                                                          Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
@@ -406,7 +417,9 @@
                         </Button>
 
                         <Border Height="1" Background="{DynamicResource SidebarHoverBrush}" Margin="20,10" Opacity="0.55"/>
-                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="6" Command="{Binding SelectionnerMenuCommand}" CommandParameter="6">
+                        <Button Style="{StaticResource SidebarButtonStyle}" Tag="6"
+                                helpers:SidebarNavHelper.IsActive="{Binding MenuSelectionne, Converter={StaticResource MenuIndexActiveConverter}, ConverterParameter=6}"
+                                Command="{Binding SelectionnerMenuCommand}" CommandParameter="6">
                                                         <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Cog" Width="22" Height="22" Margin="0,0,14,0" VerticalAlignment="Center"
                                                          Foreground="{Binding RelativeSource={RelativeSource AncestorType=Button}, Path=Foreground}"/>
@@ -787,7 +800,7 @@
                                                     <TextBlock Text="Supprimer" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
-                                            <Button Command="{Binding RafraichirCommand}" Margin="0,0,0,0"
+                                            <Button Command="{Binding RafraichirCommand}" Margin="0,0,8,0"
                                                     Style="{StaticResource MaterialDesignOutlinedButton}"
                                                     materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8">
                                                 <StackPanel Orientation="Horizontal">
@@ -795,9 +808,59 @@
                                                     <TextBlock Text="Rafraîchir" VerticalAlignment="Center"/>
                                                 </StackPanel>
                                             </Button>
+                                            <Button Command="{Binding OuvrirFicheEmployeCommand}" Margin="0,0,8,0"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8"
+                                                    ToolTip="Ouvrir la fiche de l'employé sélectionné">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="AccountDetails" Width="18" Height="18" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="Fiche" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Command="{Binding OuvrirContratsCommand}" Margin="0,0,8,0"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="FileDocumentOutline" Width="18" Height="18" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="Contrat" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Command="{Binding OuvrirHistoriquePointageEmployeCommand}" Margin="0,0,8,0"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8"
+                                                    ToolTip="Historique des pointages de la période">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="ClockOutline" Width="18" Height="18" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="Pointage" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Command="{Binding OuvrirAbsencesCongesEmployeCommand}" Margin="0,0,8,0"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CalendarRemoveOutline" Width="18" Height="18" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="Congés" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Command="{Binding OuvrirPretsAvancesCommand}" Margin="0,0,8,0"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="CashMultiple" Width="18" Height="18" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="Prêts" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
+                                            <Button Command="{Binding OuvrirPaieEmployeCommand}" Margin="0,0,0,0"
+                                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                    materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8">
+                                                <StackPanel Orientation="Horizontal">
+                                                    <materialDesign:PackIcon Kind="Calculator" Width="18" Height="18" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="Paie" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Button>
                                         </WrapPanel>
                                         <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center"
-                                                   Text="Double-clic sur une ligne → fiche · Modules dans les onglets"
+                                                   Text="Sélectionnez un employé, puis un raccourci — double-clic ouvre la fiche"
                                                    FontSize="11" Foreground="#94A3B8" Margin="12,0,0,0"/>
                                     </DockPanel>
                                 </Border>
@@ -1099,6 +1162,15 @@
                                                 <TextBlock Text="Saisie de paie (mois)" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Button>
+                                        <Button Command="{Binding OuvrirQuinzainesCommand}" Margin="0,4,8,4"
+                                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8"
+                                                ToolTip="Créer, modifier ou exporter les octrois de quinzaine">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="CashPlus" Width="18" Height="18" Margin="0,0,8,0"/>
+                                                <TextBlock Text="Quinzaines" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
                                         <Button Command="{Binding GenererBulletinCommand}" Margin="0,4,8,4"
                                                 Style="{StaticResource MaterialDesignRaisedButton}"
                                                 materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8">
@@ -1338,6 +1410,7 @@
                             </UniformGrid>
 
                             <Border Grid.Row="2" Background="#ECFDF5" CornerRadius="12" BorderBrush="#A7F3D0" BorderThickness="1" Padding="12,10" Margin="0,0,0,14">
+                                <StackPanel>
                                 <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" PanningMode="HorizontalOnly">
                                     <WrapPanel Orientation="Horizontal">
                                         <Button Command="{Binding ExportDeclarationCnssCommand}" Margin="0,4,8,4"
@@ -1380,6 +1453,15 @@
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="BookOpenVariant" Width="18" Height="18" Margin="0,0,8,0"/>
                                                 <TextBlock Text="Livre (Excel)" VerticalAlignment="Center"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding SynchroniserLivrePaieCommand}" Margin="0,4,8,4"
+                                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8"
+                                                ToolTip="Recharge le livre à partir des bulletins et montants actuels de la période">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="Sync" Width="18" Height="18" Margin="0,0,8,0"/>
+                                                <TextBlock Text="Synchroniser le livre" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Button>
                                         <Button Command="{Binding ExportCnssEdeclarationCommand}" Margin="0,4,8,4"
@@ -1443,6 +1525,9 @@
                                         </Button>
                                     </WrapPanel>
                                 </ScrollViewer>
+                                <TextBlock Text="{Binding LivrePaieSyncStatut}" FontSize="12" Foreground="#065F46"
+                                           TextWrapping="Wrap" Margin="4,8,4,0"/>
+                                </StackPanel>
                             </Border>
 
                             <Border Grid.Row="3" Background="White" CornerRadius="12" BorderBrush="#E4EAF2" BorderThickness="1" MinHeight="180" VerticalAlignment="Stretch">
@@ -1992,5 +2077,10 @@
 
             </Grid>
         </ScrollViewer>
+
+        <!-- Toasts pointage temps réel (tous écrans) -->
+        <views:PointageLiveToastOverlay Grid.ColumnSpan="2"
+                                        Panel.ZIndex="9999"
+                                        IsHitTestVisible="False"/>
     </Grid>
 </Window>

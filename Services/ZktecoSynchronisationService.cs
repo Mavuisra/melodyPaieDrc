@@ -51,7 +51,7 @@ public static class ZktecoSynchronisationService
         SyncLock.Wait();
         try
         {
-            return ExecuteSynchronisation(out _, out messageErreur);
+            return ExecuteSynchronisation(out _, out messageErreur, out _);
         }
         finally
         {
@@ -67,7 +67,7 @@ public static class ZktecoSynchronisationService
         SyncLock.Wait();
         try
         {
-            return ExecuteSynchronisation(out logsLus, out messageErreur);
+            return ExecuteSynchronisation(out logsLus, out messageErreur, out _);
         }
         finally
         {
@@ -76,7 +76,7 @@ public static class ZktecoSynchronisationService
     }
 
     /// <summary>Synchro asynchrone avec journaux ; même file d’attente que le timer global et que <see cref="TrySynchroniser"/>.</summary>
-    public static async Task<(bool Ok, IReadOnlyList<(string CodePin, DateTime Horodatage)>? Logs, string? Err)> TrySynchroniserAvecLogsAsync(
+    public static async Task<(bool Ok, IReadOnlyList<(string CodePin, DateTime Horodatage)>? Logs, string? Err, int NbNotifications)> TrySynchroniserAvecLogsAsync(
         CancellationToken cancellationToken = default)
     {
         await SyncLock.WaitAsync(cancellationToken).ConfigureAwait(false);
@@ -85,8 +85,8 @@ public static class ZktecoSynchronisationService
             SynchroEnCours?.Invoke();
             return await Task.Run(() =>
             {
-                var ok = ExecuteSynchronisation(out var logs, out var err);
-                return (ok, logs, err);
+                var ok = ExecuteSynchronisation(out var logs, out var err, out var nb);
+                return (ok, logs, err, nb);
             }, cancellationToken).ConfigureAwait(false);
         }
         finally
@@ -97,10 +97,12 @@ public static class ZktecoSynchronisationService
 
     private static bool ExecuteSynchronisation(
         out IReadOnlyList<(string CodePin, DateTime Horodatage)>? logs,
-        out string? messageErreur)
+        out string? messageErreur,
+        out int nbNotifications)
     {
         logs = null;
         messageErreur = null;
+        nbNotifications = 0;
         try
         {
             using var db = new PaieDbContext();
@@ -133,7 +135,7 @@ public static class ZktecoSynchronisationService
             maj.ZkDerniereSyncUtc = DateTime.UtcNow;
             db.SaveChanges();
             if (logs != null && logs.Count > 0)
-                PointageLiveNotificationService.TraiterNouveauxLogs(logs);
+                nbNotifications = PointageLiveNotificationService.TraiterNouveauxLogs(logs);
             SynchroReussie?.Invoke(maj.ZkDerniereSyncUtc.Value);
             ZkTerminalParametresNotifier.Raise();
             return true;
@@ -152,7 +154,7 @@ public static class ZktecoSynchronisationService
 
         try
         {
-            var (ok, _, msg) = await TrySynchroniserAvecLogsAsync().ConfigureAwait(true);
+            var (ok, _, msg, _) = await TrySynchroniserAvecLogsAsync().ConfigureAwait(true);
             if (!ok)
                 SynchroErreur?.Invoke(msg ?? "Erreur de synchronisation ZKTeco.");
         }
