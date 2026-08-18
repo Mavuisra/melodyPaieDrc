@@ -1,8 +1,8 @@
-﻿{
-    "sha256":  "",
-    "version":  "1.0.10",
-    "releaseNotes":  "Prêts : bouton Modifier, et suppression possible même si l\u0027employé a déjà été payé.",
-    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.10/MelodyPaieRDC_Setup_1.0.10.exe",
-    "publishedAt":  "2026-08-18",
-    "fileName":  "MelodyPaieRDC_Setup_1.0.10.exe"
+{
+  "releaseNotes": "Release v1.0.10",
+  "sha256": "6FB4AF2C44BE43CCFABF3A2468C4585A872EE32C2273A939A8DD7E444AC54153",
+  "publishedAt": "2026-08-18",
+  "version": "1.0.10",
+  "fileName": "MelodyPaieRDC_Setup_1.0.10.exe",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.10/MelodyPaieRDC_Setup_1.0.10.exe"
 }
