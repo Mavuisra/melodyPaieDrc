@@ -12,6 +12,7 @@
     <Window.Resources>
         <helpers:StringToIntConverter x:Key="StringToIntConverter"/>
         <helpers:StringToDecimalConverter x:Key="StringToDecimalConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </Window.Resources>
     <Grid Margin="16">
         <Grid.RowDefinitions>
@@ -36,7 +37,7 @@
                 <DropShadowEffect BlurRadius="6" ShadowDepth="2" Opacity="0.1"/>
             </Border.Effect>
             <StackPanel>
-                <TextBlock Text="Nouveau prêt / avance" FontWeight="SemiBold" Margin="0,0,0,8"/>
+                <TextBlock Text="{Binding TitreFormulaire}" FontWeight="SemiBold" Margin="0,0,0,8"/>
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -58,9 +59,15 @@
                         <TextBox Text="{Binding NbEcheances, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay, Converter={StaticResource StringToIntConverter}}" />
                     </StackPanel>
                 </Grid>
-                <Button Content="Ajouter le prêt / avance" Command="{Binding AjouterCommand}"
-                        Style="{StaticResource MaterialDesignRaisedButton}"
-                        materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                    <Button Content="{Binding TexteBoutonEnregistrer}" Command="{Binding EnregistrerCommand}"
+                            Style="{StaticResource MaterialDesignRaisedButton}"
+                            materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"/>
+                    <Button Content="Annuler" Command="{Binding AnnulerEditionCommand}"
+                            Visibility="{Binding EstEnEdition, Converter={StaticResource BooleanToVisibilityConverter}}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="8,0,0,0"/>
+                </StackPanel>
             </StackPanel>
         </Border>
 
@@ -78,6 +85,9 @@
         </DataGrid>
 
         <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button Content="Modifier" Command="{Binding ModifierCommand}"
+                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                    materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8" Margin="0,0,8,0"/>
             <Button Content="Supprimer le prêt sélectionné" Command="{Binding SupprimerCommand}"
                     Style="{StaticResource MaterialDesignOutlinedButton}"
                     materialDesign:ButtonAssist.CornerRadius="6" Padding="12,8"/>

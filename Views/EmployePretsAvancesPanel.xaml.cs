@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Services;
 using MelodyPaieRDC.ViewModels;
@@ -59,4 +60,10 @@ public partial class EmployePretsAvancesPanel : UserControl
 
     private void OnSessionUtilisateurChanged() =>
         Dispatcher.Invoke(() => { if (_employeId > 0) ChargerEmploye(_employeId); });
+
+    private void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (_vm?.ModifierCommand.CanExecute(null) == true)
+            _vm.ModifierCommand.Execute(null);
+    }
 }

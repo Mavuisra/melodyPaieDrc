@@ -8,6 +8,7 @@
     <UserControl.Resources>
         <helpers:StringToIntConverter x:Key="StringToIntConverter"/>
         <helpers:StringToDecimalConverter x:Key="StringToDecimalConverter"/>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
     </UserControl.Resources>
     <Grid>
         <Border x:Name="EtatVide" Background="#F8FAFC" CornerRadius="12" BorderBrush="#A7F3D0" BorderThickness="1"
@@ -41,7 +42,7 @@
 
                 <Border Style="{StaticResource EmployeOngletPanelCard}" Margin="0,0,0,14" IsEnabled="{Binding PeutModifier}">
                     <StackPanel>
-                        <TextBlock Text="Nouveau prêt / avance" Style="{StaticResource EmployeOngletSectionTitle}"/>
+                        <TextBlock Text="{Binding TitreFormulaire}" Style="{StaticResource EmployeOngletSectionTitle}"/>
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -69,14 +70,33 @@
                                 <TextBox Text="{Binding NbEcheances, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay, Converter={StaticResource StringToIntConverter}}"/>
                             </StackPanel>
                         </Grid>
-                        <Button Command="{Binding AjouterCommand}" Margin="0,14,0,0"
-                                Style="{StaticResource MaterialDesignRaisedButton}"
-                                materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8" HorizontalAlignment="Left">
-                            <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Plus" Width="18" Height="18" Margin="0,0,8,0"/>
-                                <TextBlock Text="Ajouter le prêt / avance"/>
-                            </StackPanel>
-                        </Button>
+                        <StackPanel Orientation="Horizontal" Margin="0,14,0,0">
+                            <Button Command="{Binding EnregistrerCommand}"
+                                    Style="{StaticResource MaterialDesignRaisedButton}"
+                                    materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Width="18" Height="18" Margin="0,0,8,0">
+                                        <materialDesign:PackIcon.Style>
+                                            <Style TargetType="materialDesign:PackIcon">
+                                                <Setter Property="Kind" Value="Plus"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding EstEnEdition}" Value="True">
+                                                        <Setter Property="Kind" Value="ContentSave"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </materialDesign:PackIcon.Style>
+                                    </materialDesign:PackIcon>
+                                    <TextBlock Text="{Binding TexteBoutonEnregistrer}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding AnnulerEditionCommand}"
+                                    Visibility="{Binding EstEnEdition, Converter={StaticResource BooleanToVisibilityConverter}}"
+                                    Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8" Margin="8,0,0,0">
+                                <TextBlock Text="Annuler"/>
+                            </Button>
+                        </StackPanel>
                     </StackPanel>
                 </Border>
 
@@ -86,6 +106,8 @@
                         <DataGrid ItemsSource="{Binding PretsAvances}" SelectedItem="{Binding Selectionne, Mode=TwoWay}"
                                   AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
                                   IsReadOnly="True" HeadersVisibility="Column" Background="Transparent"
+                                  SelectionMode="Single" SelectionUnit="FullRow"
+                                  MouseDoubleClick="DataGrid_MouseDoubleClick"
                                   RowBackground="White" AlternatingRowBackground="#F8FAFC"
                                   GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#E2E8F0"
                                   RowHeight="36" BorderThickness="0" MaxHeight="320" Margin="8,0,8,8">
@@ -106,9 +128,19 @@
                 </Border>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                    <Button Command="{Binding ModifierCommand}"
+                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                            materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8" Margin="0,0,8,0"
+                            ToolTip="Charge le prêt sélectionné dans le formulaire pour le corriger">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="PencilOutline" Width="18" Height="18" Margin="0,0,8,0"/>
+                            <TextBlock Text="Modifier"/>
+                        </StackPanel>
+                    </Button>
                     <Button Command="{Binding SupprimerCommand}"
                             Style="{StaticResource MaterialDesignOutlinedButton}"
-                            materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8">
+                            materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8"
+                            ToolTip="Supprime le prêt sélectionné. Les bulletins déjà générés ne sont pas recalculés.">
                         <StackPanel Orientation="Horizontal">
                             <materialDesign:PackIcon Kind="DeleteOutline" Width="18" Height="18" Margin="0,0,8,0"/>
                             <TextBlock Text="Supprimer la sélection"/>
