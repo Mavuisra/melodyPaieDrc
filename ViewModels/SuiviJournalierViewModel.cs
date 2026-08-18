@@ -228,6 +228,8 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     private Employe? _employeSelectionne;
     private PeriodePaie? _periodeSelectionnee;
     private string _rechercheEmployeText = "";
+    private bool _masquerSuggestionsEmploye;
+    private bool _applicationSuggestionEmploye;
     private DispatcherTimer? _presenceTimer;
     private string _presenceStatut = "Surveillance automatique au repos.";
     private bool _surveillanceAutomatiqueActive;
@@ -286,6 +288,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     {
         _db = db;
         Employes = new ObservableCollection<Employe>();
+        SuggestionsEmployes = new ObservableCollection<Employe>();
         PeriodesPaie = new ObservableCollection<PeriodePaie>();
         Lignes = new ObservableCollection<SuiviJournalierLigne>();
         static bool PeutMod() => DroitsUi.PeutModifier;
@@ -294,6 +297,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         ChargerEmployesCommand = new RelayCommand(_ => ChargerEmployes());
         ChargerPeriodesCommand = new RelayCommand(_ => ChargerPeriodes());
         RechercherEmployeCommand = new RelayCommand(_ => RechercherEmployes());
+        SelectionnerSuggestionEmployeCommand = new RelayCommand(p => AppliquerSuggestionEmploye(p as Employe));
         ImporterUtilisateursTerminalCommand = new RelayCommand(_ => ImporterUtilisateursTerminal(), _ => PeutMod());
         ChargerLignesCommand = new RelayCommand(_ => ChargerLignes(), _ => EmployeSelectionne != null && PeriodeSelectionnee != null);
         RetablirCalculAutomatiqueCommand = new RelayCommand(_ => RetablirCalculAutomatique(),
@@ -306,11 +310,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         });
         RafraichirPresenceCommand = new RelayCommand(async _ => await TraiterCyclePresenceAsync().ConfigureAwait(true));
         BasculerDiagnosticCommand = new RelayCommand(_ => DiagnosticTechniqueVisible = !DiagnosticTechniqueVisible);
-        EffacerEmployeSelectionneCommand = new RelayCommand(_ =>
-        {
-            EmployeSelectionne = null;
-            RechercheEmployeText = "";
-        });
+        EffacerEmployeSelectionneCommand = new RelayCommand(_ => EffacerRechercheEmploye());
         ForcerPeriodeMoisCourantCommand = new RelayCommand(_ => ForcerPeriodeMoisCourant());
         ActualiserListesCommand = new RelayCommand(_ =>
         {
@@ -338,6 +338,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     }
 
     public ObservableCollection<Employe> Employes { get; }
+    public ObservableCollection<Employe> SuggestionsEmployes { get; }
     public ObservableCollection<PeriodePaie> PeriodesPaie { get; }
     public ObservableCollection<SuiviJournalierLigne> Lignes { get; }
     public ObservableCollection<PresencePointageLigne> PresencePointages { get; } = new();
@@ -547,7 +548,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public bool AfficherDetailMois => EmployeSelectionne != null && PeriodeSelectionnee != null;
 
     public bool AfficherInviteSelectionEmploye =>
-        PeriodeSelectionnee != null && EmployeSelectionne == null && Employes.Count > 0;
+        PeriodeSelectionnee != null && EmployeSelectionne == null && _sourceEmployes.Count > 0;
 
     public bool AfficherDetailMoisHorsFocus => AfficherDetailMois && !IsPresenceFocusMode;
 
@@ -594,6 +595,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     public ICommand ChargerEmployesCommand { get; }
     public ICommand ChargerPeriodesCommand { get; }
     public ICommand RechercherEmployeCommand { get; }
+    public ICommand SelectionnerSuggestionEmployeCommand { get; }
     public ICommand ImporterUtilisateursTerminalCommand { get; }
     public ICommand ChargerLignesCommand { get; }
 
@@ -668,8 +670,36 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         {
             if (_rechercheEmployeText == value) return;
             _rechercheEmployeText = value ?? "";
+            if (!_applicationSuggestionEmploye)
+                _masquerSuggestionsEmploye = false;
             OnPropertyChanged();
+            OnPropertyChanged(nameof(AfficherEffacerRechercheEmploye));
             RechercherEmployes();
+        }
+    }
+
+    public bool AfficherSuggestionsEmployes =>
+        !_masquerSuggestionsEmploye
+        && !_applicationSuggestionEmploye
+        && !string.IsNullOrWhiteSpace(RechercheEmployeText)
+        && SuggestionsEmployes.Count > 0;
+
+    public bool AfficherEffacerRechercheEmploye =>
+        !string.IsNullOrWhiteSpace(RechercheEmployeText) || EmployeSelectionne != null;
+
+    public string RechercheEmployeResultatLibelle
+    {
+        get
+        {
+            if (EmployeSelectionne != null && _masquerSuggestionsEmploye)
+                return $"Sélectionné : {EmployeSelectionne.NomComplet} ({EmployeSelectionne.Matricule})";
+            if (string.IsNullOrWhiteSpace(RechercheEmployeText))
+                return _sourceEmployes.Count == 0
+                    ? "Aucun employé enregistré"
+                    : "Tapez un nom ou un matricule pour choisir un employé";
+            if (SuggestionsEmployes.Count == 0)
+                return $"Aucun employé pour « {RechercheEmployeText.Trim()} »";
+            return $"{SuggestionsEmployes.Count} suggestion(s)";
         }
     }
 
@@ -767,9 +797,9 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
     {
         get
         {
-            if (Employes.Count == 0 && PeriodesPaie.Count == 0)
+            if (_sourceEmployes.Count == 0 && PeriodesPaie.Count == 0)
                 return "Ajoutez d'abord des employés (menu Employés) et des périodes de paie (Paramètres → Périodes de paie).";
-            if (Employes.Count == 0)
+            if (_sourceEmployes.Count == 0)
                 return "Ajoutez d'abord des employés (menu Employés).";
             if (PeriodesPaie.Count == 0)
                 return "Ajoutez d'abord des périodes de paie (Paramètres → Périodes de paie).";
@@ -853,26 +883,54 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
 
     private void RechercherEmployes()
     {
-        var filtre = (RechercheEmployeText ?? "").Trim().ToLowerInvariant();
+        var filtre = (RechercheEmployeText ?? "").Trim();
         Employes.Clear();
-        foreach (var e in _sourceEmployes)
-        {
-            if (!string.IsNullOrWhiteSpace(filtre))
-            {
-                var nomComplet = $"{e.Nom} {e.Postnom} {e.Prenom}".Trim().ToLowerInvariant();
-                var matricule = (e.Matricule ?? "").ToLowerInvariant();
-                if (!nomComplet.Contains(filtre) && !matricule.Contains(filtre))
-                    continue;
-            }
+        foreach (var e in RechercheEmployeHelper.Filtrer(_sourceEmployes, filtre))
             Employes.Add(e);
+
+        SuggestionsEmployes.Clear();
+        if (!_masquerSuggestionsEmploye && !string.IsNullOrWhiteSpace(filtre))
+        {
+            foreach (var e in RechercheEmployeHelper.Suggerer(_sourceEmployes, filtre))
+                SuggestionsEmployes.Add(e);
         }
 
-        if (EmployeSelectionne != null && !Employes.Any(x => x.Id == EmployeSelectionne.Id))
-            EmployeSelectionne = null;
-        else
-            ChargerHistoriquePeriode();
-
+        OnPropertyChanged(nameof(AfficherSuggestionsEmployes));
+        OnPropertyChanged(nameof(RechercheEmployeResultatLibelle));
         OnPropertyChanged(nameof(MessageVide));
+        ChargerHistoriquePeriode();
+    }
+
+    private void AppliquerSuggestionEmploye(Employe? employe)
+    {
+        if (employe == null) return;
+
+        _applicationSuggestionEmploye = true;
+        _masquerSuggestionsEmploye = true;
+        try
+        {
+            EmployeSelectionne = employe;
+            _rechercheEmployeText = $"{employe.Matricule} — {employe.NomComplet}".Trim(' ', '—');
+            OnPropertyChanged(nameof(RechercheEmployeText));
+            OnPropertyChanged(nameof(AfficherEffacerRechercheEmploye));
+            SuggestionsEmployes.Clear();
+            OnPropertyChanged(nameof(AfficherSuggestionsEmployes));
+            OnPropertyChanged(nameof(RechercheEmployeResultatLibelle));
+        }
+        finally
+        {
+            _applicationSuggestionEmploye = false;
+        }
+    }
+
+    private void EffacerRechercheEmploye()
+    {
+        _masquerSuggestionsEmploye = true;
+        EmployeSelectionne = null;
+        RechercheEmployeText = "";
+        SuggestionsEmployes.Clear();
+        OnPropertyChanged(nameof(AfficherSuggestionsEmployes));
+        OnPropertyChanged(nameof(RechercheEmployeResultatLibelle));
     }
 
     /// <summary>À appeler lorsque l’utilisateur affiche l’écran pointage (panneau visible).</summary>
@@ -1533,6 +1591,13 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         ForcerPeriodeMoisCourant();
     }
 
+    public void SelectionnerPremiereSuggestionEmploye()
+    {
+        var premier = SuggestionsEmployes.FirstOrDefault();
+        if (premier != null)
+            AppliquerSuggestionEmploye(premier);
+    }
+
     /// <summary>Force la période sur le mois calendaire en cours (bouton d'action).</summary>
     public void ForcerPeriodeMoisCourant()
     {
@@ -1553,7 +1618,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
         var emp = Employes.FirstOrDefault(e => e.Id == employeId)
                   ?? _sourceEmployes.FirstOrDefault(e => e.Id == employeId);
         if (emp != null)
-            EmployeSelectionne = emp;
+            AppliquerSuggestionEmploye(emp);
     }
 
     public void SelectionnerEmployeParMatricule(string? matricule)
@@ -1568,7 +1633,7 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
                 string.Equals(e.Matricule?.Trim(), cle, StringComparison.OrdinalIgnoreCase));
 
         if (emp != null)
-            EmployeSelectionne = emp;
+            AppliquerSuggestionEmploye(emp);
     }
 
     public void ChargerHistoriquePeriode()
@@ -1587,7 +1652,9 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
                 _db,
                 PeriodeSelectionnee,
                 EmployeSelectionne?.Id,
-                string.IsNullOrWhiteSpace(RechercheEmployeText) ? null : RechercheEmployeText);
+                EmployeSelectionne != null
+                    ? null
+                    : (string.IsNullOrWhiteSpace(RechercheEmployeText) ? null : RechercheEmployeText));
             foreach (var l in lignes)
                 HistoriquePeriodeLignes.Add(l);
         }

@@ -7,6 +7,7 @@
              xmlns:models="clr-namespace:MelodyPaieRDC.Models"
              xmlns:views="clr-namespace:MelodyPaieRDC.Views"
              xmlns:services="clr-namespace:MelodyPaieRDC.Services"
+             x:Name="RacinePointage"
              Background="Transparent"
              TextElement.Foreground="{DynamicResource MaterialDesign.Brush.Foreground}"
              FontFamily="{materialDesign:MaterialDesignFont}">
@@ -381,32 +382,88 @@
                     </StackPanel>
                     <StackPanel Grid.Column="2">
                         <TextBlock Text="Employé" FontSize="12" FontWeight="Bold" Foreground="#64748B" Margin="0,0,0,6"/>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" MinWidth="120"/>
-                                <ColumnDefinition Width="10"/>
-                                <ColumnDefinition Width="1.4*" MinWidth="160"/>
-                            </Grid.ColumnDefinitions>
-                            <TextBox Grid.Column="0"
-                                     Text="{Binding RechercheEmployeText, UpdateSourceTrigger=PropertyChanged}"
-                                     materialDesign:HintAssist.Hint="Matricule, nom…"/>
-                            <ComboBox Grid.Column="2"
-                                      ItemsSource="{Binding Employes}"
-                                      SelectedItem="{Binding EmployeSelectionne, Mode=TwoWay}"
-                                      materialDesign:HintAssist.Hint="Sélectionner">
-                                <ComboBox.ItemTemplate>
-                                    <DataTemplate DataType="{x:Type models:Employe}">
-                                        <TextBlock TextTrimming="CharacterEllipsis" FontSize="13">
-                                            <Run Text="{Binding Matricule, Mode=OneWay}" FontWeight="SemiBold"/>
-                                            <Run Text=" — "/>
-                                            <Run Text="{Binding Nom, Mode=OneWay}"/>
-                                            <Run Text=" "/>
-                                            <Run Text="{Binding Prenom, Mode=OneWay}"/>
-                                        </TextBlock>
-                                    </DataTemplate>
-                                </ComboBox.ItemTemplate>
-                            </ComboBox>
-                        </Grid>
+                        <Border x:Name="BarreRechercheEmploye"
+                                Background="#F8FAFC" CornerRadius="10" BorderBrush="#A7F3D0" BorderThickness="1" Padding="10,6">
+                            <DockPanel LastChildFill="True">
+                                <Button DockPanel.Dock="Right"
+                                        Command="{Binding EffacerEmployeSelectionneCommand}"
+                                        ToolTip="Effacer la recherche"
+                                        Margin="6,0,0,0"
+                                        Padding="4"
+                                        Style="{StaticResource MaterialDesignIconForegroundButton}"
+                                        Visibility="{Binding AfficherEffacerRechercheEmploye, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                    <materialDesign:PackIcon Kind="CloseCircleOutline" Width="18" Height="18"/>
+                                </Button>
+                                <materialDesign:PackIcon DockPanel.Dock="Left" Kind="Magnify" Width="20" Height="20"
+                                                         Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                         Margin="0,0,10,0" VerticalAlignment="Center"/>
+                                <TextBox x:Name="RechercheEmployePointageTextBox"
+                                         BorderThickness="0" Background="Transparent"
+                                         VerticalContentAlignment="Center" FontSize="14"
+                                         Text="{Binding RechercheEmployeText, UpdateSourceTrigger=PropertyChanged}"
+                                         PreviewKeyDown="RechercheEmployePointageTextBox_PreviewKeyDown"
+                                         materialDesign:HintAssist.Hint="Rechercher un employé : nom, matricule…"/>
+                            </DockPanel>
+                        </Border>
+                        <Popup PlacementTarget="{Binding ElementName=BarreRechercheEmploye}"
+                               Placement="Bottom"
+                               AllowsTransparency="True"
+                               StaysOpen="True"
+                               IsOpen="{Binding AfficherSuggestionsEmployes}">
+                            <Border Width="{Binding ActualWidth, ElementName=BarreRechercheEmploye}"
+                                    MaxHeight="260" Background="White" CornerRadius="10"
+                                    BorderBrush="#A7F3D0" BorderThickness="1" Margin="0,4,0,0">
+                                <Border.Effect>
+                                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.12"/>
+                                </Border.Effect>
+                                <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                    <ItemsControl ItemsSource="{Binding SuggestionsEmployes}">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type models:Employe}">
+                                                <Button Command="{Binding DataContext.SelectionnerSuggestionEmployeCommand, ElementName=RacinePointage}"
+                                                        CommandParameter="{Binding}"
+                                                        Background="Transparent" BorderThickness="0"
+                                                        Padding="12,10" HorizontalContentAlignment="Stretch" Cursor="Hand">
+                                                    <Button.Template>
+                                                        <ControlTemplate TargetType="Button">
+                                                            <Border x:Name="Bd" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}">
+                                                                <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="Bd" Property="Background" Value="#ECFDF5"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Button.Template>
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <materialDesign:PackIcon Kind="AccountOutline" Width="18" Height="18"
+                                                                                 Foreground="{DynamicResource BrandPrimaryBrush}"
+                                                                                 VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                        <StackPanel Grid.Column="1">
+                                                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#0F172A" TextTrimming="CharacterEllipsis"
+                                                                       Text="{Binding NomComplet, Mode=OneWay}"/>
+                                                            <TextBlock FontSize="11" Foreground="#64748B" TextTrimming="CharacterEllipsis">
+                                                                <Run Text="Matricule "/>
+                                                                <Run Text="{Binding Matricule, Mode=OneWay}" FontWeight="SemiBold"/>
+                                                                <Run Text=" · "/>
+                                                                <Run Text="{Binding Departement.NomDepartement, Mode=OneWay, TargetNullValue=—}"/>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                    </Grid>
+                                                </Button>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                        <TextBlock Text="{Binding RechercheEmployeResultatLibelle, Mode=OneWay}"
+                                   FontSize="11" Foreground="#64748B" Margin="2,6,0,0" TextTrimming="CharacterEllipsis"/>
                     </StackPanel>
                 </Grid>
             </Border>

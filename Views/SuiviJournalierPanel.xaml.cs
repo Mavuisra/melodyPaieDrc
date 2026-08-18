@@ -29,6 +29,14 @@ public partial class SuiviJournalierPanel : UserControl
 
     public SuiviJournalierViewModel? SuiviViewModel => DataContext as SuiviJournalierViewModel;
 
+    private void RechercheEmployePointageTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter || SuiviViewModel?.AfficherSuggestionsEmployes != true)
+            return;
+        SuiviViewModel.SelectionnerPremiereSuggestionEmploye();
+        e.Handled = true;
+    }
+
     public event Action<bool>? PresenceFocusModeChanged;
 
     public SuiviJournalierPanel()
