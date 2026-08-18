@@ -840,18 +840,18 @@ public class ExportPdfService
                             h.Cell().Background(DefaultPrimary).Padding(4).Text("Matricule").FontColor("#FFFFFF").SemiBold();
                             h.Cell().Background(DefaultPrimary).Padding(4).Text("Employé").FontColor("#FFFFFF").SemiBold();
                             h.Cell().Background(DefaultPrimary).Padding(4).Text("Montant").FontColor("#FFFFFF").SemiBold();
-                            h.Cell().Background(DefaultPrimary).Padding(4).Text("Commentaire").FontColor("#FFFFFF").SemiBold();
+                            h.Cell().Background(DefaultPrimary).Padding(4).Text("Signature").FontColor("#FFFFFF").SemiBold();
                         });
                         foreach (var o in octrois.OrderBy(x => x.DateOctroi))
                         {
                             var nom = o.Employe == null
                                 ? "—"
                                 : $"{o.Employe.Nom} {o.Employe.Postnom} {o.Employe.Prenom}".Trim();
-                            t.Cell().Padding(4).Text(o.DateOctroi.ToString("dd/MM/yyyy"));
-                            t.Cell().Padding(4).Text(o.Employe?.Matricule ?? "—");
-                            t.Cell().Padding(4).Text(nom);
-                            t.Cell().Padding(4).Text($"{o.Montant:N2}");
-                            t.Cell().Padding(4).Text(o.Commentaire ?? "");
+                            t.Cell().Padding(4).MinHeight(28).Text(o.DateOctroi.ToString("dd/MM/yyyy"));
+                            t.Cell().Padding(4).MinHeight(28).Text(o.Employe?.Matricule ?? "—");
+                            t.Cell().Padding(4).MinHeight(28).Text(nom);
+                            t.Cell().Padding(4).MinHeight(28).Text($"{o.Montant:N2}");
+                            t.Cell().Padding(4).MinHeight(28).Text("");
                         }
                     });
                 });
