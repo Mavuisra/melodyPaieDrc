@@ -1,8 +1,8 @@
-﻿{
-    "sha256":  "",
-    "version":  "1.0.11",
-    "releaseNotes":  "PDF quinzaines : dernière colonne Signature à la place de Commentaire.",
-    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.11/MelodyPaieRDC_Setup_1.0.11.exe",
-    "publishedAt":  "2026-08-18",
-    "fileName":  "MelodyPaieRDC_Setup_1.0.11.exe"
+{
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.11/MelodyPaieRDC_Setup_1.0.11.exe",
+  "releaseNotes": "Release v1.0.11",
+  "version": "1.0.11",
+  "publishedAt": "2026-08-18",
+  "sha256": "12F09AB1281D67CF22299BF3602EB3101C598145872FAEA721E32E6EF200AB5B",
+  "fileName": "MelodyPaieRDC_Setup_1.0.11.exe"
 }
