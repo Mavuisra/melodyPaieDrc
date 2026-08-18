@@ -409,7 +409,7 @@
                                Placement="Bottom"
                                AllowsTransparency="True"
                                StaysOpen="True"
-                               IsOpen="{Binding AfficherSuggestionsEmployes}">
+                               IsOpen="{Binding AfficherSuggestionsEmployes, Mode=OneWay}">
                             <Border Width="{Binding ActualWidth, ElementName=BarreRechercheEmploye}"
                                     MaxHeight="260" Background="White" CornerRadius="10"
                                     BorderBrush="#A7F3D0" BorderThickness="1" Margin="0,4,0,0">
