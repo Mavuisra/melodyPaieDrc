@@ -137,7 +137,7 @@ public class CalculPaieServiceIntegrationTests : IDisposable
     [Fact]
     public void Salaire_usd_99_net_moins_pret_et_retard()
     {
-        var scenario = PaieTestScenario.Creer(_factory, salaireBase: 99m, configurer: (db, empId) =>
+        var scenario = PaieTestScenario.Creer(_factory, anneePeriode: 2026, moisPeriode: 8, salaireBase: 99m, configurer: (db, empId) =>
         {
             var contrat = db.Contrats.First();
             contrat.DeviseBase = "USD";
@@ -146,7 +146,7 @@ public class CalculPaieServiceIntegrationTests : IDisposable
             db.PretsAvances.Add(new PretAvance
             {
                 EmployeId = empId,
-                DateOctroi = new DateTime(2024, 1, 1),
+                DateOctroi = new DateTime(2026, 8, 1),
                 MontantTotal = 50m,
                 MontantMensuel = 10m,
                 SoldeRestant = 50m,
@@ -162,7 +162,7 @@ public class CalculPaieServiceIntegrationTests : IDisposable
             ParametrePolitiquePaie.Cles.RetardModeSanction,
             ParametrePolitiquePaie.RetardModeDemiJour);
 
-        var lundi = new DateTime(2024, 1, 8);
+        var lundi = new DateTime(2026, 8, 3);
         scenario.AjouterSuiviPointages(lundi, new List<DateTime>
         {
             lundi.Date.AddHours(10),
@@ -173,8 +173,12 @@ public class CalculPaieServiceIntegrationTests : IDisposable
 
         var bulletin = scenario.GenererBulletin();
 
-        Assert.InRange(bulletin.NetAPayer, 78m, 92m);
         Assert.True(bulletin.NetAPayer < 99m);
+        Assert.InRange(bulletin.NetAPayer, 50m, 92m);
+        var ligneSanctions = bulletin.Details.FirstOrDefault(d =>
+            d.Libelle.Contains("Sanctions / retards", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(ligneSanctions);
+        Assert.True(ligneSanctions!.Retenue > 0m);
     }
 
     [Fact]
@@ -225,7 +229,7 @@ public class CalculPaieServiceIntegrationTests : IDisposable
     [Fact]
     public void Sanctions_retards_auto_visibles_sur_bulletin_et_synthese()
     {
-        var scenario = PaieTestScenario.Creer(_factory, salaireBase: 2_600_000m);
+        var scenario = PaieTestScenario.Creer(_factory, anneePeriode: 2026, moisPeriode: 8, salaireBase: 2_600_000m);
         scenario.DefinirModeBrutClassique();
         scenario.DefinirParametrePolitique(
             ParametrePolitiquePaie.Cles.ModeCalculPresence,
@@ -236,7 +240,7 @@ public class CalculPaieServiceIntegrationTests : IDisposable
             ParametrePolitiquePaie.Cles.RetardModeSanction,
             ParametrePolitiquePaie.RetardModeDemiJour);
 
-        var lundi = new DateTime(2024, 1, 8);
+        var lundi = new DateTime(2026, 8, 3);
         scenario.AjouterSuiviPointages(lundi, new List<DateTime>
         {
             lundi.Date.AddHours(10),
@@ -257,9 +261,40 @@ public class CalculPaieServiceIntegrationTests : IDisposable
     }
 
     [Fact]
+    public void Sanctions_retards_auto_ignorees_hors_aout()
+    {
+        var scenario = PaieTestScenario.Creer(_factory, anneePeriode: 2026, moisPeriode: 7, salaireBase: 2_600_000m);
+        scenario.DefinirModeBrutClassique();
+        scenario.DefinirParametrePolitique(
+            ParametrePolitiquePaie.Cles.ModeCalculPresence,
+            ParametrePolitiquePaie.ModePresencePointages);
+        scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSanctionActive, "true");
+        scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "120");
+        scenario.DefinirParametrePolitique(
+            ParametrePolitiquePaie.Cles.RetardModeSanction,
+            ParametrePolitiquePaie.RetardModeDemiJour);
+
+        var lundi = new DateTime(2026, 7, 6);
+        scenario.AjouterSuiviPointages(lundi, new List<DateTime>
+        {
+            lundi.Date.AddHours(10),
+            lundi.Date.AddHours(12),
+            lundi.Date.AddHours(13),
+            lundi.Date.AddHours(17)
+        });
+
+        var bulletin = scenario.GenererBulletin();
+        var ligneSanctions = bulletin.Details.FirstOrDefault(d =>
+            d.Libelle.Contains("Sanctions / retards", StringComparison.OrdinalIgnoreCase)
+            && d.Retenue > 0);
+
+        Assert.Null(ligneSanctions);
+    }
+
+    [Fact]
     public void Transport_coupe_sur_jours_non_presents_visibles_bulletin()
     {
-        var scenario = PaieTestScenario.Creer(_factory, salaireBase: 2_600_000m);
+        var scenario = PaieTestScenario.Creer(_factory, anneePeriode: 2026, moisPeriode: 8, salaireBase: 2_600_000m);
         scenario.DefinirModeBrutClassique();
         scenario.DefinirModePresenceSaisieJours(22);
         scenario.AjouterPrime("Indemnité de transport", 62.40m, estImposable: false, estCotisable: false);
@@ -274,6 +309,21 @@ public class CalculPaieServiceIntegrationTests : IDisposable
         Assert.NotNull(ligneCoupe);
         Assert.Equal(9.60m, ligneCoupe!.Retenue); // 4 j × 2,40
         Assert.True(bulletin.NetAPayer < bulletin.TotalGainImposable + bulletin.TotalGainNonImposable);
+    }
+
+    [Fact]
+    public void Transport_coupe_ignoree_hors_aout()
+    {
+        var scenario = PaieTestScenario.Creer(_factory, anneePeriode: 2026, moisPeriode: 7, salaireBase: 2_600_000m);
+        scenario.DefinirModeBrutClassique();
+        scenario.DefinirModePresenceSaisieJours(22);
+        scenario.AjouterPrime("Indemnité de transport", 62.40m, estImposable: false, estCotisable: false);
+
+        var bulletin = scenario.GenererBulletin();
+        var ligneCoupe = bulletin.Details.FirstOrDefault(d =>
+            d.Libelle.Contains("Transport absences", StringComparison.OrdinalIgnoreCase));
+
+        Assert.Null(ligneCoupe);
     }
 
     [Fact]

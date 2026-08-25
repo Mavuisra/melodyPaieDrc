@@ -323,7 +323,7 @@ public class CalculPaieService
             }
         }
 
-        // Transport : gain mensuel plein, puis retenue des jours de non-présence réelle
+        // Transport (août uniquement) : gain mensuel plein, puis retenue des jours de non-présence réelle
         // (maladie/congé/absence exclus des jours pointés). Ex. 62,40/26 = 2,40 $/jour.
         decimal retenueTransportAbsences = 0m;
         decimal tauxTransportJournalier = 0m;
@@ -331,7 +331,7 @@ public class CalculPaieService
         var montantTransportMensuel = detailsPrimesGains
             .Where(x => TransportAbsencePaieHelper.EstIndemniteTransport(x.Libelle))
             .Sum(x => x.Montant);
-        if (montantTransportMensuel > 0m)
+        if (TransportAbsencePaieHelper.EstMoisApplication(periode.Mois) && montantTransportMensuel > 0m)
         {
             (retenueTransportAbsences, tauxTransportJournalier, joursTransportNonPresents) =
                 TransportAbsencePaieHelper.CalculerCoupe(
@@ -425,7 +425,9 @@ public class CalculPaieService
 
         var acomptesSaisis = saisie != null ? RoundPaie(saisie.AcomptesSalaire) : 0m;
         var sanctionsSaisies = saisie != null ? RoundPaie(saisie.SanctionsDisciplinaires) : 0m;
-        var sanctionsRetardsAuto = politique.RetardSanctionActive
+        // Sanctions retard auto : août uniquement (même si la politique est active toute l'année).
+        var sanctionsRetardsAuto = TransportAbsencePaieHelper.EstMoisApplication(periode.Mois)
+                                   && politique.RetardSanctionActive
             ? RoundPaie(RetardPaieHelper.CalculerSanctionsPeriode(
                 politique, employe, contrat, suivisJournaliers, reglesLt))
             : 0m;

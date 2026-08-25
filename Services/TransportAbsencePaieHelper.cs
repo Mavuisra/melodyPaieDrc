@@ -6,10 +6,16 @@ namespace MelodyPaieRDC.Services;
 /// Coupe l'indemnité de transport pour les jours de non-présence
 /// (absence, maladie, congé, ou tout jour non travaillé au sens pointages).
 /// Taux journalier = montant mensuel / jours de référence (ex. 62,40 / 26 = 2,40).
+/// Application métier : mois d'août uniquement.
 /// </summary>
 public static class TransportAbsencePaieHelper
 {
     public const string LibelleRetenue = "Transport absences";
+
+    /// <summary>Mois civil où la coupe transport et les sanctions retard auto s'appliquent (août).</summary>
+    public const int MoisApplication = 8;
+
+    public static bool EstMoisApplication(int mois) => mois == MoisApplication;
 
     public static bool EstIndemniteTransport(string? libelle)
         => !string.IsNullOrWhiteSpace(libelle)
