@@ -67,7 +67,7 @@ public sealed class PolitiquePaieContext
 
     public decimal JoursReferencePaie => GetDecimal(ParametrePolitiquePaie.Cles.JoursReferencePaie, 26m);
     public decimal HeuresParJour => GetDecimal(ParametrePolitiquePaie.Cles.HeuresParJour, 8m);
-    public bool SalaireContratEnNet => GetBool(ParametrePolitiquePaie.Cles.SalaireContratEnNet, false);
+    public bool SalaireContratEnNet => GetBool(ParametrePolitiquePaie.Cles.SalaireContratEnNet, true);
     public bool UtiliserBaremeIpr => GetBool(ParametrePolitiquePaie.Cles.UtiliserBaremeIpr, true);
     public bool UtiliserTauxSociauxDb => GetBool(ParametrePolitiquePaie.Cles.UtiliserTauxSociauxDb, true);
     public string ModeCalculPresence => GetString(ParametrePolitiquePaie.Cles.ModeCalculPresence, ParametrePolitiquePaie.ModePresencePointages);
@@ -81,7 +81,7 @@ public sealed class PolitiquePaieContext
     public decimal JourFinPeriodeDecalee => GetDecimal(ParametrePolitiquePaie.Cles.JourFinPeriodeDecalee, 25m);
 
     public bool ForcerSamediOuvre => GetBool(ParametrePolitiquePaie.Cles.ForcerSamediOuvre, false);
-    public bool CompleterJoursSansSaisie => GetBool(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, false);
+    public bool CompleterJoursSansSaisie => GetBool(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, true);
 
     public bool RetardSanctionActive => GetBool(ParametrePolitiquePaie.Cles.RetardSanctionActive, false);
     public int RetardSeuilMinutes => (int)GetDecimal(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, 120m);

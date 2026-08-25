@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -38,6 +38,8 @@
     <None Include="ZktecoPullWorker\**\*" />
     <Compile Remove="MelodyPaieRDC.Tests\**\*" />
     <None Include="MelodyPaieRDC.Tests\**\*" />
+    <Compile Remove="_temp_*\**\*" />
+    <None Include="_temp_*\**\*" />
   </ItemGroup>
 
   <ItemGroup>

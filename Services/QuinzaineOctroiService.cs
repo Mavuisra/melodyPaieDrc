@@ -16,6 +16,9 @@ public static class QuinzaineOctroiService
         var saisie = db.SaisiesPaie.FirstOrDefault(s => s.EmployeId == employeId && s.PeriodePaieId == periodePaieId);
         if (saisie == null)
         {
+            if (total <= 0)
+                return;
+
             saisie = new SaisiePaie
             {
                 EmployeId = employeId,
@@ -26,5 +29,18 @@ public static class QuinzaineOctroiService
         }
         else
             saisie.AcomptesSalaire = total;
+    }
+
+    /// <summary>Synchronise les acomptes (quinzaines) pour tous les employés ayant un octroi sur la période.</summary>
+    public static void SynchroniserAcomptesPeriodePourTous(PaieDbContext db, int periodePaieId)
+    {
+        var employeIds = db.QuinzaineOctrois
+            .Where(q => q.PeriodePaieId == periodePaieId)
+            .Select(q => q.EmployeId)
+            .Distinct()
+            .ToList();
+
+        foreach (var employeId in employeIds)
+            SynchroniserAcomptesPeriode(db, employeId, periodePaieId);
     }
 }

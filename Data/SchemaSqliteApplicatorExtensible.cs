@@ -1,4 +1,5 @@
 using System.Data;
+using MelodyPaieRDC.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.Data;
@@ -15,6 +16,8 @@ public static class SchemaSqliteApplicatorExtensible
         AjouterColonnesPrimesEtSync(db);
         AjouterColonnesExportsPaie(db);
         MettreAJourLibellesRubriquesParDefaut(db);
+        ActiverSalaireNetEtCompletionPresenceParDefaut(db);
+        ActiverSanctionsRetardEtRubriqueTransport(db);
     }
 
     private static void CreerTablesExtensibles(DbContext db)
@@ -153,6 +156,101 @@ public static class SchemaSqliteApplicatorExtensible
         AjouterColonne(db, "ParametresApplication", "VersionParcoursDemarrage", "INTEGER NOT NULL DEFAULT 0");
         AjouterColonne(db, "ParametresApplication", "LivrePaieDerniereSyncUtc", "TEXT");
         AjouterColonne(db, "PretsAvances", "DateDebutEcheance", "TEXT");
+    }
+
+    /// <summary>
+    /// Active le salaire contractuel en net et la complétion des jours sans pointage pour les politiques existantes.
+    /// Le montant du contrat (ex. 99 USD) est le net à payer ; IPR/CNSS/INPP sont reconstitués au-dessus.
+    /// Sans pointages, le mois complet est payé (sauf absences / retards / prêts).
+    /// </summary>
+    private static void ActiverSalaireNetEtCompletionPresenceParDefaut(DbContext db)
+    {
+        var conn = Ouvrir(db);
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='ParametresPolitiquePaie'";
+            if (cmd.ExecuteScalar() is not string)
+                return;
+        }
+
+        void ActiverCle(string cle)
+        {
+            Executer(conn, $@"
+                UPDATE ""ParametresPolitiquePaie""
+                SET ""Valeur"" = 'true'
+                WHERE ""Cle"" = '{cle}'
+                  AND (""Valeur"" = 'false' OR ""Valeur"" = '0' OR ""Valeur"" = 'False')");
+        }
+
+        ActiverCle(ParametrePolitiquePaie.Cles.SalaireContratEnNet);
+        ActiverCle(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie);
+    }
+
+    /// <summary>
+    /// Active les sanctions retard (horaire, seuil 120 min) et ajoute la rubrique Transport absences
+    /// pour les politiques déjà en base.
+    /// </summary>
+    private static void ActiverSanctionsRetardEtRubriqueTransport(DbContext db)
+    {
+        var conn = Ouvrir(db);
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='ParametresPolitiquePaie'";
+            if (cmd.ExecuteScalar() is not string)
+                return;
+        }
+
+        // Activer / forcer les paramètres retard sur toutes les politiques.
+        Executer(conn, $@"
+            UPDATE ""ParametresPolitiquePaie""
+            SET ""Valeur"" = 'true'
+            WHERE ""Cle"" = '{ParametrePolitiquePaie.Cles.RetardSanctionActive}'");
+
+        Executer(conn, $@"
+            UPDATE ""ParametresPolitiquePaie""
+            SET ""Valeur"" = '120'
+            WHERE ""Cle"" = '{ParametrePolitiquePaie.Cles.RetardSeuilMinutes}'
+              AND (""Valeur"" IS NULL OR ""Valeur"" = '' OR ""Valeur"" = '0')");
+
+        Executer(conn, $@"
+            UPDATE ""ParametresPolitiquePaie""
+            SET ""Valeur"" = '{ParametrePolitiquePaie.RetardModeHoraire}'
+            WHERE ""Cle"" = '{ParametrePolitiquePaie.Cles.RetardModeSanction}'
+              AND (""Valeur"" IS NULL OR ""Valeur"" = '' OR ""Valeur"" = '{ParametrePolitiquePaie.RetardModeAucun}')");
+
+        // Insérer les clés manquantes pour chaque politique existante.
+        void UpsertParamManquant(string cle, string valeur)
+        {
+            Executer(conn, $@"
+                INSERT INTO ""ParametresPolitiquePaie"" (""PolitiquePaieId"", ""Cle"", ""Valeur"")
+                SELECT p.""Id"", '{cle}', '{valeur}'
+                FROM ""PolitiquesPaie"" p
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM ""ParametresPolitiquePaie"" x
+                    WHERE x.""PolitiquePaieId"" = p.""Id"" AND x.""Cle"" = '{cle}'
+                )");
+        }
+
+        UpsertParamManquant(ParametrePolitiquePaie.Cles.RetardSanctionActive, "true");
+        UpsertParamManquant(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "120");
+        UpsertParamManquant(ParametrePolitiquePaie.Cles.RetardModeSanction, ParametrePolitiquePaie.RetardModeHoraire);
+
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='RubriquesBulletin'";
+            if (cmd.ExecuteScalar() is not string)
+                return;
+        }
+
+        Executer(conn, @"
+            INSERT INTO ""RubriquesBulletin""
+                (""PolitiquePaieId"", ""Code"", ""Libelle"", ""TypeLigne"", ""SourceCalcul"", ""OrdreAffichage"", ""AfficherSurBulletin"")
+            SELECT p.""Id"", 'TRANSPORT_ABSENCES', 'Transport absences', 'RETENUE', 'AUCUNE', 135, 1
+            FROM ""PolitiquesPaie"" p
+            WHERE NOT EXISTS (
+                SELECT 1 FROM ""RubriquesBulletin"" r
+                WHERE r.""PolitiquePaieId"" = p.""Id"" AND r.""Code"" = 'TRANSPORT_ABSENCES'
+            )");
     }
 
     /// <summary>Renomme les libellés par défaut sans écraser une personnalisation utilisateur.</summary>

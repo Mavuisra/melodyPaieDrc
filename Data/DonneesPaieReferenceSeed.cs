@@ -90,7 +90,7 @@ public static class DonneesPaieReferenceSeed
             {
                 new() { Cle = ParametrePolitiquePaie.Cles.JoursReferencePaie, Valeur = "26" },
                 new() { Cle = ParametrePolitiquePaie.Cles.HeuresParJour, Valeur = "8" },
-                new() { Cle = ParametrePolitiquePaie.Cles.SalaireContratEnNet, Valeur = "false" },
+                new() { Cle = ParametrePolitiquePaie.Cles.SalaireContratEnNet, Valeur = "true" },
                 new() { Cle = ParametrePolitiquePaie.Cles.ModeCalculPresence, Valeur = ParametrePolitiquePaie.ModePresencePointages },
                 new() { Cle = ParametrePolitiquePaie.Cles.UtiliserBaremeIpr, Valeur = "true" },
                 new() { Cle = ParametrePolitiquePaie.Cles.UtiliserTauxSociauxDb, Valeur = "true" },
@@ -98,10 +98,10 @@ public static class DonneesPaieReferenceSeed
                 new() { Cle = ParametrePolitiquePaie.Cles.JourDebutPeriodeDecalee, Valeur = "26" },
                 new() { Cle = ParametrePolitiquePaie.Cles.JourFinPeriodeDecalee, Valeur = "25" },
                 new() { Cle = ParametrePolitiquePaie.Cles.ForcerSamediOuvre, Valeur = "false" },
-                new() { Cle = ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, Valeur = "false" },
-                new() { Cle = ParametrePolitiquePaie.Cles.RetardSanctionActive, Valeur = "false" },
+                new() { Cle = ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, Valeur = "true" },
+                new() { Cle = ParametrePolitiquePaie.Cles.RetardSanctionActive, Valeur = "true" },
                 new() { Cle = ParametrePolitiquePaie.Cles.RetardSeuilMinutes, Valeur = "120" },
-                new() { Cle = ParametrePolitiquePaie.Cles.RetardModeSanction, Valeur = ParametrePolitiquePaie.RetardModeAucun }
+                new() { Cle = ParametrePolitiquePaie.Cles.RetardModeSanction, Valeur = ParametrePolitiquePaie.RetardModeHoraire }
             },
             Rubriques = CreerRubriquesParDefaut()
         };
@@ -126,6 +126,7 @@ public static class DonneesPaieReferenceSeed
             Rub("PRETS_AVANCES", "Prêts / avances", 110, RubriqueBulletin.TypeRetenue),
             Rub("ACOMPTES_SALAIRE", "Acomptes salaire", 120, RubriqueBulletin.TypeRetenue),
             Rub("SANCTIONS_DISCIPLINAIRES", "Sanctions / retards", 130, RubriqueBulletin.TypeRetenue),
+            Rub("TRANSPORT_ABSENCES", "Transport absences", 135, RubriqueBulletin.TypeRetenue),
             Rub("AJUSTEMENTS_RETENUES", "Ajustements retenues", 140, RubriqueBulletin.TypeRetenue)
         };
     }

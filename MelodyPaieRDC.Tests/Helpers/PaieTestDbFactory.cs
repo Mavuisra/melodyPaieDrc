@@ -145,6 +145,13 @@ public sealed class PaieTestScenario
         Db.SaveChanges();
     }
 
+    /// <summary>Contrat en brut : taxes déduites du salaire ; présence stricte sans complétion automatique.</summary>
+    public void DefinirModeBrutClassique()
+    {
+        DefinirParametrePolitique(ParametrePolitiquePaie.Cles.SalaireContratEnNet, "false");
+        DefinirParametrePolitique(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, "false");
+    }
+
     public PrimeIndemnite AjouterPrime(
         string libelle,
         decimal montantAffectation,
