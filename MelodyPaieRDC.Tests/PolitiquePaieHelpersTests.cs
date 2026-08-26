@@ -47,6 +47,21 @@ public class PeriodePaieHelperTests
 public class RetardPaieHelperTests
 {
     [Fact]
+    public void Sanction_horaire_des_la_premiere_minute()
+    {
+        var parametres = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            [ParametrePolitiquePaie.Cles.RetardSanctionActive] = "true",
+            [ParametrePolitiquePaie.Cles.RetardSeuilMinutes] = "1",
+            [ParametrePolitiquePaie.Cles.RetardModeSanction] = ParametrePolitiquePaie.RetardModeHoraire
+        };
+        var politique = new PolitiquePaieContext(new PolitiquePaie(), parametres, Array.Empty<RubriqueBulletin>());
+        // 1 min × 3 $/h = 0,05 $
+        var montant = RetardPaieHelper.CalculerSanctionJour(politique, 1, 24m, 3m);
+        Assert.Equal(0.05m, montant);
+    }
+
+    [Fact]
     public void Sanction_demi_jour_apres_seuil_2h()
     {
         var politique = PolitiqueRetardDemiJour();

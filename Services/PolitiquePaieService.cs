@@ -84,7 +84,7 @@ public sealed class PolitiquePaieContext
     public bool CompleterJoursSansSaisie => GetBool(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, true);
 
     public bool RetardSanctionActive => GetBool(ParametrePolitiquePaie.Cles.RetardSanctionActive, false);
-    public int RetardSeuilMinutes => (int)GetDecimal(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, 120m);
+    public int RetardSeuilMinutes => (int)GetDecimal(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, 1m);
 
     public string RetardModeSanction => GetString(
         ParametrePolitiquePaie.Cles.RetardModeSanction,

@@ -27,7 +27,7 @@ public class PolitiquePaieViewModel : INotifyPropertyChanged
     private bool _forcerSamediOuvre;
     private bool _completerJoursSansSaisie;
     private bool _retardSanctionActive;
-    private string _retardSeuilMinutes = "120";
+    private string _retardSeuilMinutes = "1";
     private string _retardModeSanction = ParametrePolitiquePaie.RetardModeAucun;
 
     public PolitiquePaieViewModel(PaieDbContext db)

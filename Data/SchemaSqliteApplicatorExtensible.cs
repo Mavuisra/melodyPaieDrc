@@ -187,7 +187,7 @@ public static class SchemaSqliteApplicatorExtensible
     }
 
     /// <summary>
-    /// Active les sanctions retard (horaire, seuil 120 min) et ajoute la rubrique Transport absences
+    /// Active les sanctions retard (horaire, seuil 1 min) et ajoute la rubrique Transport absences
     /// pour les politiques déjà en base.
     /// </summary>
     private static void ActiverSanctionsRetardEtRubriqueTransport(DbContext db)
@@ -206,11 +206,11 @@ public static class SchemaSqliteApplicatorExtensible
             SET ""Valeur"" = 'true'
             WHERE ""Cle"" = '{ParametrePolitiquePaie.Cles.RetardSanctionActive}'");
 
+        // Client : même 1 minute de retard compte.
         Executer(conn, $@"
             UPDATE ""ParametresPolitiquePaie""
-            SET ""Valeur"" = '120'
-            WHERE ""Cle"" = '{ParametrePolitiquePaie.Cles.RetardSeuilMinutes}'
-              AND (""Valeur"" IS NULL OR ""Valeur"" = '' OR ""Valeur"" = '0')");
+            SET ""Valeur"" = '1'
+            WHERE ""Cle"" = '{ParametrePolitiquePaie.Cles.RetardSeuilMinutes}'");
 
         Executer(conn, $@"
             UPDATE ""ParametresPolitiquePaie""
@@ -232,7 +232,7 @@ public static class SchemaSqliteApplicatorExtensible
         }
 
         UpsertParamManquant(ParametrePolitiquePaie.Cles.RetardSanctionActive, "true");
-        UpsertParamManquant(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "120");
+        UpsertParamManquant(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "1");
         UpsertParamManquant(ParametrePolitiquePaie.Cles.RetardModeSanction, ParametrePolitiquePaie.RetardModeHoraire);
 
         using (var cmd = conn.CreateCommand())
