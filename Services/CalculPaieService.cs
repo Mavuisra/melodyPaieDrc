@@ -290,12 +290,21 @@ public class CalculPaieService
             }
         }
 
+        var montantAncienneteEstime = EstimerMontantAnciennetePeriode(
+            affectationsPrimes.Select(a => (a.Montant, a.PrimeIndemniteId)),
+            primes,
+            joursPointesDepuisSuivi,
+            joursReferencePaie,
+            joursPrestesEffectifs);
+
         // Salaire contrat en net : reconstituer le brut sur le net imposable (base + primes imposables + HS).
         // Les gains non imposables (ex. transport) restent au montant contractuel.
         if (salaireBaseDejaNet && totalGainImposable > 0 && joursPrestesEffectifs > 0m)
         {
             var netCibleImposable = totalGainImposable;
-            var brutReconstitue = ReconstituerBrutDepuisNet(netCibleImposable, nbEnfants, entrepriseId);
+            var tauxInppEstime = _cotisationsService.Calculer(1m, entrepriseId).TauxInpp;
+            var brutReconstitue = ReconstituerBrutDepuisNet(
+                netCibleImposable, montantAncienneteEstime, tauxInppEstime);
             if (brutReconstitue > 0 && netCibleImposable > 0)
             {
                 var libellesNonImposables = primes.Values
@@ -349,20 +358,19 @@ public class CalculPaieService
                     joursReferencePaie);
         }
 
-        var baseImposableIpr = RoundPaie(Math.Max(0m, totalGainImposable));
-        baseCotisable = RoundPaie(Math.Max(0m, baseCotisable));
+        // CNSS 5 % et IPR 10 % sur salaire de base + prime d'ancienneté uniquement.
+        var gainsPourBaseLegale = detailsPrimesGains.Select(x => (x.Libelle, x.Montant));
+        var baseRetenuesLegales = BaseCotisationsLegalesHelper.CalculerBase(salaireBrut, gainsPourBaseLegale);
 
-        var iprDetails = politique.UtiliserBaremeIpr
-            ? _iprService.CalculerDetailsIprMensuelle(baseImposableIpr, nbEnfants, entrepriseId)
-            : new IprResultat();
-        var iprNet = iprDetails.IprNet;
-        var reductionFamille = iprDetails.ReductionFamille;
+        var tauxInpp = politique.UtiliserTauxSociauxDb
+            ? _cotisationsService.Calculer(baseRetenuesLegales, entrepriseId).TauxInpp
+            : 0m;
 
-        var cotisations = politique.UtiliserTauxSociauxDb
-            ? _cotisationsService.Calculer(baseCotisable, entrepriseId)
-            : new CotisationsResultat();
-        var cnssOuvrierMontant = cotisations.CnssOuvrier;
-        var inppMontant = cotisations.Inpp;
+        var iprNet = BaseCotisationsLegalesHelper.CalculerIpr(baseRetenuesLegales);
+        var iprBrut = iprNet;
+        var reductionFamille = 0m;
+        var cnssOuvrierMontant = BaseCotisationsLegalesHelper.CalculerCnss(baseRetenuesLegales);
+        var inppMontant = BaseCotisationsLegalesHelper.CalculerInpp(baseRetenuesLegales, tauxInpp);
 
         // Stagiaires : pas de CNSS / IPR / INPP
         var estStagiaire = string.Equals(contrat.TypeContrat, "Stage", StringComparison.OrdinalIgnoreCase)
@@ -370,53 +378,33 @@ public class CalculPaieService
         if (estStagiaire)
         {
             iprNet = 0m;
+            iprBrut = 0m;
             cnssOuvrierMontant = 0m;
             inppMontant = 0m;
             reductionFamille = 0m;
-            iprDetails = new IprResultat
-            {
-                BaseImposable = iprDetails.BaseImposable,
-                IprBrut = 0m,
-                ReductionFamille = 0m,
-                IprNet = 0m
-            };
         }
 
-        var tauxIprAffiche = baseImposableIpr > 0 ? RoundPaie(iprNet / baseImposableIpr * 100m) : 0m;
-        var tauxCnssAffiche = cotisations.TauxCnssOuvrier;
-        var tauxInppAffiche = cotisations.TauxInpp;
+        var baseImposableIpr = baseRetenuesLegales;
+        var tauxIprAffiche = BaseCotisationsLegalesHelper.TauxIpr;
+        var tauxCnssAffiche = BaseCotisationsLegalesHelper.TauxCnssOuvrier;
+        var tauxInppAffiche = tauxInpp;
 
         if (joursPrestesEffectifs <= 0m)
         {
             iprNet = 0m;
+            iprBrut = 0m;
             cnssOuvrierMontant = 0m;
             inppMontant = 0m;
             baseImposableIpr = 0m;
-            baseCotisable = 0m;
+            baseRetenuesLegales = 0m;
             reductionFamille = 0m;
             tauxIprAffiche = 0m;
             tauxCnssAffiche = 0m;
             tauxInppAffiche = 0m;
         }
 
-        // Références fiche Excel (CDF) : uniquement si le contrat est en CDF (évite de déduire des montants FC sur un salaire USD).
-        var contratEnCdf = string.Equals(contrat.DeviseBase, "CDF", StringComparison.OrdinalIgnoreCase);
-        var baseIprAffiche = contratEnCdf && employe.ReferenceBrutImposableCnssCdf is decimal rbf && rbf > 0
-            ? RoundPaie(rbf)
-            : baseImposableIpr;
-
-        if (joursPrestesEffectifs > 0m && contratEnCdf && employe.ReferenceIprNetCdf.HasValue)
-            iprNet = RoundPaie(employe.ReferenceIprNetCdf.Value);
-
-        if (joursPrestesEffectifs > 0m && contratEnCdf && employe.ReferenceCnssOuvrierCdf.HasValue)
-            cnssOuvrierMontant = RoundPaie(employe.ReferenceCnssOuvrierCdf.Value);
-
-        if (joursPrestesEffectifs > 0m && contratEnCdf && employe.ReferenceInppCdf.HasValue)
-            inppMontant = RoundPaie(employe.ReferenceInppCdf.Value);
-
-        var basePourTauxRetenues = contratEnCdf && employe.ReferenceBrutImposableCnssCdf is decimal rbrut && rbrut > 0
-            ? RoundPaie(rbrut)
-            : baseCotisable;
+        var baseIprAffiche = baseRetenuesLegales;
+        var basePourTauxRetenues = baseRetenuesLegales;
 
         // Échéances de prêts / avances en cours (retenues mensuelles à partir de la date de début d'échéance)
         var periodeDebut = new DateTime(periode.Annee, periode.Mois, 1);
@@ -495,7 +483,7 @@ public class CalculPaieService
             TotalGainImposable = RoundPaie(totalGainImposable),
             TotalGainNonImposable = RoundPaie(totalGainNonImposable),
             BaseIpr = RoundPaie(baseIprAffiche),
-            MontantIprBrut = RoundPaie(iprDetails.IprBrut),
+            MontantIprBrut = RoundPaie(iprBrut),
             ReductionFamille = RoundPaie(reductionFamille),
             MontantIprNet = RoundPaie(iprNet),
             CotisationCnssOuvrier = RoundPaie(cnssOuvrierMontant),
@@ -645,15 +633,19 @@ public class CalculPaieService
     private static decimal RoundPaie(decimal value, int decimals = 2)
         => decimal.Round(value, decimals, MidpointRounding.AwayFromZero);
 
-    private decimal ReconstituerBrutDepuisNet(decimal netCible, int nbEnfants, int entrepriseId)
+    private decimal ReconstituerBrutDepuisNet(decimal netCible, decimal montantAnciennete, decimal tauxInpp)
     {
         if (netCible <= 0) return 0m;
 
-        decimal NetDepuisBrut(decimal brut)
+        decimal NetDepuisBrut(decimal salaireBrutImposable)
         {
-            var ipr = _iprService.CalculerDetailsIprMensuelle(brut, nbEnfants, entrepriseId).IprNet;
-            var cot = _cotisationsService.Calculer(brut, entrepriseId);
-            var net = brut - ipr - cot.CnssOuvrier - cot.Inpp;
+            var baseLegale = BaseCotisationsLegalesHelper.CalculerBase(
+                salaireBrutImposable,
+                new[] { ("Prime d'ancienneté", montantAnciennete) });
+            var ipr = BaseCotisationsLegalesHelper.CalculerIpr(baseLegale);
+            var cnss = BaseCotisationsLegalesHelper.CalculerCnss(baseLegale);
+            var inpp = BaseCotisationsLegalesHelper.CalculerInpp(baseLegale, tauxInpp);
+            var net = salaireBrutImposable - ipr - cnss - inpp;
             return net < 0 ? 0 : net;
         }
 
@@ -673,6 +665,33 @@ public class CalculPaieService
         }
 
         return RoundPaie(haut);
+    }
+
+    private static decimal EstimerMontantAnciennetePeriode(
+        IEnumerable<(decimal Montant, int PrimeIndemniteId)> affectationsPrimes,
+        IReadOnlyDictionary<int, PrimeIndemnite> primes,
+        decimal joursPointesDepuisSuivi,
+        decimal joursReferencePaie,
+        decimal joursPrestesEffectifs)
+    {
+        decimal total = 0m;
+        foreach (var aff in affectationsPrimes)
+        {
+            if (!primes.TryGetValue(aff.PrimeIndemniteId, out var prime))
+                continue;
+            if (!BaseCotisationsLegalesHelper.EstPrimeAnciennete(prime.Libelle))
+                continue;
+
+            var (montant, _, _) = PrimeIndemniteCalculHelper.CalculerMontant(
+                aff.Montant,
+                prime.ModeCalcul,
+                joursPointesDepuisSuivi,
+                joursReferencePaie,
+                joursPrestesEffectifs);
+            total += montant;
+        }
+
+        return RoundPaie(total);
     }
 
     /// <summary>

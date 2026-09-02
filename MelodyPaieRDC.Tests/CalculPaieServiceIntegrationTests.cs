@@ -50,9 +50,25 @@ public class CalculPaieServiceIntegrationTests : IDisposable
 
         var bulletin = scenario.GenererBulletin();
 
-        // Base CNSS = salaire + prime cotisable uniquement (1 200 000 × 5 % = 60 000)
-        Assert.Equal(60_000m, bulletin.CotisationCnssOuvrier);
+        // CNSS 5 % sur salaire de base uniquement (pas transport ni prime cotisable hors ancienneté)
+        Assert.Equal(50_000m, bulletin.CotisationCnssOuvrier);
         Assert.Equal(100_000m, bulletin.TotalGainNonImposable);
+    }
+
+    [Fact]
+    public void Cnss_et_ipr_sur_salaire_base_et_anciennete_uniquement()
+    {
+        var scenario = PaieTestScenario.Creer(_factory, salaireBase: 624m);
+        scenario.DefinirModeBrutClassique();
+        scenario.DefinirModePresenceSaisieJours(26);
+        scenario.AjouterPrime("Prime d'ancienneté", 0m, estImposable: true, estCotisable: true);
+        scenario.AjouterPrime("Indemnité de transport", 62.40m, estImposable: false, estCotisable: false);
+        scenario.AjouterPrime("Indemnité KM", 118m, estImposable: true, estCotisable: true);
+
+        var bulletin = scenario.GenererBulletin();
+
+        Assert.Equal(31.20m, bulletin.CotisationCnssOuvrier);
+        Assert.Equal(62.40m, bulletin.MontantIprNet);
     }
 
     [Fact]
@@ -130,7 +146,7 @@ public class CalculPaieServiceIntegrationTests : IDisposable
 
         var bulletin = scenario.GenererBulletin();
 
-        Assert.InRange(bulletin.NetAPayer, 98m, 102m);
+        Assert.InRange(bulletin.NetAPayer, 98m, 105m);
         Assert.True(bulletin.TotalGainImposable > bulletin.NetAPayer);
     }
 
@@ -208,7 +224,7 @@ public class CalculPaieServiceIntegrationTests : IDisposable
 
         Assert.Equal(30m, acompte.Retenue);
         Assert.True(bulletin.NetAPayer < 99m);
-        Assert.InRange(bulletin.NetAPayer, 74m, 78m);
+        Assert.InRange(bulletin.NetAPayer, 74m, 80m);
     }
 
     [Fact]
@@ -360,6 +376,6 @@ public class CalculPaieServiceIntegrationTests : IDisposable
 
         var ligneCnss = bulletin.Details.First(d => d.Libelle.Contains("CNSS", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(ligneCnss.BaseCalcul, baseCnss);
-        Assert.Equal(1_200_000m, baseCnss);
+        Assert.Equal(1_000_000m, baseCnss);
     }
 }
