@@ -1,8 +1,8 @@
 {
-  "fileName": "MelodyPaieRDC_Setup_1.0.16.exe",
-  "version": "1.0.16",
-  "sha256": "",
-  "releaseNotes": "Bouton Corrections Aout 2026 toujours visible dans Calcul et bulletins (grise si mauvaise periode). Mettre a jour vers 1.0.16 puis selectionner 8/2026.",
   "publishedAt": "2026-09-02",
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.16/MelodyPaieRDC_Setup_1.0.16.exe"
+  "fileName": "MelodyPaieRDC_Setup_1.0.16.exe",
+  "releaseNotes": "Release v1.0.16",
+  "sha256": "373680D9FD4CB2C736CA567CE3C7C4C4B40BBCD64CFEEEB764AB6C3D28D6F241",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.16/MelodyPaieRDC_Setup_1.0.16.exe",
+  "version": "1.0.16"
 }
