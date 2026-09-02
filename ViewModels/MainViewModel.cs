@@ -257,6 +257,9 @@ public class MainViewModel : INotifyPropertyChanged
         });
         OuvrirQuinzainesCommand = new RelayCommand(_ =>
             OnOuvrirQuinzaines?.Invoke(PeriodeSelectionneePourPaie?.Id ?? PeriodeSelectionneePourDeclarations?.Id));
+        AppliquerCorrectionsAout2026Command = new RelayCommand(
+            _ => OnAppliquerCorrectionsAout2026?.Invoke(),
+            _ => PeutMod() && Aout2026CorrectionsApplyService.EstPeriodeCible(PeriodeSelectionneePourPaie));
         SynchroniserLivrePaieCommand = new RelayCommand(_ => SynchroniserLivrePaie(),
             _ => PeriodeSelectionneePourDeclarations != null && !LivrePaieSyncEnCours);
         OuvrirSuiviJournalierCommand = new RelayCommand(_ => OnOuvrirSuiviJournalier?.Invoke());
@@ -541,6 +544,9 @@ public class MainViewModel : INotifyPropertyChanged
     /// <summary>True si la période sélectionnée pour le calcul de paie est clôturée (génération de bulletins désactivée).</summary>
     public bool PeriodePaieEstCloturee => PeriodeSelectionneePourPaie?.Cloturee ?? false;
 
+    public bool AfficherBoutonCorrectionsAout2026
+        => Aout2026CorrectionsApplyService.EstPeriodeCible(PeriodeSelectionneePourPaie);
+
     /// <summary>True si l'utilisateur connecté a le rôle Admin (accès à la gestion des utilisateurs).</summary>
     public bool EstAdmin => AuthService.EstAdmin;
 
@@ -692,6 +698,7 @@ public class MainViewModel : INotifyPropertyChanged
     public ICommand TelechargerRapportBulletinCommand { get; }
     public ICommand OuvrirSaisiePaieMoisCommand { get; }
     public ICommand OuvrirQuinzainesCommand { get; }
+    public ICommand AppliquerCorrectionsAout2026Command { get; }
     public ICommand SynchroniserLivrePaieCommand { get; }
     public ICommand OuvrirHistoriquePointageEmployeCommand { get; }
     public ICommand OuvrirPaieEmployeCommand { get; }
@@ -1105,7 +1112,16 @@ public class MainViewModel : INotifyPropertyChanged
     public PeriodePaie? PeriodeSelectionneePourPaie
     {
         get => _periodeSelectionneePourPaie;
-        set { _periodeSelectionneePourPaie = value; OnPropertyChanged(); OnPropertyChanged(nameof(PeriodePaieEstCloturee)); (GenererBulletinCommand as RelayCommand)?.RaiseCanExecuteChanged(); ChargerBulletinsPeriodeCalculPaie(); }
+        set
+        {
+            _periodeSelectionneePourPaie = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(PeriodePaieEstCloturee));
+            OnPropertyChanged(nameof(AfficherBoutonCorrectionsAout2026));
+            (GenererBulletinCommand as RelayCommand)?.RaiseCanExecuteChanged();
+            (AppliquerCorrectionsAout2026Command as RelayCommand)?.RaiseCanExecuteChanged();
+            ChargerBulletinsPeriodeCalculPaie();
+        }
     }
 
     public BulletinPaie? DernierBulletinGenere
@@ -1411,6 +1427,7 @@ public class MainViewModel : INotifyPropertyChanged
         (ModifierEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (SupprimerEmployeCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (GenererBulletinCommand as RelayCommand)?.RaiseCanExecuteChanged();
+        (AppliquerCorrectionsAout2026Command as RelayCommand)?.RaiseCanExecuteChanged();
         (ImporterFicheSalaireExcelCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (EnregistrerTauxChangeGlobalCommand as RelayCommand)?.RaiseCanExecuteChanged();
         (EnregistrerParametresZkCommand as RelayCommand)?.RaiseCanExecuteChanged();
@@ -1993,6 +2010,7 @@ public class MainViewModel : INotifyPropertyChanged
     public Action<int>? OnOuvrirHeuresMoisEmploye { get; set; }
     public Action<int>? OnOuvrirAbsencesCongesEmploye { get; set; }
     public Action<int>? OnOuvrirHistoriquePointageEmploye { get; set; }
+    public Action? OnAppliquerCorrectionsAout2026 { get; set; }
     public Action<int?>? OnOuvrirQuinzaines { get; set; }
     public Action? OnOuvrirChampsComplementairesEmploye { get; set; }
     public Action? OnOuvrirFormulairesDynamiques { get; set; }

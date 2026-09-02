@@ -60,6 +60,7 @@ public partial class MainWindow : Window
         _viewModel.OnOuvrirAbsencesCongesEmploye = OuvrirAbsencesCongesEmploye;
         _viewModel.OnOuvrirHistoriquePointageEmploye = OuvrirHistoriquePointageEmploye;
         _viewModel.OnOuvrirQuinzaines = OuvrirQuinzaines;
+        _viewModel.OnAppliquerCorrectionsAout2026 = AppliquerCorrectionsAout2026;
         _viewModel.OnOuvrirCentreConfiguration = OuvrirCentreConfiguration;
         _viewModel.OnOuvrirParametresIpr = OuvrirParametresIpr;
         _viewModel.OnOuvrirTauxSociaux = OuvrirTauxSociaux;
@@ -712,6 +713,74 @@ public partial class MainWindow : Window
         AppSessionEvents.NotifierDonneesMetierModifiees();
         _viewModel.ChargerDeclarations();
         _viewModel.ChargerBulletinsPeriodeCalculPaie();
+    }
+
+    private void AppliquerCorrectionsAout2026()
+    {
+        var periode = _viewModel.PeriodeSelectionneePourPaie;
+        if (periode == null || !Aout2026CorrectionsApplyService.EstPeriodeCible(periode))
+        {
+            NotifierAvertissement("Sélectionnez la période Août 2026 dans Calcul & bulletins.");
+            return;
+        }
+
+        if (periode.Cloturee)
+        {
+            NotifierAvertissement("La période Août 2026 est clôturée. Déclôturez-la dans Paramètres > Périodes de paie avant d'appliquer les corrections.");
+            return;
+        }
+
+        var confirmation = MessageBox.Show(this,
+            "Appliquer les corrections paie Août 2026 validées ?\n\n" +
+            "• Indemnités KM et logement\n" +
+            "• Quinzaines et retenues salaire\n" +
+            "• Salaire stagiaires à 100 $\n" +
+            "• Regénération des bulletins conformes aux données corrigées\n\n" +
+            "Les présences (SuivisJournaliers) et les jours prestés ne seront PAS modifiés.\n" +
+            "Une sauvegarde automatique de la base sera créée avant toute modification.",
+            "Corrections Août 2026",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Question);
+        if (confirmation != MessageBoxResult.Yes)
+            return;
+
+        try
+        {
+            Mouse.OverrideCursor = Cursors.Wait;
+            var backupPath = Aout2026CorrectionsApplyService.CreerBackupAutomatique();
+
+            Aout2026CorrectionsApplyService.Resultat resultat;
+            using (var db = new PaieDbContext())
+            {
+                if (_viewModel.EntrepriseCouranteId > 0)
+                    db.SetTenant(_viewModel.EntrepriseCouranteId);
+                resultat = Aout2026CorrectionsApplyService.Appliquer(db, periode.Id);
+            }
+            resultat.CheminBackup = backupPath;
+
+            var msg = resultat.Resume + $"\n\nSauvegarde : {Path.GetFileName(backupPath)}";
+            if (resultat.Avertissements.Count > 0)
+                msg += "\n\nAvertissements :\n" + string.Join("\n", resultat.Avertissements.Take(8));
+
+            if (resultat.BulletinsConformes >= resultat.BulletinsRegeneres && resultat.BulletinsRegeneres > 0)
+                NotifierSucces(msg);
+            else if (resultat.BulletinsRegeneres > 0)
+                NotifierAvertissement(msg);
+            else
+                NotifierSucces(msg);
+
+            AppSessionEvents.NotifierDonneesMetierModifiees();
+            _viewModel.ChargerBulletinsPeriodeCalculPaie();
+            _viewModel.ChargerTousBulletins();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, ex.Message, "Erreur corrections Août 2026", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
+        finally
+        {
+            Mouse.OverrideCursor = null;
+        }
     }
 
     private void OuvrirHistoriquePointageEmploye(int employeId)

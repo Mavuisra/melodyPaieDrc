@@ -298,15 +298,24 @@ public class CalculPaieService
             var brutReconstitue = ReconstituerBrutDepuisNet(netCibleImposable, nbEnfants, entrepriseId);
             if (brutReconstitue > 0 && netCibleImposable > 0)
             {
-                var facteur = brutReconstitue / netCibleImposable;
-                salaireBrut = RoundPaie(salaireBrut * facteur);
-                montantHeuresSup = RoundPaie(montantHeuresSup * facteur);
                 var libellesNonImposables = primes.Values
                     .Where(p => !p.EstImposable)
                     .Select(p => p.Libelle)
                     .ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var montantFixeImposable = detailsPrimesGains
+                    .Where(x => IndemniteAffectationFixeHelper.ConserverMontantAffectationSurBulletin(x.Libelle))
+                    .Sum(x => x.Montant);
+                var netScalable = RoundPaie(netCibleImposable - montantFixeImposable);
+                var facteur = netScalable > 0m
+                    ? RoundPaie((brutReconstitue - montantFixeImposable) / netScalable, 6)
+                    : 1m;
+                if (facteur < 0m) facteur = 1m;
+
+                salaireBrut = RoundPaie(salaireBrut * facteur);
+                montantHeuresSup = RoundPaie(montantHeuresSup * facteur);
                 detailsPrimesGains = detailsPrimesGains
                     .Select(x => libellesNonImposables.Contains(x.Libelle)
+                                 || IndemniteAffectationFixeHelper.ConserverMontantAffectationSurBulletin(x.Libelle)
                         ? x
                         : (x.Libelle, x.BaseAffichee, x.TauxEffectif, RoundPaie(x.Montant * facteur)))
                     .ToList();
@@ -426,8 +435,10 @@ public class CalculPaieService
         var acomptesSaisis = saisie != null ? RoundPaie(saisie.AcomptesSalaire) : 0m;
         var sanctionsSaisies = saisie != null ? RoundPaie(saisie.SanctionsDisciplinaires) : 0m;
         // Sanctions retard auto : août uniquement (même si la politique est active toute l'année).
-        var sanctionsRetardsAuto = TransportAbsencePaieHelper.EstMoisApplication(periode.Mois)
-                                   && politique.RetardSanctionActive
+        // Saisie mensuelle présente : retenues manuelles uniquement (pas de sanctions auto retards).
+        var sanctionsRetardsAuto = saisie == null
+                                 && TransportAbsencePaieHelper.EstMoisApplication(periode.Mois)
+                                 && politique.RetardSanctionActive
             ? RoundPaie(RetardPaieHelper.CalculerSanctionsPeriode(
                 politique, employe, contrat, suivisJournaliers, reglesLt))
             : 0m;

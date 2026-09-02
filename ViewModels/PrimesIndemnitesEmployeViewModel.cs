@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 using MelodyPaieRDC.Services;
 using Microsoft.EntityFrameworkCore;
@@ -40,7 +41,13 @@ public class PrimesIndemnitesEmployeViewModel : INotifyPropertyChanged
     public PrimeIndemnite? PrimeSelectionnee
     {
         get => _primeSelectionnee;
-        set { _primeSelectionnee = value; OnPropertyChanged(); }
+        set
+        {
+            _primeSelectionnee = value;
+            if (value != null && TransportAbsencePaieHelper.EstIndemniteTransport(value.Libelle))
+                Montant = TransportIndemniteDefaults.MontantMensuelUsd;
+            OnPropertyChanged();
+        }
     }
 
     public decimal Montant
