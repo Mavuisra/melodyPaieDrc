@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -7,7 +7,7 @@
     <!-- Garantit la restauration des packs runtime win-x64 (publish self-contained fiable, CI / clean) -->
     <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <!-- Point d'entrÃƒÂ©e Program.cs : CWD = dossier exe avant WPF (pas SetDllDirectory : casse le chargement CLR) -->
+    <!-- Point d'entrÃƒÆ’Ã‚Â©e Program.cs : CWD = dossier exe avant WPF (pas SetDllDirectory : casse le chargement CLR) -->
     <StartupObject>MelodyPaieRDC.Program</StartupObject>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -15,14 +15,14 @@
     <AssemblyName>MelodyPaieRDC</AssemblyName>
     <Company>Impact Entreprises</Company>
     <Product>Melody Paie RDC</Product>
-    <Version>1.0.14</Version>
-    <AssemblyVersion>1.0.14.0</AssemblyVersion>
-    <FileVersion>1.0.14.0</FileVersion>
+    <Version>1.0.15</Version>
+    <AssemblyVersion>1.0.15.0</AssemblyVersion>
+    <FileVersion>1.0.15.0</FileVersion>
     <ApplicationIcon>Assets\Icon_MelodyPaie_Installer.ico</ApplicationIcon>
     <NuGetAudit>false</NuGetAudit>
   </PropertyGroup>
 
-  <!-- Archive : fichiers conservÃƒÂ©s hors build (voir _archive/README.md) -->
+  <!-- Archive : fichiers conservÃƒÆ’Ã‚Â©s hors build (voir _archive/README.md) -->
   <ItemGroup>
     <Compile Remove="_archive\**\*" />
     <EmbeddedResource Remove="_archive\**\*" />
@@ -32,7 +32,7 @@
     <None Include="tools\**\*" />
   </ItemGroup>
 
-  <!-- Projet console .NET Framework sÃƒÂ©parÃƒÂ© : ne pas compiler ses sources dans MelodyPaieRDC -->
+  <!-- Projet console .NET Framework sÃƒÆ’Ã‚Â©parÃƒÆ’Ã‚Â© : ne pas compiler ses sources dans MelodyPaieRDC -->
   <ItemGroup>
     <Compile Remove="ZktecoPullWorker\**\*" />
     <None Include="ZktecoPullWorker\**\*" />
@@ -56,17 +56,17 @@
   </ItemGroup>
 
   <!--
-    ZktecoPullWorker est compilÃƒÂ© ici sans ProjectReference : une rÃƒÂ©fÃƒÂ©rence de projet vers un autre exÃƒÂ©cutable
-    empÃƒÂªche le publish self-contained (NETSDK1150). La copie des fichiers reste dans les cibles ci-dessous.
+    ZktecoPullWorker est compilÃƒÆ’Ã‚Â© ici sans ProjectReference : une rÃƒÆ’Ã‚Â©fÃƒÆ’Ã‚Â©rence de projet vers un autre exÃƒÆ’Ã‚Â©cutable
+    empÃƒÆ’Ã‚Âªche le publish self-contained (NETSDK1150). La copie des fichiers reste dans les cibles ci-dessous.
   -->
   <Target Name="BuildZktecoPullWorker" BeforeTargets="BeforeBuild" Condition="'$(DesignTimeBuild)' != 'true'">
     <MSBuild Projects="$(MSBuildProjectDirectory)\ZktecoPullWorker\ZktecoPullWorker.csproj" Targets="Restore;Build" Properties="Configuration=$(Configuration)" />
   </Target>
 
-  <!-- MSBuildProjectDirectory n'a pas de \ final : sans sÃƒÂ©parateur, le chemin devient ...\MelodyPaieRDCZktecoPullWorker et la copie ne s'exÃƒÂ©cute jamais. -->
+  <!-- MSBuildProjectDirectory n'a pas de \ final : sans sÃƒÆ’Ã‚Â©parateur, le chemin devient ...\MelodyPaieRDCZktecoPullWorker et la copie ne s'exÃƒÆ’Ã‚Â©cute jamais. -->
   <!--
-    Ne jamais copier les DLL net48 du worker ÃƒÂ  la racine : elles ÃƒÂ©crasent System.Memory.dll etc. du runtime .NET 8
-    (TypeInitializationException sur System.Windows.Application). DÃƒÂ©ploiement isolÃƒÂ© sous ZktecoPullWorker\.
+    Ne jamais copier les DLL net48 du worker ÃƒÆ’Ã‚Â  la racine : elles ÃƒÆ’Ã‚Â©crasent System.Memory.dll etc. du runtime .NET 8
+    (TypeInitializationException sur System.Windows.Application). DÃƒÆ’Ã‚Â©ploiement isolÃƒÆ’Ã‚Â© sous ZktecoPullWorker\.
   -->
   <Target Name="CopyZktecoPullWorker" AfterTargets="CopyFilesToOutputDirectory">
     <PropertyGroup>
@@ -92,7 +92,7 @@
     <Copy SourceFiles="@(_ZkWorkerPublish)" DestinationFolder="$(_ZkWorkerPublishDest)" SkipUnchangedFiles="true" Condition="'$(PublishDir)' != '' And Exists('$(_ZkWorkerBin)ZktecoPullWorker.exe')" />
   </Target>
 
-  <!-- Ne pas copier PaieRDC.db depuis le projet : la base est crÃƒÂ©ÃƒÂ©e au dÃƒÂ©marrage dans bin/.../Data/ -->
+  <!-- Ne pas copier PaieRDC.db depuis le projet : la base est crÃƒÆ’Ã‚Â©ÃƒÆ’Ã‚Â©e au dÃƒÆ’Ã‚Â©marrage dans bin/.../Data/ -->
   <!-- <None Update="Data\PaieRDC.db"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></None> -->
 
   <ItemGroup>
@@ -105,8 +105,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- CopiÃƒÂ© ÃƒÂ  cÃƒÂ´tÃƒÂ© de l'exe pour raccourcis (IconFilename Inno Setup) -->
-    <!-- Link = copie ÃƒÂ  la racine publish (pas sous Assets\) pour raccourcis Inno : IconFilename "{app}\Icon_MelodyPaie_Installer.ico" -->
+    <!-- CopiÃƒÆ’Ã‚Â© ÃƒÆ’Ã‚Â  cÃƒÆ’Ã‚Â´tÃƒÆ’Ã‚Â© de l'exe pour raccourcis (IconFilename Inno Setup) -->
+    <!-- Link = copie ÃƒÆ’Ã‚Â  la racine publish (pas sous Assets\) pour raccourcis Inno : IconFilename "{app}\Icon_MelodyPaie_Installer.ico" -->
     <None Include="Assets\Icon_MelodyPaie_Installer.ico">
       <Link>Icon_MelodyPaie_Installer.ico</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -116,7 +116,7 @@
   <ItemGroup>
     <Resource Include="Assets\Icon_MelodyPaie.png" />
     <Resource Include="Assets\Icon_MelodyPaie_Installer.png" />
-    <!-- .ico installateur : pas en Resource (sinon pas copiÃƒÂ© ÃƒÂ  cÃƒÂ´tÃƒÂ© de l'exe pour Inno IconFilename) ; voir ItemGroup None ci-dessus -->
+    <!-- .ico installateur : pas en Resource (sinon pas copiÃƒÆ’Ã‚Â© ÃƒÆ’Ã‚Â  cÃƒÆ’Ã‚Â´tÃƒÆ’Ã‚Â© de l'exe pour Inno IconFilename) ; voir ItemGroup None ci-dessus -->
     <Resource Include="Assets\Splash_Screen-67874262-217e-4c76-ab25-907a642e34d5.png" />
   </ItemGroup>
 
@@ -125,6 +125,7 @@
   </ItemGroup>
 
 </Project>
+
 
 
 

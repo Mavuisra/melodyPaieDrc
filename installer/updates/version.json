@@ -1,8 +1,8 @@
-{
-  "releaseNotes": "Release v1.0.14",
-  "publishedAt": "2026-08-18",
-  "version": "1.0.14",
-  "sha256": "E742AD69B564C200A6E8C856110C1098527DB8C48F4A06672C75A82EA39ED3BC",
-  "fileName": "MelodyPaieRDC_Setup_1.0.14.exe",
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.14/MelodyPaieRDC_Setup_1.0.14.exe"
+﻿{
+    "sha256":  "",
+    "version":  "1.0.15",
+    "releaseNotes":  "Corrections paie Aout 2026 : bouton dedie, bulletins conformes aux donnees corrigees (KM, quinzaines, retenues), sans modification des presences. Sauvegarde auto avant application.",
+    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.15/MelodyPaieRDC_Setup_1.0.15.exe",
+    "publishedAt":  "2026-09-02",
+    "fileName":  "MelodyPaieRDC_Setup_1.0.15.exe"
 }
