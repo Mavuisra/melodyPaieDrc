@@ -550,7 +550,7 @@ public class MainViewModel : INotifyPropertyChanged
     /// <summary>Infobulle du bouton corrections (aide si mauvaise période sélectionnée).</summary>
     public string ToolTipCorrectionsAout2026 =>
         AfficherBoutonCorrectionsAout2026
-            ? "Applique les corrections paie Août 2026 validées (KM, quinzaines, retenues). Les présences ne sont pas modifiées. Sauvegarde automatique avant application."
+            ? "Applique les corrections paie Août 2026 validées (KM, quinzaines, retenues). Si Août est clôturé, il est rouvert temporairement puis re-clôturé automatiquement (Septembre intact). Les présences ne sont pas modifiées."
             : "Cliquez pour voir comment activer : sélectionnez la période 8/2026 dans la liste ci-dessus.";
 
     /// <summary>True si l'utilisateur connecté a le rôle Admin (accès à la gestion des utilisateurs).</summary>

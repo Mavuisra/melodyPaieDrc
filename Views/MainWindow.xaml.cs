@@ -738,22 +738,15 @@ public partial class MainWindow : Window
             return;
         }
 
-        if (periode.Cloturee)
-        {
-            MessageBox.Show(this,
-                "La période Août 2026 est clôturée.\n\nDéclôturez-la dans Paramètres → Périodes de paie avant d'appliquer les corrections.",
-                "Corrections Août 2026",
-                MessageBoxButton.OK,
-                MessageBoxImage.Warning);
-            return;
-        }
-
         var confirmation = MessageBox.Show(this,
             "Appliquer les corrections paie Août 2026 validées ?\n\n" +
             "• Indemnités KM et logement\n" +
             "• Quinzaines et retenues salaire\n" +
             "• Salaire stagiaires à 100 $\n" +
             "• Regénération des bulletins conformes aux données corrigées\n\n" +
+            (periode.Cloturee
+                ? "Août est clôturé : il sera rouvert le temps de l'opération puis re-clôturé automatiquement.\nSeptembre (période en cours) n'est pas modifié.\n\n"
+                : "") +
             "Les présences (SuivisJournaliers) et les jours prestés ne seront PAS modifiés.\n" +
             "Une sauvegarde automatique de la base sera créée avant toute modification.",
             "Corrections Août 2026",

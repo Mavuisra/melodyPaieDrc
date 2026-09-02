@@ -70,13 +70,44 @@ public static class Aout2026CorrectionsApplyService
                 $"Cette action ne s'applique qu'à Août {Aout2026CorrectionsCatalog.AnneeCible} " +
                 $"(période sélectionnée : {periode.Mois:D2}/{periode.Annee}).");
 
-        if (periode.Cloturee)
-            throw new InvalidOperationException("La période est clôturée. Déclôturez-la avant d'appliquer les corrections.");
+        var etaitCloturee = periode.Cloturee;
+        var dateClotureAvant = periode.DateClotureUtc;
+        var clotureParAvant = periode.CloturePar;
+        if (etaitCloturee)
+        {
+            periode.Cloturee = false;
+            db.SaveChanges();
+        }
+
+        try
+        {
+            return AppliquerSurPeriodeOuverte(db, periodePaieId, periode, avertissementsInitiaux: null, etaitCloturee);
+        }
+        finally
+        {
+            if (etaitCloturee)
+            {
+                periode.Cloturee = true;
+                periode.DateClotureUtc = dateClotureAvant;
+                periode.CloturePar = clotureParAvant;
+                db.SaveChanges();
+            }
+        }
+    }
+
+    private static Resultat AppliquerSurPeriodeOuverte(
+        PaieDbContext db,
+        int periodePaieId,
+        PeriodePaie periode,
+        List<string>? avertissementsInitiaux,
+        bool periodeEtaitCloturee)
+    {
+        var avertissements = avertissementsInitiaux ?? [];
+        if (periodeEtaitCloturee)
+            avertissements.Add("Période Août 2026 rouverte temporairement pour les corrections, puis re-clôturée automatiquement (Septembre non modifié).");
 
         var primeKmId = TrouverPrimeKmId(db);
         var primeLogId = TrouverPrimeLogementId(db);
-        var avertissements = new List<string>();
-        var result = new Resultat { Avertissements = avertissements };
 
         if (primeKmId == null)
             avertissements.Add("Rubrique indemnité KM introuvable — les montants KM n'ont pas été appliqués.");

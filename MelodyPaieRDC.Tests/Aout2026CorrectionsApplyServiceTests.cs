@@ -30,4 +30,39 @@ public class Aout2026CorrectionsApplyServiceTests
             Aout2026CorrectionsApplyService.Appliquer(scenario.Db, scenario.PeriodeId));
         Assert.Contains("Août 2026", ex.Message);
     }
+
+    [Fact]
+    public void Appliquer_rouvre_et_recloture_aout_si_periode_cloturee()
+    {
+        using var factory = new Helpers.PaieTestDbFactory();
+        var scenario = Helpers.PaieTestScenario.Creer(factory, anneePeriode: 2026, moisPeriode: 8);
+        var periode = scenario.Db.PeriodesPaie.First(p => p.Id == scenario.PeriodeId);
+        periode.Cloturee = true;
+        periode.DateClotureUtc = DateTime.UtcNow;
+        periode.CloturePar = "test";
+        scenario.Db.SaveChanges();
+
+        var septembre = new PeriodePaie
+        {
+            Mois = 9,
+            Annee = 2026,
+            TauxChangeBudget = 2800m,
+            Cloturee = false,
+            EntrepriseId = scenario.EntrepriseId
+        };
+        scenario.Db.PeriodesPaie.Add(septembre);
+        scenario.Db.SaveChanges();
+
+        var result = Aout2026CorrectionsApplyService.Appliquer(scenario.Db, scenario.PeriodeId);
+
+        periode = scenario.Db.PeriodesPaie.First(p => p.Id == scenario.PeriodeId);
+        Assert.True(periode.Cloturee);
+        Assert.NotNull(periode.DateClotureUtc);
+        Assert.Equal("test", periode.CloturePar);
+
+        var septembreApres = scenario.Db.PeriodesPaie.First(p => p.Id == septembre.Id);
+        Assert.False(septembreApres.Cloturee);
+
+        Assert.Contains(result.Avertissements, a => a.Contains("re-clôturée automatiquement"));
+    }
 }
