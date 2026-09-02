@@ -1,8 +1,8 @@
 {
+  "version": "1.0.19",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.19/MelodyPaieRDC_Setup_1.0.19.exe",
+  "fileName": "MelodyPaieRDC_Setup_1.0.19.exe",
   "publishedAt": "2026-09-02",
-  "fileName": "MelodyPaieRDC_Setup_1.0.18.exe",
-  "version": "1.0.18",
-  "releaseNotes": "Release v1.0.18",
-  "sha256": "D7C0FA183A5486314D58F44FD5253B222BBEE43FEDB9D80E2017C5AF06D87AA1",
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.18/MelodyPaieRDC_Setup_1.0.18.exe"
+  "releaseNotes": "CNSS 5% et IPR 10% calcules sur salaire de base + anciennete uniquement (plus sur transport, KM, logement). Applicable a tous les bulletins et mois futurs. Bouton Corrections Aout 2026 regenere les bulletins avec cette regle.",
+  "sha256": ""
 }
