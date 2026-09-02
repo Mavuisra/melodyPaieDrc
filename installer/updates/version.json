@@ -1,8 +1,8 @@
-{
-  "version": "1.0.17",
-  "fileName": "MelodyPaieRDC_Setup_1.0.17.exe",
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.17/MelodyPaieRDC_Setup_1.0.17.exe",
-  "sha256": "07519E851E6BB3356EEDF040D9712595015182436733D1FD466EE20EE84EBCA5",
-  "publishedAt": "2026-09-02",
-  "releaseNotes": "Release v1.0.17"
+﻿{
+    "sha256":  "",
+    "version":  "1.0.18",
+    "releaseNotes":  "Corrections Août 2026 applicables même si la période est clôturée : réouverture temporaire, re-clôture automatique. Septembre (période en cours) n\u0027est pas modifié.",
+    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.18/MelodyPaieRDC_Setup_1.0.18.exe",
+    "publishedAt":  "2026-09-02",
+    "fileName":  "MelodyPaieRDC_Setup_1.0.18.exe"
 }
