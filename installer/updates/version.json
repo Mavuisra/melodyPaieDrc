@@ -1,8 +1,8 @@
 {
   "publishedAt": "2026-09-02",
-  "fileName": "MelodyPaieRDC_Setup_1.0.16.exe",
-  "releaseNotes": "Release v1.0.16",
-  "sha256": "373680D9FD4CB2C736CA567CE3C7C4C4B40BBCD64CFEEEB764AB6C3D28D6F241",
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.16/MelodyPaieRDC_Setup_1.0.16.exe",
-  "version": "1.0.16"
+  "fileName": "MelodyPaieRDC_Setup_1.0.17.exe",
+  "releaseNotes": "Fix bouton Corrections Aout 2026 : clic toujours reactif avec message si mauvaise periode ou compte lecture seule. Selectionner 8/2026 puis confirmer.",
+  "sha256": "",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.17/MelodyPaieRDC_Setup_1.0.17.exe",
+  "version": "1.0.17"
 }
