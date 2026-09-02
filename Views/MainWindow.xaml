@@ -1174,8 +1174,7 @@
                                         <Button Command="{Binding AppliquerCorrectionsAout2026Command}" Margin="0,4,8,4"
                                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                                 materialDesign:ButtonAssist.CornerRadius="8" Padding="14,8"
-                                                Visibility="{Binding AfficherBoutonCorrectionsAout2026, Converter={StaticResource BooleanToVisibilityConverter}}"
-                                                ToolTip="Applique les corrections paie Août 2026 validées (KM, quinzaines, retenues). Les présences ne sont pas modifiées. Sauvegarde automatique avant application.">
+                                                ToolTip="{Binding ToolTipCorrectionsAout2026}">
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="FileCheck" Width="18" Height="18" Margin="0,0,8,0"/>
                                                 <TextBlock Text="Corrections Août 2026" VerticalAlignment="Center"/>

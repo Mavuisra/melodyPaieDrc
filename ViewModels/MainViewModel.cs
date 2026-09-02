@@ -547,6 +547,12 @@ public class MainViewModel : INotifyPropertyChanged
     public bool AfficherBoutonCorrectionsAout2026
         => Aout2026CorrectionsApplyService.EstPeriodeCible(PeriodeSelectionneePourPaie);
 
+    /// <summary>Infobulle du bouton corrections (aide si mauvaise période sélectionnée).</summary>
+    public string ToolTipCorrectionsAout2026 =>
+        AfficherBoutonCorrectionsAout2026
+            ? "Applique les corrections paie Août 2026 validées (KM, quinzaines, retenues). Les présences ne sont pas modifiées. Sauvegarde automatique avant application."
+            : "Sélectionnez la période 8/2026 (Août 2026) dans la liste « Période de paie » ci-dessus pour activer cette action.";
+
     /// <summary>True si l'utilisateur connecté a le rôle Admin (accès à la gestion des utilisateurs).</summary>
     public bool EstAdmin => AuthService.EstAdmin;
 
@@ -1118,6 +1124,7 @@ public class MainViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(PeriodePaieEstCloturee));
             OnPropertyChanged(nameof(AfficherBoutonCorrectionsAout2026));
+            OnPropertyChanged(nameof(ToolTipCorrectionsAout2026));
             (GenererBulletinCommand as RelayCommand)?.RaiseCanExecuteChanged();
             (AppliquerCorrectionsAout2026Command as RelayCommand)?.RaiseCanExecuteChanged();
             ChargerBulletinsPeriodeCalculPaie();
