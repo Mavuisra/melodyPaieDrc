@@ -259,7 +259,7 @@ public class MainViewModel : INotifyPropertyChanged
             OnOuvrirQuinzaines?.Invoke(PeriodeSelectionneePourPaie?.Id ?? PeriodeSelectionneePourDeclarations?.Id));
         AppliquerCorrectionsAout2026Command = new RelayCommand(
             _ => OnAppliquerCorrectionsAout2026?.Invoke(),
-            _ => PeutMod() && Aout2026CorrectionsApplyService.EstPeriodeCible(PeriodeSelectionneePourPaie));
+            _ => AuthService.EstConnecte);
         SynchroniserLivrePaieCommand = new RelayCommand(_ => SynchroniserLivrePaie(),
             _ => PeriodeSelectionneePourDeclarations != null && !LivrePaieSyncEnCours);
         OuvrirSuiviJournalierCommand = new RelayCommand(_ => OnOuvrirSuiviJournalier?.Invoke());
@@ -551,7 +551,7 @@ public class MainViewModel : INotifyPropertyChanged
     public string ToolTipCorrectionsAout2026 =>
         AfficherBoutonCorrectionsAout2026
             ? "Applique les corrections paie Août 2026 validées (KM, quinzaines, retenues). Les présences ne sont pas modifiées. Sauvegarde automatique avant application."
-            : "Sélectionnez la période 8/2026 (Août 2026) dans la liste « Période de paie » ci-dessus pour activer cette action.";
+            : "Cliquez pour voir comment activer : sélectionnez la période 8/2026 dans la liste ci-dessus.";
 
     /// <summary>True si l'utilisateur connecté a le rôle Admin (accès à la gestion des utilisateurs).</summary>
     public bool EstAdmin => AuthService.EstAdmin;

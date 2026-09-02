@@ -717,16 +717,34 @@ public partial class MainWindow : Window
 
     private void AppliquerCorrectionsAout2026()
     {
+        if (!AuthService.PeutModifierDonnees)
+        {
+            MessageBox.Show(this,
+                "Votre compte est en lecture seule. Connectez-vous avec un compte Gestionnaire ou Administrateur pour appliquer les corrections.",
+                "Corrections Août 2026",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+            return;
+        }
+
         var periode = _viewModel.PeriodeSelectionneePourPaie;
         if (periode == null || !Aout2026CorrectionsApplyService.EstPeriodeCible(periode))
         {
-            NotifierAvertissement("Sélectionnez la période Août 2026 dans Calcul & bulletins.");
+            MessageBox.Show(this,
+                "Sélectionnez la période 8 / 2026 (Août 2026) dans la liste « Période de paie » en haut de cet écran, puis recliquez sur le bouton.",
+                "Corrections Août 2026",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
             return;
         }
 
         if (periode.Cloturee)
         {
-            NotifierAvertissement("La période Août 2026 est clôturée. Déclôturez-la dans Paramètres > Périodes de paie avant d'appliquer les corrections.");
+            MessageBox.Show(this,
+                "La période Août 2026 est clôturée.\n\nDéclôturez-la dans Paramètres → Périodes de paie avant d'appliquer les corrections.",
+                "Corrections Août 2026",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
             return;
         }
 
