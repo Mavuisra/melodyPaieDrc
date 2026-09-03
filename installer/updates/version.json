@@ -1,8 +1,8 @@
-﻿{
-    "sha256":  "",
-    "version":  "1.0.21",
-    "releaseNotes":  "CNSS 5% et IPR 10% sur salaire de base CONTRAT + anciennete MENSUELS (sans prorata jours). Visible correctement sur le bulletin. Pour tous les employes. Bouton Corrections Aout 2026 pour regenerer.",
-    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.21/MelodyPaieRDC_Setup_1.0.21.exe",
-    "publishedAt":  "2026-09-03",
-    "fileName":  "MelodyPaieRDC_Setup_1.0.21.exe"
+{
+  "version": "1.0.21",
+  "fileName": "MelodyPaieRDC_Setup_1.0.21.exe",
+  "sha256": "B92E48A3A1F7E2DE22F2B768681559B60FD446DE8E7CD8F994662A48835A3685",
+  "releaseNotes": "Release v1.0.21",
+  "publishedAt": "2026-09-03",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.21/MelodyPaieRDC_Setup_1.0.21.exe"
 }
