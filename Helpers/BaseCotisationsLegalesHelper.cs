@@ -1,8 +1,8 @@
 namespace MelodyPaieRDC.Helpers;
 
 /// <summary>
-/// Base CNSS / IPR / INPP : salaire de base (proratisé) + prime d'ancienneté uniquement.
-/// Transport, KM, logement et autres indemnités en sont exclus.
+/// Base CNSS / IPR / INPP : salaire de base contrat (éventuellement proratisé) + prime d'ancienneté uniquement.
+/// Transport, KM, logement et autres indemnités en sont exclus. Ne pas utiliser le brut reconstitué (mode net).
 /// </summary>
 public static class BaseCotisationsLegalesHelper
 {

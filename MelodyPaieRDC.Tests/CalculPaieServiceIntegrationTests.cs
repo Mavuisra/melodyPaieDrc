@@ -69,6 +69,27 @@ public class CalculPaieServiceIntegrationTests : IDisposable
 
         Assert.Equal(31.20m, bulletin.CotisationCnssOuvrier);
         Assert.Equal(62.40m, bulletin.MontantIprNet);
+        Assert.Equal(624m, bulletin.BaseIpr);
+    }
+
+    [Fact]
+    public void Cnss_et_ipr_utilisent_ca_contrat_meme_en_mode_net()
+    {
+        var scenario = PaieTestScenario.Creer(_factory, salaireBase: 624m, configurer: (db, _) =>
+        {
+            var contrat = db.Contrats.First();
+            contrat.DeviseBase = "USD";
+            db.SaveChanges();
+        });
+        scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.SalaireContratEnNet, "true");
+        scenario.DefinirModePresenceSaisieJours(26);
+        scenario.AjouterPrime("Indemnité KM", 118m, estImposable: true, estCotisable: true);
+
+        var bulletin = scenario.GenererBulletin();
+
+        Assert.Equal(624m, bulletin.BaseIpr);
+        Assert.Equal(31.20m, bulletin.CotisationCnssOuvrier);
+        Assert.Equal(62.40m, bulletin.MontantIprNet);
     }
 
     [Fact]

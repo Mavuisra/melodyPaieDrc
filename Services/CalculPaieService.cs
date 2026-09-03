@@ -297,14 +297,22 @@ public class CalculPaieService
             joursReferencePaie,
             joursPrestesEffectifs);
 
+        // Base CNSS/IPR = salaire de base contrat (proratisé) + ancienneté — avant tout gross-up net→brut.
+        var salaireBasePourCotisations = salaireBrut;
+        var baseRetenuesLegalesFixe = BaseCotisationsLegalesHelper.CalculerBase(
+            salaireBasePourCotisations,
+            new[] { ("Prime d'ancienneté", montantAncienneteEstime) });
+        var tauxInppEstime = politique.UtiliserTauxSociauxDb
+            ? _cotisationsService.Calculer(baseRetenuesLegalesFixe, entrepriseId).TauxInpp
+            : 0m;
+
         // Salaire contrat en net : reconstituer le brut sur le net imposable (base + primes imposables + HS).
         // Les gains non imposables (ex. transport) restent au montant contractuel.
         if (salaireBaseDejaNet && totalGainImposable > 0 && joursPrestesEffectifs > 0m)
         {
             var netCibleImposable = totalGainImposable;
-            var tauxInppEstime = _cotisationsService.Calculer(1m, entrepriseId).TauxInpp;
             var brutReconstitue = ReconstituerBrutDepuisNet(
-                netCibleImposable, montantAncienneteEstime, tauxInppEstime);
+                netCibleImposable, baseRetenuesLegalesFixe, tauxInppEstime);
             if (brutReconstitue > 0 && netCibleImposable > 0)
             {
                 var libellesNonImposables = primes.Values
@@ -358,13 +366,9 @@ public class CalculPaieService
                     joursReferencePaie);
         }
 
-        // CNSS 5 % et IPR 10 % sur salaire de base + prime d'ancienneté uniquement.
-        var gainsPourBaseLegale = detailsPrimesGains.Select(x => (x.Libelle, x.Montant));
-        var baseRetenuesLegales = BaseCotisationsLegalesHelper.CalculerBase(salaireBrut, gainsPourBaseLegale);
-
-        var tauxInpp = politique.UtiliserTauxSociauxDb
-            ? _cotisationsService.Calculer(baseRetenuesLegales, entrepriseId).TauxInpp
-            : 0m;
+        // CNSS 5 % et IPR 10 % sur salaire de base contrat + prime d'ancienneté uniquement.
+        var baseRetenuesLegales = baseRetenuesLegalesFixe;
+        var tauxInpp = tauxInppEstime;
 
         var iprNet = BaseCotisationsLegalesHelper.CalculerIpr(baseRetenuesLegales);
         var iprBrut = iprNet;
@@ -633,19 +637,18 @@ public class CalculPaieService
     private static decimal RoundPaie(decimal value, int decimals = 2)
         => decimal.Round(value, decimals, MidpointRounding.AwayFromZero);
 
-    private decimal ReconstituerBrutDepuisNet(decimal netCible, decimal montantAnciennete, decimal tauxInpp)
+    private decimal ReconstituerBrutDepuisNet(decimal netCible, decimal baseRetenuesLegales, decimal tauxInpp)
     {
         if (netCible <= 0) return 0m;
 
+        var ipr = BaseCotisationsLegalesHelper.CalculerIpr(baseRetenuesLegales);
+        var cnss = BaseCotisationsLegalesHelper.CalculerCnss(baseRetenuesLegales);
+        var inpp = BaseCotisationsLegalesHelper.CalculerInpp(baseRetenuesLegales, tauxInpp);
+        var retenuesFixes = ipr + cnss + inpp;
+
         decimal NetDepuisBrut(decimal salaireBrutImposable)
         {
-            var baseLegale = BaseCotisationsLegalesHelper.CalculerBase(
-                salaireBrutImposable,
-                new[] { ("Prime d'ancienneté", montantAnciennete) });
-            var ipr = BaseCotisationsLegalesHelper.CalculerIpr(baseLegale);
-            var cnss = BaseCotisationsLegalesHelper.CalculerCnss(baseLegale);
-            var inpp = BaseCotisationsLegalesHelper.CalculerInpp(baseLegale, tauxInpp);
-            var net = salaireBrutImposable - ipr - cnss - inpp;
+            var net = salaireBrutImposable - retenuesFixes;
             return net < 0 ? 0 : net;
         }
 
