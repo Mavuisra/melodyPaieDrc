@@ -100,7 +100,7 @@ public static class DonneesPaieReferenceSeed
                 new() { Cle = ParametrePolitiquePaie.Cles.ForcerSamediOuvre, Valeur = "false" },
                 new() { Cle = ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, Valeur = "true" },
                 new() { Cle = ParametrePolitiquePaie.Cles.RetardSanctionActive, Valeur = "true" },
-                new() { Cle = ParametrePolitiquePaie.Cles.RetardSeuilMinutes, Valeur = "1" },
+                new() { Cle = ParametrePolitiquePaie.Cles.RetardSeuilMinutes, Valeur = "20" },
                 new() { Cle = ParametrePolitiquePaie.Cles.RetardModeSanction, Valeur = ParametrePolitiquePaie.RetardModeHoraire }
             },
             Rubriques = CreerRubriquesParDefaut()

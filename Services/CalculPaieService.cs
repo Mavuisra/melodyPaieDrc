@@ -422,11 +422,9 @@ public class CalculPaieService
 
         var acomptesSaisis = saisie != null ? RoundPaie(saisie.AcomptesSalaire) : 0m;
         var sanctionsSaisies = saisie != null ? RoundPaie(saisie.SanctionsDisciplinaires) : 0m;
-        // Sanctions retard auto : août uniquement (même si la politique est active toute l'année).
-        // Saisie mensuelle présente : retenues manuelles uniquement (pas de sanctions auto retards).
-        var sanctionsRetardsAuto = saisie == null
-                                 && TransportAbsencePaieHelper.EstMoisApplication(periode.Mois)
-                                 && politique.RetardSanctionActive
+        // Sanctions retard auto : calculées sur tout le mois de paie (si politique active),
+        // et s'ajoutent aux retenues mensuelles déjà saisies (prêts, quinzaines, retenue salaire).
+        var sanctionsRetardsAuto = politique.RetardSanctionActive
             ? RoundPaie(RetardPaieHelper.CalculerSanctionsPeriode(
                 politique, employe, contrat, suivisJournaliers, reglesLt))
             : 0m;

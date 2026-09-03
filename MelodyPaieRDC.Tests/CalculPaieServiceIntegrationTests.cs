@@ -217,19 +217,24 @@ public class CalculPaieServiceIntegrationTests : IDisposable
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.SalaireContratEnNet, "true");
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, "true");
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSanctionActive, "true");
-        scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "120");
+        scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "20");
         scenario.DefinirParametrePolitique(
             ParametrePolitiquePaie.Cles.RetardModeSanction,
             ParametrePolitiquePaie.RetardModeDemiJour);
 
+        // 4 retards sanctionnables => sanction commence à la 4e fois.
         var lundi = new DateTime(2026, 8, 3);
-        scenario.AjouterSuiviPointages(lundi, new List<DateTime>
+        for (var i = 0; i < 4; i++)
         {
-            lundi.Date.AddHours(10),
-            lundi.Date.AddHours(12),
-            lundi.Date.AddHours(13),
-            lundi.Date.AddHours(17)
-        });
+            var jour = lundi.AddDays(i);
+            scenario.AjouterSuiviPointages(jour, new List<DateTime>
+            {
+                jour.Date.AddHours(10),
+                jour.Date.AddHours(12),
+                jour.Date.AddHours(13),
+                jour.Date.AddHours(17)
+            });
+        }
 
         var bulletin = scenario.GenererBulletin();
 
@@ -295,19 +300,23 @@ public class CalculPaieServiceIntegrationTests : IDisposable
             ParametrePolitiquePaie.Cles.ModeCalculPresence,
             ParametrePolitiquePaie.ModePresencePointages);
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSanctionActive, "true");
-        scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "120");
+        scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "20");
         scenario.DefinirParametrePolitique(
             ParametrePolitiquePaie.Cles.RetardModeSanction,
             ParametrePolitiquePaie.RetardModeDemiJour);
 
         var lundi = new DateTime(2026, 8, 3);
-        scenario.AjouterSuiviPointages(lundi, new List<DateTime>
+        for (var i = 0; i < 4; i++)
         {
-            lundi.Date.AddHours(10),
-            lundi.Date.AddHours(12),
-            lundi.Date.AddHours(13),
-            lundi.Date.AddHours(17)
-        });
+            var jour = lundi.AddDays(i);
+            scenario.AjouterSuiviPointages(jour, new List<DateTime>
+            {
+                jour.Date.AddHours(10),
+                jour.Date.AddHours(12),
+                jour.Date.AddHours(13),
+                jour.Date.AddHours(17)
+            });
+        }
 
         var bulletin = scenario.GenererBulletin();
         var ligneSanctions = bulletin.Details.FirstOrDefault(d =>
@@ -329,26 +338,32 @@ public class CalculPaieServiceIntegrationTests : IDisposable
             ParametrePolitiquePaie.Cles.ModeCalculPresence,
             ParametrePolitiquePaie.ModePresencePointages);
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSanctionActive, "true");
-        scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "120");
+        scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "20");
         scenario.DefinirParametrePolitique(
             ParametrePolitiquePaie.Cles.RetardModeSanction,
             ParametrePolitiquePaie.RetardModeDemiJour);
 
+        // Hors août aussi : 4 retards sanctionnables => sanction à partir du 4e.
         var lundi = new DateTime(2026, 7, 6);
-        scenario.AjouterSuiviPointages(lundi, new List<DateTime>
+        for (var i = 0; i < 4; i++)
         {
-            lundi.Date.AddHours(10),
-            lundi.Date.AddHours(12),
-            lundi.Date.AddHours(13),
-            lundi.Date.AddHours(17)
-        });
+            var jour = lundi.AddDays(i);
+            scenario.AjouterSuiviPointages(jour, new List<DateTime>
+            {
+                jour.Date.AddHours(10),
+                jour.Date.AddHours(12),
+                jour.Date.AddHours(13),
+                jour.Date.AddHours(17)
+            });
+        }
 
         var bulletin = scenario.GenererBulletin();
         var ligneSanctions = bulletin.Details.FirstOrDefault(d =>
             d.Libelle.Contains("Sanctions / retards", StringComparison.OrdinalIgnoreCase)
             && d.Retenue > 0);
 
-        Assert.Null(ligneSanctions);
+        Assert.NotNull(ligneSanctions);
+        Assert.Equal(50_000m, ligneSanctions!.Retenue);
     }
 
     [Fact]

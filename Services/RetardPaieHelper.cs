@@ -8,6 +8,10 @@ namespace MelodyPaieRDC.Services;
 /// </summary>
 public static class RetardPaieHelper
 {
+    // Règle client : on ne commence à sanctionner qu'à partir du 4e retard sanctionnable.
+    // (Retard sanctionnable = dépassement du seuil en minutes.)
+    public const int NbRetardsAvantSanction = 3;
+
     public static LtServicesRegles ReglesPourEmploye(LtServicesRegles entreprise, Employe? employe)
     {
         if (employe == null || string.IsNullOrWhiteSpace(employe.HeureLimiteTolerance))
@@ -92,6 +96,7 @@ public static class RetardPaieHelper
         var salaireJour = contrat.SalaireBase / joursRef;
         var tauxHoraire = salaireJour / heuresJour;
         decimal total = 0m;
+        var nbRetardsSanctionnables = 0;
 
         foreach (var sj in suivisPeriode.Where(s =>
                      string.Equals(s.TypeJour, SuiviJournalier.TypeNormal, StringComparison.OrdinalIgnoreCase)))
@@ -105,6 +110,13 @@ public static class RetardPaieHelper
 
             var entree = pointages.Min();
             var minutes = CalculerMinutesRetard(entree, regles.HeureLimiteTolerance);
+            if (minutes <= 0 || minutes < politique.RetardSeuilMinutes)
+                continue;
+
+            nbRetardsSanctionnables++;
+            if (nbRetardsSanctionnables <= NbRetardsAvantSanction)
+                continue;
+
             total += CalculerSanctionJour(politique, minutes, salaireJour, tauxHoraire);
         }
 
