@@ -290,20 +290,16 @@ public class CalculPaieService
             }
         }
 
-        var montantAncienneteEstime = EstimerMontantAnciennetePeriode(
+        var montantAncienneteMensuelle = MontantAncienneteMensuelleContrat(
             affectationsPrimes.Select(a => (a.Montant, a.PrimeIndemniteId)),
-            primes,
-            joursPointesDepuisSuivi,
-            joursReferencePaie,
-            joursPrestesEffectifs);
+            primes);
 
-        // Base CNSS/IPR = salaire de base contrat (proratisé) + ancienneté — avant tout gross-up net→brut.
-        var salaireBasePourCotisations = salaireBrut;
-        var baseRetenuesLegalesFixe = BaseCotisationsLegalesHelper.CalculerBase(
-            salaireBasePourCotisations,
-            new[] { ("Prime d'ancienneté", montantAncienneteEstime) });
+        // Base CNSS/IPR = salaire de base CONTRAT mensuel + ancienneté mensuelle (sans prorata jours).
+        var baseRetenuesLegalesFixe = joursPrestesEffectifs > 0m
+            ? BaseCotisationsLegalesHelper.CalculerBase(salaireBrutComplet, montantAncienneteMensuelle)
+            : 0m;
         var tauxInppEstime = politique.UtiliserTauxSociauxDb
-            ? _cotisationsService.Calculer(baseRetenuesLegalesFixe, entrepriseId).TauxInpp
+            ? _cotisationsService.Calculer(Math.Max(baseRetenuesLegalesFixe, 1m), entrepriseId).TauxInpp
             : 0m;
 
         // Salaire contrat en net : reconstituer le brut sur le net imposable (base + primes imposables + HS).
@@ -670,12 +666,10 @@ public class CalculPaieService
         return RoundPaie(haut);
     }
 
-    private static decimal EstimerMontantAnciennetePeriode(
+    /// <summary>Montant mensuel d'affectation de la prime d'ancienneté (sans prorata jours).</summary>
+    private static decimal MontantAncienneteMensuelleContrat(
         IEnumerable<(decimal Montant, int PrimeIndemniteId)> affectationsPrimes,
-        IReadOnlyDictionary<int, PrimeIndemnite> primes,
-        decimal joursPointesDepuisSuivi,
-        decimal joursReferencePaie,
-        decimal joursPrestesEffectifs)
+        IReadOnlyDictionary<int, PrimeIndemnite> primes)
     {
         decimal total = 0m;
         foreach (var aff in affectationsPrimes)
@@ -684,14 +678,7 @@ public class CalculPaieService
                 continue;
             if (!BaseCotisationsLegalesHelper.EstPrimeAnciennete(prime.Libelle))
                 continue;
-
-            var (montant, _, _) = PrimeIndemniteCalculHelper.CalculerMontant(
-                aff.Montant,
-                prime.ModeCalcul,
-                joursPointesDepuisSuivi,
-                joursReferencePaie,
-                joursPrestesEffectifs);
-            total += montant;
+            total += aff.Montant;
         }
 
         return RoundPaie(total);

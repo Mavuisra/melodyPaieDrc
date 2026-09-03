@@ -93,6 +93,29 @@ public class CalculPaieServiceIntegrationTests : IDisposable
     }
 
     [Fact]
+    public void Cnss_et_ipr_sans_prorata_jours_sur_ca_et_anciennete()
+    {
+        var scenario = PaieTestScenario.Creer(_factory, salaireBase: 624m);
+        scenario.DefinirModeBrutClassique();
+        scenario.DefinirModePresenceSaisieJours(23); // comme le client Ethan
+        scenario.AjouterPrime("Prime d'ancienneté", 69m, estImposable: true, estCotisable: true);
+        scenario.AjouterPrime("Indemnité KM", 118m, estImposable: true, estCotisable: true);
+
+        var bulletin = scenario.GenererBulletin();
+        var ligneCnss = bulletin.Details.First(d => d.Libelle.Contains("CNSS", StringComparison.OrdinalIgnoreCase));
+        var ligneIpr = bulletin.Details.First(d => d.Libelle.Contains("IPR", StringComparison.OrdinalIgnoreCase));
+
+        // Base legale = 624 + 69 = 693 (pas 624*23/26)
+        Assert.Equal(693m, bulletin.BaseIpr);
+        Assert.Equal(34.65m, bulletin.CotisationCnssOuvrier);
+        Assert.Equal(69.30m, bulletin.MontantIprNet);
+        Assert.Equal(693m, ligneCnss.BaseCalcul);
+        Assert.Equal(5m, ligneCnss.Taux);
+        Assert.Equal(693m, ligneIpr.BaseCalcul);
+        Assert.Equal(10m, ligneIpr.Taux);
+    }
+
+    [Fact]
     public void Heures_manuelles_incluses_dans_calcul_presence()
     {
         var scenario = PaieTestScenario.Creer(_factory, salaireBase: 2_600_000m);

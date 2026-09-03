@@ -743,7 +743,7 @@ public partial class MainWindow : Window
             "• Indemnités KM et logement\n" +
             "• Quinzaines et retenues salaire\n" +
             "• Salaire stagiaires à 100 $\n" +
-            "• CNSS 5 % et IPR 10 % sur salaire de base + ancienneté\n" +
+            "• CNSS 5 % et IPR 10 % sur salaire de base CONTRAT + ancienneté (sans prorata jours)\n" +
             "• Regénération des bulletins conformes aux données corrigées\n\n" +
             (periode.Cloturee
                 ? "Août est clôturé : il sera rouvert le temps de l'opération puis re-clôturé automatiquement.\nSeptembre (période en cours) n'est pas modifié.\n\n"

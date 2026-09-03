@@ -7,14 +7,7 @@ public class BaseCotisationsLegalesHelperTests
     [Fact]
     public void Base_exclut_transport_km_logement()
     {
-        var gains = new[]
-        {
-            ("Prime d'ancienneté", 69m),
-            ("Indemnité de transport", 62.40m),
-            ("Indemnité KM", 118m),
-            ("Indemnité de logement", 187m)
-        };
-        var baseLegale = BaseCotisationsLegalesHelper.CalculerBase(231.40m, gains);
+        var baseLegale = BaseCotisationsLegalesHelper.CalculerBase(231.40m, 69m);
         Assert.Equal(300.40m, baseLegale);
     }
 

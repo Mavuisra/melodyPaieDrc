@@ -1,8 +1,8 @@
 namespace MelodyPaieRDC.Helpers;
 
 /// <summary>
-/// Base CNSS / IPR / INPP : salaire de base contrat (éventuellement proratisé) + prime d'ancienneté uniquement.
-/// Transport, KM, logement et autres indemnités en sont exclus. Ne pas utiliser le brut reconstitué (mode net).
+/// Base CNSS / IPR / INPP : salaire de base CONTRAT mensuel + prime d'ancienneté mensuelle.
+/// Pas de prorata jours. Transport, KM, logement et brut reconstitué exclus.
 /// </summary>
 public static class BaseCotisationsLegalesHelper
 {
@@ -13,12 +13,15 @@ public static class BaseCotisationsLegalesHelper
         => !string.IsNullOrWhiteSpace(libelle)
            && libelle.Contains("anciennet", StringComparison.OrdinalIgnoreCase);
 
+    public static decimal CalculerBase(decimal salaireBaseContrat, decimal montantAncienneteMensuelle)
+        => Round(Math.Max(0m, salaireBaseContrat) + Math.Max(0m, montantAncienneteMensuelle));
+
     public static decimal CalculerBase(decimal salaireBrut, IEnumerable<(string Libelle, decimal Montant)> gainsImposables)
     {
         var anciennete = gainsImposables
             .Where(g => EstPrimeAnciennete(g.Libelle))
             .Sum(g => g.Montant);
-        return Round(Math.Max(0m, salaireBrut + anciennete));
+        return CalculerBase(salaireBrut, anciennete);
     }
 
     public static decimal CalculerCnss(decimal baseLegale)
