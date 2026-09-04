@@ -120,7 +120,7 @@ public class BulletinSyntheseHelperTests
         Assert.Equal(1000m, syn.MontantTotal);
         Assert.Equal(350m, syn.Quinzaine);
         Assert.Equal(100m, syn.Pret);
-        Assert.Equal(35m, syn.RetenueSociale);
+        Assert.Equal(50m, syn.RetenueSociale);
         Assert.Equal(15m, syn.Impot);
         Assert.Equal(485m, syn.Solde);
         Assert.Contains("485,00", syn.FormuleSolde);

@@ -32,7 +32,7 @@ public static class BulletinSyntheseHelper
 
         var montantTotal = bulletin.TotalGainImposable + bulletin.TotalGainNonImposable;
         var impot = bulletin.MontantIprNet;
-        var retenueSociale = bulletin.CotisationCnssOuvrier;
+        var retenueSociale = bulletin.CotisationCnssOuvrier + bulletin.CotisationInpp;
         var quinzaine = RetenueParLibelles(bulletin, "acompte", "quinzaine");
         var pret = RetenueParLibelles(bulletin, "prêt", "pret", "avance");
         var sanctions = RetenueParLibelles(bulletin, "sanction", "retard");

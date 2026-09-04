@@ -294,16 +294,21 @@ public class CalculPaieService
             affectationsPrimes.Select(a => (a.Montant, a.PrimeIndemniteId)),
             primes);
 
-        // Base CNSS/IPR = salaire de base CONTRAT mensuel + ancienneté mensuelle (sans prorata jours).
+        // Base CNSS/IPR/INPP = salaire de base CONTRAT mensuel + ancienneté mensuelle (sans prorata jours).
         var baseRetenuesLegalesFixe = joursPrestesEffectifs > 0m
             ? BaseCotisationsLegalesHelper.CalculerBase(salaireBrutComplet, montantAncienneteMensuelle)
             : 0m;
+        var tauxInppEstime = politique.UtiliserTauxSociauxDb
+            ? _cotisationsService.Calculer(Math.Max(baseRetenuesLegalesFixe, 1m), entrepriseId).TauxInpp
+            : 0m;
+
         // Salaire contrat en net : reconstituer le brut sur le net imposable (base + primes imposables + HS).
         // Les gains non imposables (ex. transport) restent au montant contractuel.
         if (salaireBaseDejaNet && totalGainImposable > 0 && joursPrestesEffectifs > 0m)
         {
             var netCibleImposable = totalGainImposable;
-            var brutReconstitue = ReconstituerBrutDepuisNet(netCibleImposable, baseRetenuesLegalesFixe);
+            var brutReconstitue = ReconstituerBrutDepuisNet(
+                netCibleImposable, baseRetenuesLegalesFixe, tauxInppEstime);
             if (brutReconstitue > 0 && netCibleImposable > 0)
             {
                 var libellesNonImposables = primes.Values
@@ -358,16 +363,17 @@ public class CalculPaieService
         }
 
         // CNSS 5 % et IPR 10 % sur salaire de base contrat + prime d'ancienneté uniquement.
-        // INPP : non affiché / non retenu sur le bulletin employé.
+        // INPP : calculé et retenu sur le net, mais non affiché comme ligne du bulletin.
         var baseRetenuesLegales = baseRetenuesLegalesFixe;
+        var tauxInpp = tauxInppEstime;
 
         var iprNet = BaseCotisationsLegalesHelper.CalculerIpr(baseRetenuesLegales);
         var iprBrut = iprNet;
         var reductionFamille = 0m;
         var cnssOuvrierMontant = BaseCotisationsLegalesHelper.CalculerCnss(baseRetenuesLegales);
-        var inppMontant = 0m;
+        var inppMontant = BaseCotisationsLegalesHelper.CalculerInpp(baseRetenuesLegales, tauxInpp);
 
-        // Stagiaires : pas de CNSS / IPR
+        // Stagiaires : pas de CNSS / IPR / INPP
         var estStagiaire = string.Equals(contrat.TypeContrat, "Stage", StringComparison.OrdinalIgnoreCase)
                            || string.Equals(contrat.TypeContrat, "Stagiaire", StringComparison.OrdinalIgnoreCase);
         if (estStagiaire)
@@ -375,6 +381,7 @@ public class CalculPaieService
             iprNet = 0m;
             iprBrut = 0m;
             cnssOuvrierMontant = 0m;
+            inppMontant = 0m;
             reductionFamille = 0m;
         }
 
@@ -578,7 +585,7 @@ public class CalculPaieService
             0,
             cnssOuvrierMontant);
 
-        // INPP volontairement omis du bulletin employé (pas de ligne, pas de retenue).
+        // INPP appliqué au net (CotisationInpp) mais volontairement non listé dans les détails du bulletin.
 
         AjouterDetailSiLibelle(RubPretsAvances, 0, 0, 0, RoundPaie(retenuePrets));
         AjouterDetailSiLibelle(RubAcomptes, 0, 0, 0, acomptesSaisis);
@@ -618,13 +625,14 @@ public class CalculPaieService
     private static decimal RoundPaie(decimal value, int decimals = 2)
         => decimal.Round(value, decimals, MidpointRounding.AwayFromZero);
 
-    private decimal ReconstituerBrutDepuisNet(decimal netCible, decimal baseRetenuesLegales)
+    private decimal ReconstituerBrutDepuisNet(decimal netCible, decimal baseRetenuesLegales, decimal tauxInpp)
     {
         if (netCible <= 0) return 0m;
 
         var ipr = BaseCotisationsLegalesHelper.CalculerIpr(baseRetenuesLegales);
         var cnss = BaseCotisationsLegalesHelper.CalculerCnss(baseRetenuesLegales);
-        var retenuesFixes = ipr + cnss;
+        var inpp = BaseCotisationsLegalesHelper.CalculerInpp(baseRetenuesLegales, tauxInpp);
+        var retenuesFixes = ipr + cnss + inpp;
 
         decimal NetDepuisBrut(decimal salaireBrutImposable)
         {

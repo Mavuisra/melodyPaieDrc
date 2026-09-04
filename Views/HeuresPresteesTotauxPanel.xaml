@@ -1225,7 +1225,7 @@
                             <DataGridTextColumn Header="Statut" Binding="{Binding StatutBulletinLibelle}" Width="110"/>
                         </DataGrid.Columns>
                     </DataGrid>
-                    <TextBlock Text="Quinzaine = acomptes sur salaire. Retenue = CNSS. Retards = sanctions disciplinaires saisies. Générez les bulletins (menu Calcul) pour remplir les montants."
+                    <TextBlock Text="Quinzaine = acomptes sur salaire. Retenue = CNSS (+ INPP appliqué sans ligne). Retards = sanctions disciplinaires saisies. Générez les bulletins (menu Calcul) pour remplir les montants."
                                FontSize="11" Foreground="#94A3B8" Margin="0,10,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
