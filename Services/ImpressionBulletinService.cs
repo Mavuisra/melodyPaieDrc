@@ -116,7 +116,7 @@ public static class ImpressionBulletinService
         AjouterLigneSynthese(doc, "Montant total (brut)", synthese.MontantTotal, true);
         AjouterLigneSynthese(doc, "Quinzaine / acomptes", synthese.Quinzaine);
         AjouterLigneSynthese(doc, "Prêt / avances", synthese.Pret);
-        AjouterLigneSynthese(doc, "Retenue (CNSS + INPP)", synthese.RetenueSociale);
+        AjouterLigneSynthese(doc, "Retenue (CNSS)", synthese.RetenueSociale);
         AjouterLigneSynthese(doc, "Impôt (IPR net)", synthese.Impot);
         if (synthese.Sanctions > 0) AjouterLigneSynthese(doc, "Sanctions / retards", synthese.Sanctions);
         if (synthese.AutresRetenues > 0) AjouterLigneSynthese(doc, "Autres retenues", synthese.AutresRetenues);

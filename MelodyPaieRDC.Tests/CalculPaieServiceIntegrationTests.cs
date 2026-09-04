@@ -2,6 +2,7 @@ using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
 using MelodyPaieRDC.Services;
 using MelodyPaieRDC.Tests.Helpers;
+using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.Tests;
 
@@ -277,7 +278,7 @@ public class CalculPaieServiceIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void Net_vers_brut_inclut_inpp_dans_reconstitution()
+    public void Net_vers_brut_sans_inpp_sur_bulletin()
     {
         var scenario = PaieTestScenario.Creer(_factory, salaireBase: 500_000m);
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.SalaireContratEnNet, "true");
@@ -287,7 +288,8 @@ public class CalculPaieServiceIntegrationTests : IDisposable
         var bulletin = scenario.GenererBulletin();
 
         Assert.True(bulletin.TotalGainImposable > bulletin.NetAPayer);
-        Assert.True(bulletin.CotisationInpp > 0m);
+        Assert.Equal(0m, bulletin.CotisationInpp);
+        Assert.DoesNotContain(bulletin.Details, d => d.Libelle.Contains("INPP", StringComparison.OrdinalIgnoreCase));
         Assert.InRange(bulletin.NetAPayer, 499_000m, 501_000m);
     }
 
@@ -436,5 +438,117 @@ public class CalculPaieServiceIntegrationTests : IDisposable
         var ligneCnss = bulletin.Details.First(d => d.Libelle.Contains("CNSS", StringComparison.OrdinalIgnoreCase));
         Assert.Equal(ligneCnss.BaseCalcul, baseCnss);
         Assert.Equal(1_000_000m, baseCnss);
+    }
+
+    [Fact]
+    public void Toutes_rubriques_bulletin_calculees_et_persistees_en_base()
+    {
+        // Salaire 2 600 000 → taux journalier 100 000 → demi-jour retard = 50 000
+        var scenario = PaieTestScenario.Creer(
+            _factory,
+            anneePeriode: 2026,
+            moisPeriode: 8,
+            salaireBase: 2_600_000m,
+            configurer: (db, empId) =>
+            {
+                db.PretsAvances.Add(new PretAvance
+                {
+                    EmployeId = empId,
+                    DateOctroi = new DateTime(2026, 8, 1),
+                    MontantTotal = 800m,
+                    MontantMensuel = 200m,
+                    SoldeRestant = 800m,
+                    NbEcheances = 4
+                });
+                db.SaveChanges();
+            });
+
+        scenario.DefinirModeBrutClassique();
+        scenario.DefinirModePresenceSaisieJours(22); // absence informative + coupe transport (août)
+        scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSanctionActive, "true");
+        scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "20");
+        scenario.DefinirParametrePolitique(
+            ParametrePolitiquePaie.Cles.RetardModeSanction,
+            ParametrePolitiquePaie.RetardModeDemiJour);
+
+        var saisie = scenario.Db.SaisiesPaie.Single(s =>
+            s.EmployeId == scenario.EmployeId && s.PeriodePaieId == scenario.PeriodeId);
+        saisie.AutresGainsImposables = 50m;
+        saisie.AutresGainsNonImposables = 30m;
+        saisie.SanctionsDisciplinaires = 20m;   // retenue mensuelle manuelle
+        saisie.AutresRetenues = 15m;
+        scenario.Db.SaveChanges();
+
+        // Quinzaine → synchro automatique vers AcomptesSalaire au moment du calcul
+        scenario.Db.QuinzaineOctrois.Add(new QuinzaineOctroi
+        {
+            EmployeId = scenario.EmployeId,
+            PeriodePaieId = scenario.PeriodeId,
+            DateOctroi = new DateTime(2026, 8, 10),
+            Montant = 100m
+        });
+        scenario.Db.SaveChanges();
+
+        scenario.AjouterPrime("Prime d'ancienneté", 69m, estImposable: true, estCotisable: true);
+        scenario.AjouterPrime("Indemnité de transport", 62.40m, estImposable: false, estCotisable: false);
+        scenario.AjouterPrime("Indemnité KM", 118m, estImposable: true, estCotisable: true);
+
+        // 4 retards ≥ 20 min → 1 sanction auto (demi-jour) + 1 jour avec heures sup
+        var lundi = new DateTime(2026, 8, 3);
+        for (var i = 0; i < 4; i++)
+        {
+            var jour = lundi.AddDays(i);
+            var sortie = i == 0 ? jour.Date.AddHours(18) : jour.Date.AddHours(17);
+            scenario.AjouterSuiviPointages(jour, new List<DateTime>
+            {
+                jour.Date.AddHours(10),
+                jour.Date.AddHours(12),
+                jour.Date.AddHours(13),
+                sortie
+            });
+        }
+
+        var bulletinGenere = scenario.GenererBulletin();
+
+        // Relecture depuis la base (vérifie l'enregistrement réel, pas seulement l'objet en mémoire)
+        var bulletin = scenario.Db.BulletinsPaie
+            .Include(b => b.Details)
+            .Single(b => b.Id == bulletinGenere.Id);
+
+        Assert.Contains(bulletin.Details, d => d.Libelle.Contains("Salaire de base", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(bulletin.Details, d => d.Libelle.Contains("Heures période", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(bulletin.Details, d => d.Libelle == "Heures supplémentaires" && d.Gain > 0m);
+        Assert.Contains(bulletin.Details, d => d.Libelle.Contains("Absence", StringComparison.OrdinalIgnoreCase) && d.Gain == 0m && d.Retenue == 0m);
+        Assert.Contains(bulletin.Details, d => d.Libelle == "Prime d'ancienneté" && d.Gain == 69m);
+        Assert.Contains(bulletin.Details, d => d.Libelle == "Indemnité de transport" && d.Gain == 62.40m);
+        Assert.Contains(bulletin.Details, d => d.Libelle == "Indemnité KM" && d.Gain == 118m);
+        Assert.Contains(bulletin.Details, d => d.Libelle.Contains("Autres gains imposables", StringComparison.OrdinalIgnoreCase) && d.Gain == 50m);
+        Assert.Contains(bulletin.Details, d => d.Libelle.Contains("Autres gains non imposables", StringComparison.OrdinalIgnoreCase) && d.Gain == 30m);
+
+        var ligneIpr = bulletin.Details.First(d => d.Libelle.Contains("IPR", StringComparison.OrdinalIgnoreCase));
+        var ligneCnss = bulletin.Details.First(d => d.Libelle.Contains("CNSS", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(260_006.90m, ligneIpr.Retenue);   // 10 % × (2 600 000 + 69)
+        Assert.Equal(130_003.45m, ligneCnss.Retenue);  // 5 % × (2 600 000 + 69)
+        Assert.DoesNotContain(bulletin.Details, d => d.Libelle.Contains("INPP", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(0m, bulletin.CotisationInpp);
+
+        Assert.Contains(bulletin.Details, d => d.Libelle.Contains("Prêts", StringComparison.OrdinalIgnoreCase) && d.Retenue == 200m);
+        Assert.Contains(bulletin.Details, d => d.Libelle.Contains("Acomptes", StringComparison.OrdinalIgnoreCase) && d.Retenue == 100m);
+
+        var ligneSanctions = bulletin.Details.First(d =>
+            d.Libelle.Contains("Sanctions / retards", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(50_020m, ligneSanctions.Retenue); // 20 saisie + 50 000 retard auto (4e)
+
+        Assert.Contains(bulletin.Details, d =>
+            d.Libelle.Contains("Transport absences", StringComparison.OrdinalIgnoreCase) && d.Retenue == 9.60m);
+        Assert.Contains(bulletin.Details, d =>
+            d.Libelle.Contains("Ajustements retenues", StringComparison.OrdinalIgnoreCase) && d.Retenue == 15m);
+
+        // Colonnes résumé du bulletin aussi persistées
+        Assert.Equal(130_003.45m, bulletin.CotisationCnssOuvrier);
+        Assert.Equal(260_006.90m, bulletin.MontantIprNet);
+        Assert.Equal(0m, bulletin.CotisationInpp);
+        Assert.True(bulletin.NetAPayer > 0m);
+        Assert.True(bulletin.Details.Count >= 14, $"Attendu ≥14 lignes, obtenu {bulletin.Details.Count}: {string.Join(" | ", bulletin.Details.Select(d => d.Libelle))}");
     }
 }

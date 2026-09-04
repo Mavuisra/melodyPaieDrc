@@ -770,7 +770,7 @@ public class ExportPdfService
                         var i = 0;
                         Ligne("Salaire (brut periode)", ligne.Salaire, i++);
                         Ligne("Quinzaine / acomptes", ligne.Quinzaine, i++);
-                        Ligne("Retenue (CNSS + INPP)", ligne.Retenue, i++);
+                        Ligne("Retenue (CNSS)", ligne.Retenue, i++);
                         Ligne("Impôt (IPR net)", ligne.Impot, i++);
                         Ligne("Retards / sanctions", ligne.Retards, i++);
                         Ligne("Prêts / avances", ligne.Prets, i++);
@@ -1453,7 +1453,7 @@ public class ExportPdfService
             .ToList();
         var employeeName = Clip($"{bulletin.Employe?.Nom} {bulletin.Employe?.Postnom} {bulletin.Employe?.Prenom}".Trim(), 90);
         var totalBrut = bulletin.TotalGainImposable + bulletin.TotalGainNonImposable;
-        var retenuesLegales = bulletin.MontantIprNet + bulletin.CotisationCnssOuvrier + bulletin.CotisationInpp;
+        var retenuesLegales = bulletin.MontantIprNet + bulletin.CotisationCnssOuvrier;
         var totalGains = bulletin.TotalGainImposable + bulletin.TotalGainNonImposable;
         var retenuesDiverses = decimal.Round(
             Math.Max(0m, totalGains - bulletin.NetAPayer - retenuesLegales),
@@ -1625,7 +1625,7 @@ public class ExportPdfService
                 SummaryLine(s, "Montant total (brut)", syn.MontantTotal, ultraCompact);
                 SummaryLine(s, "Quinzaine / acomptes", syn.Quinzaine, ultraCompact);
                 SummaryLine(s, "Pret / avances", syn.Pret, ultraCompact);
-                SummaryLine(s, "Retenue (CNSS + INPP)", syn.RetenueSociale, ultraCompact);
+                SummaryLine(s, "Retenue (CNSS)", syn.RetenueSociale, ultraCompact);
                 SummaryLine(s, "Impot (IPR net)", syn.Impot, ultraCompact);
                 if (syn.Sanctions > 0.0001m)
                     SummaryLine(s, "Sanctions / retards", syn.Sanctions, ultraCompact);

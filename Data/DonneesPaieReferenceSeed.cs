@@ -122,7 +122,7 @@ public static class DonneesPaieReferenceSeed
             Rub("AUTRES_GAINS_NON_IMPOSABLES", "Autres gains non imposables", 70, RubriqueBulletin.TypeGain),
             Rub("IPR", "IPR", 80, RubriqueBulletin.TypeRetenue, RubriqueBulletin.SourceIprBareme),
             Rub("CNSS", "CNSS ouvrier", 90, RubriqueBulletin.TypeRetenue, RubriqueBulletin.SourceCnssOuvrier),
-            Rub("INPP", "INPP", 100, RubriqueBulletin.TypeRetenue, RubriqueBulletin.SourceInpp),
+            Rub("INPP", "INPP", 100, RubriqueBulletin.TypeRetenue, RubriqueBulletin.SourceInpp, afficher: false),
             Rub("PRETS_AVANCES", "Prêts / avances", 110, RubriqueBulletin.TypeRetenue),
             Rub("ACOMPTES_SALAIRE", "Acomptes salaire", 120, RubriqueBulletin.TypeRetenue),
             Rub("SANCTIONS_DISCIPLINAIRES", "Sanctions / retards", 130, RubriqueBulletin.TypeRetenue),
@@ -131,7 +131,13 @@ public static class DonneesPaieReferenceSeed
         };
     }
 
-    private static RubriqueBulletin Rub(string code, string libelle, int ordre, string type, string source = RubriqueBulletin.SourceAucune)
+    private static RubriqueBulletin Rub(
+        string code,
+        string libelle,
+        int ordre,
+        string type,
+        string source = RubriqueBulletin.SourceAucune,
+        bool afficher = true)
         => new()
         {
             Code = code,
@@ -139,7 +145,7 @@ public static class DonneesPaieReferenceSeed
             OrdreAffichage = ordre,
             TypeLigne = type,
             SourceCalcul = source,
-            AfficherSurBulletin = true
+            AfficherSurBulletin = afficher
         };
 
     private static IEnumerable<(decimal inf, decimal sup, decimal taux)> BaremeIprRdc2020()

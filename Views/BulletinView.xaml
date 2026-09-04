@@ -80,7 +80,7 @@
                         <TextBlock Grid.Row="2" Grid.Column="0" Text="Prêt / avances" Margin="0,2"/>
                         <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Pret, StringFormat=N2}" HorizontalAlignment="Right"/>
 
-                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Retenue (CNSS + INPP)" Margin="0,2"/>
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Retenue (CNSS)" Margin="0,2"/>
                         <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding RetenueSociale, StringFormat=N2}" HorizontalAlignment="Right"/>
 
                         <TextBlock Grid.Row="4" Grid.Column="0" Text="Impôt (IPR net)" Margin="0,2"/>
@@ -154,10 +154,6 @@
                     <TextBlock>
                         <Run Text="CNSS ouvrier : "/>
                         <Run Text="{Binding CotisationCnssOuvrier, StringFormat=N2}"/>
-                    </TextBlock>
-                    <TextBlock>
-                        <Run Text="INPP : "/>
-                        <Run Text="{Binding CotisationInpp, StringFormat=N2}"/>
                     </TextBlock>
                     <TextBlock>
                         <Run Text="Net à payer : "/>

@@ -192,7 +192,7 @@
                         </DataGrid.Columns>
                     </DataGrid>
 
-                    <TextBlock Text="Quinzaine = acomptes sur salaire. Retenue = CNSS + INPP. Retards = sanctions disciplinaires. Générez les bulletins (menu Calcul) pour remplir les montants."
+                    <TextBlock Text="Quinzaine = acomptes sur salaire. Retenue = CNSS. Retards = sanctions disciplinaires. Générez les bulletins (menu Calcul) pour remplir les montants."
                                FontSize="11" Foreground="#94A3B8" Margin="0,10,0,0" TextWrapping="Wrap"/>
                 </StackPanel>
             </Border>
