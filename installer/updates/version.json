@@ -1,8 +1,8 @@
-﻿{
-    "sha256":  "",
-    "version":  "1.0.23",
-    "releaseNotes":  "INPP_retire_du_bulletin_employe",
-    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.23/MelodyPaieRDC_Setup_1.0.23.exe",
-    "publishedAt":  "2026-09-04",
-    "fileName":  "MelodyPaieRDC_Setup_1.0.23.exe"
+{
+  "sha256": "2F6E5EB03A443CED72D91C69704B6C44C52F4568F9E6FAB5B587547B7946D36B",
+  "fileName": "MelodyPaieRDC_Setup_1.0.23.exe",
+  "version": "1.0.23",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.23/MelodyPaieRDC_Setup_1.0.23.exe",
+  "publishedAt": "2026-09-04",
+  "releaseNotes": "Release v1.0.23"
 }
