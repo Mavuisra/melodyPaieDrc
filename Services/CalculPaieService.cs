@@ -115,7 +115,7 @@ public class CalculPaieService
         List<SuiviJournalier> suivisComptables = new();
         var heuresLtCumulPeriode = 0m;
         var heuresSupCumulPeriode = 0m;
-        if (suivisJournaliers.Count > 0 || politique.CompleterJoursSansSaisie || politique.ForcerSamediOuvre)
+        if (suivisJournaliers.Count > 0 || SuiviJournalierGrilleHelper.CompleterJoursEffectif(politique) || politique.ForcerSamediOuvre)
         {
             var suivisCompletsPourPaie = SuiviJournalierGrilleHelper.FusionnerMoisCompletPourCalculPaie(
                 employeId,
@@ -124,8 +124,9 @@ public class CalculPaieService
                 suivisJournaliers,
                 semaineSixJoursPaie,
                 calendrierPaie,
-                politique.CompleterJoursSansSaisie,
-                politique.ForcerSamediOuvre);
+                SuiviJournalierGrilleHelper.CompleterJoursEffectif(politique),
+                politique.ForcerSamediOuvre,
+                dateFinCalcul);
 
             suivisComptables = suivisCompletsPourPaie
                 .Where(s => string.Equals(s.TypeJour, SuiviJournalier.TypeNormal, StringComparison.OrdinalIgnoreCase))

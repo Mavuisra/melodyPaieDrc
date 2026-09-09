@@ -188,6 +188,9 @@ public class CalculPaieServiceIntegrationTests : IDisposable
         });
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.SalaireContratEnNet, "true");
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, "true");
+        scenario.DefinirParametrePolitique(
+            ParametrePolitiquePaie.Cles.ModeCalculPresence,
+            ParametrePolitiquePaie.ModePresenceSaisieJours);
 
         var bulletin = scenario.GenererBulletin();
 
@@ -217,6 +220,9 @@ public class CalculPaieServiceIntegrationTests : IDisposable
         });
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.SalaireContratEnNet, "true");
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, "true");
+        scenario.DefinirParametrePolitique(
+            ParametrePolitiquePaie.Cles.ModeCalculPresence,
+            ParametrePolitiquePaie.ModePresenceSaisieJours);
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSanctionActive, "true");
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, "20");
         scenario.DefinirParametrePolitique(

@@ -97,3 +97,58 @@ public class RetardPaieHelperTests
         return new PolitiquePaieContext(new PolitiquePaie(), parametres, Array.Empty<RubriqueBulletin>());
     }
 }
+
+public class SuiviJournalierGrilleHelperTests
+{
+    [Fact]
+    public void CompleterJoursEffectif_desactive_en_mode_pointages()
+    {
+        var politique = new PolitiquePaieContext(
+            new PolitiquePaie(),
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie] = "true",
+                [ParametrePolitiquePaie.Cles.ModeCalculPresence] = ParametrePolitiquePaie.ModePresencePointages
+            },
+            Array.Empty<RubriqueBulletin>());
+
+        Assert.False(SuiviJournalierGrilleHelper.CompleterJoursEffectif(politique));
+    }
+
+    [Fact]
+    public void CompleterJoursEffectif_actif_en_mode_saisie_jours()
+    {
+        var politique = new PolitiquePaieContext(
+            new PolitiquePaie(),
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+            {
+                [ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie] = "true",
+                [ParametrePolitiquePaie.Cles.ModeCalculPresence] = ParametrePolitiquePaie.ModePresenceSaisieJours
+            },
+            Array.Empty<RubriqueBulletin>());
+
+        Assert.True(SuiviJournalierGrilleHelper.CompleterJoursEffectif(politique));
+    }
+
+    [Fact]
+    public void Fusion_ne_complete_pas_les_jours_apres_la_limite()
+    {
+        var calendrier = new Dictionary<DateTime, JourTravailCalendrier>();
+        var fusion = SuiviJournalierGrilleHelper.FusionnerMoisCompletPourCalculPaie(
+            employeId: 1,
+            dateDebut: new DateTime(2026, 9, 1),
+            dateFin: new DateTime(2026, 9, 30),
+            enBase: Array.Empty<SuiviJournalier>(),
+            semaineSixJours: true,
+            calendrier: calendrier,
+            completerJoursSansSaisie: true,
+            forcerSamediOuvre: false,
+            dateLimiteCompletion: new DateTime(2026, 9, 9));
+
+        var jour9 = fusion.Single(s => s.Date == new DateTime(2026, 9, 9));
+        var jour15 = fusion.Single(s => s.Date == new DateTime(2026, 9, 15));
+
+        Assert.True(jour9.HeuresPrestees > 0m);
+        Assert.Equal(0m, jour15.HeuresPrestees);
+    }
+}

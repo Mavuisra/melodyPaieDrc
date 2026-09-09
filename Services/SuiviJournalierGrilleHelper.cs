@@ -8,6 +8,21 @@ namespace MelodyPaieRDC.Services;
 /// </summary>
 public static class SuiviJournalierGrilleHelper
 {
+    /// <summary>
+    /// En mode pointages terminal, on n'invente jamais de présence :
+    /// seuls les jours réellement pointés / saisis comptent.
+    /// </summary>
+    public static bool CompleterJoursEffectif(PolitiquePaieContext? politique)
+    {
+        if (politique == null || !politique.CompleterJoursSansSaisie)
+            return false;
+
+        return !string.Equals(
+            politique.ModeCalculPresence,
+            ParametrePolitiquePaie.ModePresencePointages,
+            StringComparison.OrdinalIgnoreCase);
+    }
+
     /// <summary>Même logique que la grille de suivi journalier / export PDF pour un jour sans saisie.</summary>
     public static decimal DeterminerHeuresParDefaut(
         DateTime date,
@@ -40,6 +55,7 @@ public static class SuiviJournalierGrilleHelper
     /// <summary>
     /// Un jour par date dans la période : donnée en base ou jour « Normal » avec heures par défaut.
     /// Les objets créés pour les dates manquantes ne sont pas suivis par EF (usage calcul uniquement).
+    /// <paramref name="dateLimiteCompletion"/> : au-delà, aucune heure inventée (jours futurs).
     /// </summary>
     public static List<SuiviJournalier> FusionnerMoisCompletPourCalculPaie(
         int employeId,
@@ -49,10 +65,12 @@ public static class SuiviJournalierGrilleHelper
         bool semaineSixJours,
         IReadOnlyDictionary<DateTime, JourTravailCalendrier> calendrier,
         bool completerJoursSansSaisie = false,
-        bool forcerSamediOuvre = false)
+        bool forcerSamediOuvre = false,
+        DateTime? dateLimiteCompletion = null)
     {
         dateDebut = dateDebut.Date;
         dateFin = dateFin.Date;
+        var limite = dateLimiteCompletion?.Date;
         var semaine6 = semaineSixJours || forcerSamediOuvre;
 
         var parDate = enBase
@@ -68,7 +86,8 @@ public static class SuiviJournalierGrilleHelper
                 continue;
             }
 
-            var heures = ResoudreHeuresJourSansSaisie(d, semaine6, calendrier, completerJoursSansSaisie, forcerSamediOuvre);
+            var peutCompleter = completerJoursSansSaisie && (limite == null || d <= limite);
+            var heures = ResoudreHeuresJourSansSaisie(d, semaine6, calendrier, peutCompleter, forcerSamediOuvre);
 
             liste.Add(new SuiviJournalier
             {

@@ -81,7 +81,7 @@ public sealed class PolitiquePaieContext
     public decimal JourFinPeriodeDecalee => GetDecimal(ParametrePolitiquePaie.Cles.JourFinPeriodeDecalee, 25m);
 
     public bool ForcerSamediOuvre => GetBool(ParametrePolitiquePaie.Cles.ForcerSamediOuvre, false);
-    public bool CompleterJoursSansSaisie => GetBool(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, true);
+    public bool CompleterJoursSansSaisie => GetBool(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, false);
 
     public bool RetardSanctionActive => GetBool(ParametrePolitiquePaie.Cles.RetardSanctionActive, false);
     public int RetardSeuilMinutes => (int)GetDecimal(ParametrePolitiquePaie.Cles.RetardSeuilMinutes, 1m);

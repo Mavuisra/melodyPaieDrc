@@ -1703,8 +1703,9 @@ public class SuiviJournalierViewModel : INotifyPropertyChanged
                 existantsList,
                 semaineSixJours,
                 calendrierCtx.Calendrier,
-                politique.CompleterJoursSansSaisie,
-                politique.ForcerSamediOuvre);
+                SuiviJournalierGrilleHelper.CompleterJoursEffectif(politique),
+                politique.ForcerSamediOuvre,
+                PeriodePaieHelper.ObtenirFinCalcul(PeriodeSelectionnee, politique, DateTime.Today));
 
             foreach (var s in fusionnes)
             {

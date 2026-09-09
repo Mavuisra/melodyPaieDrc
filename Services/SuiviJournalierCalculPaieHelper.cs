@@ -79,7 +79,7 @@ public static class SuiviJournalierCalculPaieHelper
         if (politique != null)
         {
             semaineSixJours = calendrierCtx.SemaineSixJours || politique.ForcerSamediOuvre;
-            if (politique.CompleterJoursSansSaisie || politique.ForcerSamediOuvre)
+            if (SuiviJournalierGrilleHelper.CompleterJoursEffectif(politique) || politique.ForcerSamediOuvre)
             {
                 suivis = SuiviJournalierGrilleHelper.FusionnerMoisCompletPourCalculPaie(
                     employeId,
@@ -88,8 +88,9 @@ public static class SuiviJournalierCalculPaieHelper
                     suivis,
                     semaineSixJours,
                     calendrierCtx.Calendrier,
-                    politique.CompleterJoursSansSaisie,
-                    politique.ForcerSamediOuvre);
+                    SuiviJournalierGrilleHelper.CompleterJoursEffectif(politique),
+                    politique.ForcerSamediOuvre,
+                    dateFin.Date > DateTime.Today ? DateTime.Today : dateFin);
             }
         }
 

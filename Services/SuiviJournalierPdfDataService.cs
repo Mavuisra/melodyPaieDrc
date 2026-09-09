@@ -17,7 +17,9 @@ public static class SuiviJournalierPdfDataService
     /// <summary>Grille complète du mois pour l’employé (état calculé depuis la base).</summary>
     public static IReadOnlyList<SuiviJournalierPdfLigne> ObtenirLignesPourEmploye(PaieDbContext db, int employeId, int mois, int annee)
     {
-        var periode = new PeriodePaie { Mois = mois, Annee = annee };
+        var periode = db.PeriodesPaie.AsNoTracking()
+                           .FirstOrDefault(p => p.Mois == mois && p.Annee == annee)
+                       ?? new PeriodePaie { Mois = mois, Annee = annee };
         var (politique, dateDebut, dateFin) = PeriodePaieHelper.ResoudrePeriode(db, periode);
         var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(db);
 
@@ -29,6 +31,7 @@ public static class SuiviJournalierPdfDataService
 
         var calendrierCtx = SuiviJournalierCalculPaieHelper.ChargerCalendrierPaie(db, dateDebut, dateFin);
         var semaineSixJours = calendrierCtx.SemaineSixJours || politique.ForcerSamediOuvre;
+        var dateLimite = PeriodePaieHelper.ObtenirFinCalcul(periode, politique, DateTime.Today);
         var fusionnes = SuiviJournalierGrilleHelper.FusionnerMoisCompletPourCalculPaie(
             employeId,
             dateDebut,
@@ -36,8 +39,9 @@ public static class SuiviJournalierPdfDataService
             existantsList,
             semaineSixJours,
             calendrierCtx.Calendrier,
-            politique.CompleterJoursSansSaisie,
-            politique.ForcerSamediOuvre);
+            SuiviJournalierGrilleHelper.CompleterJoursEffectif(politique),
+            politique.ForcerSamediOuvre,
+            dateLimite);
 
         var result = new List<SuiviJournalierPdfLigne>();
         foreach (var s in fusionnes)

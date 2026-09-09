@@ -183,7 +183,7 @@ public static class SchemaSqliteApplicatorExtensible
         }
 
         ActiverCle(ParametrePolitiquePaie.Cles.SalaireContratEnNet);
-        ActiverCle(ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie);
+        // CompleterJoursSansSaisie : ne plus forcer à true (mode pointages = présence réelle uniquement).
     }
 
     /// <summary>

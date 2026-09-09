@@ -52,7 +52,7 @@
                 </ComboBox>
                 <CheckBox Content="Samedi ouvré pour tous (présent sans pointage)"
                           IsChecked="{Binding ForcerSamediOuvre}" Margin="0,4"/>
-                <CheckBox Content="Compléter les jours ouvrés sans saisie (aligne grille, PDF et paie)"
+                <CheckBox Content="Compléter les jours ouvrés sans saisie (hors mode pointages terminal ; jamais les jours futurs)"
                           IsChecked="{Binding CompleterJoursSansSaisie}" Margin="0,4,0,12"/>
 
                 <TextBlock Text="Sanctions retards (bulletin)" FontWeight="SemiBold" Margin="0,4,0,8"/>

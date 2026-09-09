@@ -69,7 +69,9 @@ public partial class EmployeHeuresMoisWindow : Window
 
     private void ChargerHeures(PeriodeOption periode)
     {
-        var periodePaie = new PeriodePaie { Mois = periode.Mois, Annee = periode.Annee };
+        var periodePaie = _db.PeriodesPaie.AsNoTracking()
+                              .FirstOrDefault(p => p.Mois == periode.Mois && p.Annee == periode.Annee)
+                          ?? new PeriodePaie { Mois = periode.Mois, Annee = periode.Annee };
         var (politique, dateDebut, dateFin) = PeriodePaieHelper.ResoudrePeriode(_db, periodePaie);
         var reglesLt = LtServicesReglesProvider.ChargerDepuisDb(_db);
 
@@ -88,8 +90,9 @@ public partial class EmployeHeuresMoisWindow : Window
             existantsList,
             semaineSixJours,
             calendrierCtx.Calendrier,
-            politique.CompleterJoursSansSaisie,
-            politique.ForcerSamediOuvre);
+            SuiviJournalierGrilleHelper.CompleterJoursEffectif(politique),
+            politique.ForcerSamediOuvre,
+            PeriodePaieHelper.ObtenirFinCalcul(periodePaie, politique, DateTime.Today));
 
         _lignes.Clear();
         foreach (var s in fusionnes)
