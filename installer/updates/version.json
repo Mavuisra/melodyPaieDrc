@@ -1,8 +1,8 @@
-﻿{
-    "sha256":  "",
-    "version":  "1.0.25",
-    "releaseNotes":  "Presence_reelle_mode_pointages_sans_mois_complet_invente",
-    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.25/MelodyPaieRDC_Setup_1.0.25.exe",
-    "publishedAt":  "2026-09-09",
-    "fileName":  "MelodyPaieRDC_Setup_1.0.25.exe"
+{
+  "fileName": "MelodyPaieRDC_Setup_1.0.25.exe",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.25/MelodyPaieRDC_Setup_1.0.25.exe",
+  "releaseNotes": "Release v1.0.25",
+  "version": "1.0.25",
+  "sha256": "B83A0596B060620D0B513FF9BE15AC9DC6551030683C27DDC01CF52A406C5EBF",
+  "publishedAt": "2026-09-09"
 }
