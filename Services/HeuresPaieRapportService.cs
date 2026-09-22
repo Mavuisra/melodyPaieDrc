@@ -1,7 +1,7 @@
 using System.Globalization;
 using MelodyPaieRDC.Data;
+using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
-using MelodyPaieRDC.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.Services;
@@ -25,7 +25,7 @@ public sealed class SituationPaieAgentLigne
 
     private static string M(decimal v) => v.ToString("N2", CultureInfo.CurrentCulture);
 
-    public string TotalHeuresLibelle => TotalHeures.ToString("N2", CultureInfo.CurrentCulture) + " h";
+    public string TotalHeuresLibelle => HeuresFormatHelper.VersHhMm(TotalHeures);
     public string SalaireLibelle => M(Salaire);
     public string QuinzaineLibelle => M(Quinzaine);
     public string RetenueLibelle => M(Retenue);

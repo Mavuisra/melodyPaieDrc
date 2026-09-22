@@ -285,6 +285,89 @@
             </Grid>
         </Border>
 
+        <!-- Mise à jour application -->
+        <Border Margin="0,0,0,20" CornerRadius="18" Padding="18,16" BorderBrush="#A7F3D0" BorderThickness="1.5"
+                Background="#ECFDF5" DataContext="{Binding MiseAJourParametres}">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="16" ShadowDepth="2" Opacity="0.08" Color="#047857"/>
+            </Border.Effect>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                        <materialDesign:PackIcon Kind="CloudDownload" Width="22" Height="22"
+                                                 Foreground="{DynamicResource BrandPrimaryBrush}" Margin="0,0,10,0"/>
+                        <TextBlock Text="Mise à jour Melody Paie" FontSize="16" FontWeight="Bold" Foreground="#065F46"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <TextBlock Text="{Binding VersionInstallee, StringFormat=Version installée : {0}}"
+                               FontSize="12" Foreground="#64748B" Margin="32,0,0,4"/>
+                    <TextBlock Text="{Binding Statut}" FontSize="12.5" Foreground="#334155" TextWrapping="Wrap"
+                               Margin="32,0,12,0"/>
+                    <Border Margin="32,10,12,0" Background="White" CornerRadius="10" Padding="12,10"
+                            BorderBrush="#BBF7D0" BorderThickness="1"
+                            Visibility="{Binding MiseAJourDisponible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <StackPanel>
+                            <TextBlock FontSize="13" FontWeight="SemiBold" Foreground="#059669">
+                                <Run Text="Nouvelle version disponible : "/>
+                                <Run Text="{Binding VersionDisponible, Mode=OneWay}"/>
+                            </TextBlock>
+                            <TextBlock Text="{Binding NotesVersion}" FontSize="12" Foreground="#475569"
+                                       TextWrapping="Wrap" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Orientation="Horizontal">
+                    <Button Command="{Binding VerifierCommand}" Style="{StaticResource DashRefreshButton}"
+                            Margin="0,0,10,0" Padding="16,10">
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Refresh" Width="18" Height="18" Margin="0,0,8,0"/>
+                            <TextBlock Text="Vérifier" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Command="{Binding TelechargerEtInstallerCommand}"
+                            Padding="18,10" Cursor="Hand" FontWeight="Bold"
+                            Visibility="{Binding MiseAJourDisponible, Converter={StaticResource BooleanToVisibilityConverter}}">
+                        <Button.Style>
+                            <Style TargetType="Button">
+                                <Setter Property="Background" Value="#059669"/>
+                                <Setter Property="Foreground" Value="White"/>
+                                <Setter Property="BorderThickness" Value="0"/>
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="Button">
+                                            <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="12"
+                                                    Padding="{TemplateBinding Padding}">
+                                                <Border.Effect>
+                                                    <DropShadowEffect BlurRadius="12" ShadowDepth="2" Opacity="0.28" Color="#047857"/>
+                                                </Border.Effect>
+                                                <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                            </Border>
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsMouseOver" Value="True">
+                                                    <Setter TargetName="Bd" Property="Background" Value="#047857"/>
+                                                </Trigger>
+                                                <Trigger Property="IsEnabled" Value="False">
+                                                    <Setter TargetName="Bd" Property="Opacity" Value="0.55"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </Button.Style>
+                        <StackPanel Orientation="Horizontal">
+                            <materialDesign:PackIcon Kind="Download" Width="18" Height="18" Margin="0,0,8,0"/>
+                            <TextBlock Text="Mettre à jour" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
         <!-- Progression mois -->
         <StackPanel Margin="0,0,0,20">
             <TextBlock Text="{Binding ProchaineEtapeLibelle, Mode=OneWay}" FontSize="16" FontWeight="SemiBold" Foreground="#334155"/>

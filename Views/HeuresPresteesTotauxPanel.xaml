@@ -896,11 +896,27 @@
                                             </StackPanel>
                                         </Button>
                                         <Button Command="{Binding ExporterHeuresEmployeCommand}"
-                                                Style="{StaticResource HeuresRefreshButton}"
+                                                Style="{StaticResource HeuresRefreshButton}" Margin="0,0,8,0"
                                                 ToolTip="PDF détail journalier de l'employé sélectionné">
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="FilePdfBox" Width="18" Height="18" Margin="0,0,6,0"/>
                                                 <TextBlock Text="Employé (PDF)"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding ExporterHeuresPeriodeExcelCommand}"
+                                                Style="{StaticResource HeuresRefreshButton}" Margin="0,0,8,0"
+                                                ToolTip="Excel — heures au format exact h:mm (tous)">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="MicrosoftExcel" Width="18" Height="18" Margin="0,0,6,0"/>
+                                                <TextBlock Text="Tous (Excel)"/>
+                                            </StackPanel>
+                                        </Button>
+                                        <Button Command="{Binding ExporterHeuresEmployeExcelCommand}"
+                                                Style="{StaticResource HeuresRefreshButton}"
+                                                ToolTip="Excel — détail journalier h:mm (employé)">
+                                            <StackPanel Orientation="Horizontal">
+                                                <materialDesign:PackIcon Kind="MicrosoftExcel" Width="18" Height="18" Margin="0,0,6,0"/>
+                                                <TextBlock Text="Employé (Excel)"/>
                                             </StackPanel>
                                         </Button>
                                     </WrapPanel>
@@ -934,7 +950,7 @@
                                     <DataGridTextColumn Header="Matricule" Binding="{Binding Matricule}" Width="100" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Employé" Binding="{Binding NomComplet}" Width="*" MinWidth="160" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Département" Binding="{Binding Departement}" Width="140" IsReadOnly="True"/>
-                                    <DataGridTextColumn Header="Total heures" Binding="{Binding TotalHeuresLibelle}" Width="110" IsReadOnly="True"/>
+                                    <DataGridTextColumn Header="Total heures (h:mm)" Binding="{Binding TotalHeuresLibelle}" Width="130" IsReadOnly="True"/>
                                     <DataGridTextColumn Header="Jours équiv." Binding="{Binding TotalJoursEquivalentLibelle, Mode=OneWay}" Width="110" IsReadOnly="True"/>
                                 </DataGrid.Columns>
                             </DataGrid>

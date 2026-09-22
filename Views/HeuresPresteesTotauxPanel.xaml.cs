@@ -30,6 +30,8 @@ public partial class HeuresPresteesTotauxPanel : UserControl
                 _vm.OnDemandeExportRapportMensuel -= ExportRapportMensuel;
                 _vm.OnDemandeExportHeuresPeriode -= ExportHeuresPeriode;
                 _vm.OnDemandeExportHeuresEmploye -= ExportHeuresEmploye;
+                _vm.OnDemandeExportHeuresPeriodeExcel -= ExportHeuresPeriodeExcel;
+                _vm.OnDemandeExportHeuresEmployeExcel -= ExportHeuresEmployeExcel;
             }
             AppSessionEvents.EntrepriseCouranteChanged -= OnEntrepriseCouranteChanged;
             AppSessionEvents.SessionUtilisateurChanged -= OnSessionUtilisateurChanged;
@@ -44,6 +46,8 @@ public partial class HeuresPresteesTotauxPanel : UserControl
         vm.OnDemandeExportRapportMensuel += ExportRapportMensuel;
         vm.OnDemandeExportHeuresPeriode += ExportHeuresPeriode;
         vm.OnDemandeExportHeuresEmploye += ExportHeuresEmploye;
+        vm.OnDemandeExportHeuresPeriodeExcel += ExportHeuresPeriodeExcel;
+        vm.OnDemandeExportHeuresEmployeExcel += ExportHeuresEmployeExcel;
     }
 
     private HeuresPresteesTotauxViewModel? Vm => DataContext as HeuresPresteesTotauxViewModel ?? _vm;
@@ -179,6 +183,73 @@ public partial class HeuresPresteesTotauxPanel : UserControl
         catch (Exception ex)
         {
             AppNotificationService.Avertissement($"Export PDF : {ex.Message}");
+        }
+    }
+
+    private void ExportHeuresPeriodeExcel()
+    {
+        var vm = Vm;
+        if (vm?.PeriodeSelectionnee == null || vm.Lignes.Count == 0)
+        {
+            AppNotificationService.Afficher("Sélectionnez une période avec des données d'heures.", NotificationKind.Info);
+            return;
+        }
+
+        var p = vm.PeriodeSelectionnee;
+        var dlg = new SaveFileDialog
+        {
+            Title = "Exporter les heures travaillées (Excel h:mm)",
+            Filter = "Excel (*.xlsx)|*.xlsx",
+            FileName = $"Heures_Travaillees_{p.Mois:D2}_{p.Annee}.xlsx",
+            DefaultExt = ".xlsx",
+            AddExtension = true
+        };
+
+        if (dlg.ShowDialog() != true) return;
+
+        try
+        {
+            vm.ExporterHeuresPeriodeExcel(dlg.FileName);
+            AppNotificationService.Succes("Excel heures (format h:mm) exporté.");
+            OuvrirPdf(dlg.FileName);
+        }
+        catch (Exception ex)
+        {
+            AppNotificationService.Avertissement($"Export Excel : {ex.Message}");
+        }
+    }
+
+    private void ExportHeuresEmployeExcel()
+    {
+        var vm = Vm;
+        if (vm?.PeriodeSelectionnee == null || vm.EmployeSelectionne == null)
+        {
+            AppNotificationService.Afficher("Sélectionnez une période et un employé.", NotificationKind.Info);
+            return;
+        }
+
+        var p = vm.PeriodeSelectionnee;
+        var mat = vm.EmployeSelectionne.Matricule?.Replace('/', '-') ?? "Employe";
+        var dlg = new SaveFileDialog
+        {
+            Title = "Exporter le détail des heures (Excel h:mm)",
+            Filter = "Excel (*.xlsx)|*.xlsx",
+            FileName = $"Heures_{mat}_{p.Mois:D2}_{p.Annee}.xlsx",
+            DefaultExt = ".xlsx",
+            AddExtension = true
+        };
+
+        if (dlg.ShowDialog() != true) return;
+
+        try
+        {
+            vm.ExporterHeuresEmployeExcel(dlg.FileName);
+            AppNotificationService.Succes("Excel heures employé (format h:mm) exporté.");
+            OuvrirPdf(dlg.FileName);
+        }
+        catch (Exception ex)
+        {
+            AppNotificationService.Avertissement($"Export Excel : {ex.Message}");
         }
     }
 
