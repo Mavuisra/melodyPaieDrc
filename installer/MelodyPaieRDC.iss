@@ -4,8 +4,8 @@
 ; =============================================================================
 
 #define MyAppName "Melody Paie RDC"
-#define MyAppVersion "1.0.25"
-#define MyAppVersionShort "1.0.25"
+#define MyAppVersion "1.0.26"
+#define MyAppVersionShort "1.0.26"
 #define MyAppPublisher "Melody Paie"
 #define MyAppExeName "MelodyPaieRDC.exe"
 #define MyAppCopyright "Melody Paie"
@@ -178,6 +178,7 @@ begin
 
   Result := True;
 end;
+
 
 
 
