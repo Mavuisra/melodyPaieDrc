@@ -1,8 +1,8 @@
-﻿{
-    "sha256":  "",
-    "version":  "1.0.26",
-    "releaseNotes":  "Bouton Mise a jour sur le dashboard. Heures affichees en h:mm (logiciel + Excel). Salaire de reference aout reporte avec quinzaine/pret/sanction/retenues. Impots CNSS et IPR uniquement.",
-    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.26/MelodyPaieRDC_Setup_1.0.26.exe",
-    "publishedAt":  "2026-09-22",
-    "fileName":  "MelodyPaieRDC_Setup_1.0.26.exe"
+{
+  "sha256": "FE776CB09C8AC37DFBD8707D0A3EEE21306DDABEC7DBC5F8EA0800C627A57502",
+  "publishedAt": "2026-09-22",
+  "version": "1.0.26",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.26/MelodyPaieRDC_Setup_1.0.26.exe",
+  "releaseNotes": "Release v1.0.26",
+  "fileName": "MelodyPaieRDC_Setup_1.0.26.exe"
 }
