@@ -101,7 +101,10 @@ public static class DonneesPaieReferenceSeed
                 new() { Cle = ParametrePolitiquePaie.Cles.CompleterJoursSansSaisie, Valeur = "false" },
                 new() { Cle = ParametrePolitiquePaie.Cles.RetardSanctionActive, Valeur = "true" },
                 new() { Cle = ParametrePolitiquePaie.Cles.RetardSeuilMinutes, Valeur = "20" },
-                new() { Cle = ParametrePolitiquePaie.Cles.RetardModeSanction, Valeur = ParametrePolitiquePaie.RetardModeHoraire }
+                new() { Cle = ParametrePolitiquePaie.Cles.RetardModeSanction, Valeur = ParametrePolitiquePaie.RetardModeHoraire },
+                new() { Cle = ParametrePolitiquePaie.Cles.UtiliserMoisReferencePaie, Valeur = "false" },
+                new() { Cle = ParametrePolitiquePaie.Cles.AnneeReferencePaie, Valeur = "2026" },
+                new() { Cle = ParametrePolitiquePaie.Cles.MoisReferencePaie, Valeur = "8" }
             },
             Rubriques = CreerRubriquesParDefaut()
         };

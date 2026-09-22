@@ -90,6 +90,11 @@ public sealed class PolitiquePaieContext
         ParametrePolitiquePaie.Cles.RetardModeSanction,
         ParametrePolitiquePaie.RetardModeAucun);
 
+    /// <summary>Reporter le salaire validé d'un mois de référence sur les mois suivants.</summary>
+    public bool UtiliserMoisReferencePaie => GetBool(ParametrePolitiquePaie.Cles.UtiliserMoisReferencePaie, false);
+    public int AnneeReferencePaie => (int)GetDecimal(ParametrePolitiquePaie.Cles.AnneeReferencePaie, 0m);
+    public int MoisReferencePaie => (int)GetDecimal(ParametrePolitiquePaie.Cles.MoisReferencePaie, 0m);
+
     public string? LibelleRubrique(string code)
         => Rubriques.FirstOrDefault(r => string.Equals(r.Code, code, StringComparison.OrdinalIgnoreCase))?.Libelle;
 

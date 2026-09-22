@@ -44,6 +44,13 @@ public class ParametrePolitiquePaie
         public const string RetardSanctionActive = "RETARD_SANCTION_ACTIVE";
         public const string RetardSeuilMinutes = "RETARD_SEUIL_MINUTES";
         public const string RetardModeSanction = "RETARD_MODE_SANCTION";
+
+        /// <summary>Si true, les mois postérieurs recopient le salaire du mois de référence.</summary>
+        public const string UtiliserMoisReferencePaie = "UTILISER_MOIS_REFERENCE_PAIE";
+        /// <summary>Année du bulletin de référence (ex. 2026).</summary>
+        public const string AnneeReferencePaie = "ANNEE_REFERENCE_PAIE";
+        /// <summary>Mois du bulletin de référence (ex. 8 = août).</summary>
+        public const string MoisReferencePaie = "MOIS_REFERENCE_PAIE";
     }
 
     public const string TypePeriodeCalendaire = "CALENDAIRE";

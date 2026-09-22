@@ -3,6 +3,7 @@ using System.Linq;
 using MelodyPaieRDC.Data;
 using MelodyPaieRDC.Helpers;
 using MelodyPaieRDC.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace MelodyPaieRDC.Services;
 
@@ -599,6 +600,32 @@ public class CalculPaieService
             });
         }
         AjouterDetailSiLibelle(RubAjustementsRetenues, 0, 0, 0, autresRetenuesSaisies);
+
+        // Mois de référence (ex. août validé) : même salaire, variables du mois courant uniquement.
+        if (politique.UtiliserMoisReferencePaie
+            && politique.AnneeReferencePaie > 0
+            && politique.MoisReferencePaie is >= 1 and <= 12
+            && (periode.Annee > politique.AnneeReferencePaie
+                || (periode.Annee == politique.AnneeReferencePaie && periode.Mois > politique.MoisReferencePaie)))
+        {
+            var periodeRef = _db.PeriodesPaie.FirstOrDefault(p =>
+                p.Annee == politique.AnneeReferencePaie && p.Mois == politique.MoisReferencePaie);
+            if (periodeRef != null)
+            {
+                var bulletinRef = _db.BulletinsPaie
+                    .Include(b => b.Details)
+                    .FirstOrDefault(b => b.EmployeId == employeId && b.PeriodePaieId == periodeRef.Id);
+                if (bulletinRef != null)
+                {
+                    var varsMois = new PaieMoisReferenceHelper.VariablesMois(
+                        acomptesSaisis,
+                        RoundPaie(retenuePrets),
+                        totalSanctions,
+                        autresRetenuesSaisies);
+                    PaieMoisReferenceHelper.AppliquerSurBulletin(bulletin, bulletinRef, varsMois);
+                }
+            }
+        }
 
         _db.BulletinsPaie.Add(bulletin);
         _db.SaveChanges();
