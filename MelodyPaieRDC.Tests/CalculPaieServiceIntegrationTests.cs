@@ -284,7 +284,7 @@ public class CalculPaieServiceIntegrationTests : IDisposable
     }
 
     [Fact]
-    public void Net_vers_brut_applique_inpp_sans_ligne_bulletin()
+    public void Net_vers_brut_sans_inpp_uniquement_cnss_ipr()
     {
         var scenario = PaieTestScenario.Creer(_factory, salaireBase: 500_000m);
         scenario.DefinirParametrePolitique(ParametrePolitiquePaie.Cles.SalaireContratEnNet, "true");
@@ -294,7 +294,9 @@ public class CalculPaieServiceIntegrationTests : IDisposable
         var bulletin = scenario.GenererBulletin();
 
         Assert.True(bulletin.TotalGainImposable > bulletin.NetAPayer);
-        Assert.True(bulletin.CotisationInpp > 0m);
+        Assert.Equal(0m, bulletin.CotisationInpp);
+        Assert.True(bulletin.CotisationCnssOuvrier > 0m);
+        Assert.True(bulletin.MontantIprNet > 0m);
         Assert.DoesNotContain(bulletin.Details, d => d.Libelle.Contains("INPP", StringComparison.OrdinalIgnoreCase));
         Assert.InRange(bulletin.NetAPayer, 499_000m, 501_000m);
     }
@@ -536,7 +538,7 @@ public class CalculPaieServiceIntegrationTests : IDisposable
         Assert.Equal(260_006.90m, ligneIpr.Retenue);   // 10 % × (2 600 000 + 69)
         Assert.Equal(130_003.45m, ligneCnss.Retenue);  // 5 % × (2 600 000 + 69)
         Assert.DoesNotContain(bulletin.Details, d => d.Libelle.Contains("INPP", StringComparison.OrdinalIgnoreCase));
-        Assert.Equal(78_002.07m, bulletin.CotisationInpp); // 3 % appliqué au net, sans ligne détail
+        Assert.Equal(0m, bulletin.CotisationInpp); // règle stricte : pas d'INPP
 
         Assert.Contains(bulletin.Details, d => d.Libelle.Contains("Prêts", StringComparison.OrdinalIgnoreCase) && d.Retenue == 200m);
         Assert.Contains(bulletin.Details, d => d.Libelle.Contains("Acomptes", StringComparison.OrdinalIgnoreCase) && d.Retenue == 100m);
@@ -553,7 +555,7 @@ public class CalculPaieServiceIntegrationTests : IDisposable
         // Colonnes résumé du bulletin aussi persistées
         Assert.Equal(130_003.45m, bulletin.CotisationCnssOuvrier);
         Assert.Equal(260_006.90m, bulletin.MontantIprNet);
-        Assert.Equal(78_002.07m, bulletin.CotisationInpp);
+        Assert.Equal(0m, bulletin.CotisationInpp);
         Assert.True(bulletin.NetAPayer > 0m);
         Assert.True(bulletin.Details.Count >= 14, $"Attendu ≥14 lignes, obtenu {bulletin.Details.Count}: {string.Join(" | ", bulletin.Details.Select(d => d.Libelle))}");
     }

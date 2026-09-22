@@ -1453,7 +1453,7 @@ public class ExportPdfService
             .ToList();
         var employeeName = Clip($"{bulletin.Employe?.Nom} {bulletin.Employe?.Postnom} {bulletin.Employe?.Prenom}".Trim(), 90);
         var totalBrut = bulletin.TotalGainImposable + bulletin.TotalGainNonImposable;
-        var retenuesLegales = bulletin.MontantIprNet + bulletin.CotisationCnssOuvrier + bulletin.CotisationInpp;
+        var retenuesLegales = bulletin.MontantIprNet + bulletin.CotisationCnssOuvrier;
         var totalGains = bulletin.TotalGainImposable + bulletin.TotalGainNonImposable;
         var retenuesDiverses = decimal.Round(
             Math.Max(0m, totalGains - bulletin.NetAPayer - retenuesLegales),

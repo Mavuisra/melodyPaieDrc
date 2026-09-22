@@ -86,7 +86,7 @@ public sealed class HeuresPaieRapportService
             {
                 salaire = bulletin.SalaireBrut;
                 impot = bulletin.MontantIprNet;
-                retenue = bulletin.CotisationCnssOuvrier + bulletin.CotisationInpp;
+                retenue = bulletin.CotisationCnssOuvrier;
                 solde = bulletin.NetAPayer;
                 quinzaine = RetenueDetail(bulletin, libAcomptes);
                 prets = RetenueDetail(bulletin, libPrets);

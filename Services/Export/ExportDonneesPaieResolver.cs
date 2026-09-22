@@ -158,7 +158,7 @@ public static class ExportDonneesPaieResolver
     {
         var b = ctx.Bulletin;
         var brut = b.TotalGainImposable + b.TotalGainNonImposable;
-        var ded = b.MontantIprNet + b.CotisationCnssOuvrier + b.CotisationInpp;
+        var ded = b.MontantIprNet + b.CotisationCnssOuvrier;
         return champ switch
         {
             "SalaireBrut" => FormaterNombre(brut, "N2"),
