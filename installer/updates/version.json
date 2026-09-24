@@ -1,8 +1,8 @@
 {
-  "sha256": "FE776CB09C8AC37DFBD8707D0A3EEE21306DDABEC7DBC5F8EA0800C627A57502",
-  "publishedAt": "2026-09-22",
-  "version": "1.0.26",
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.26/MelodyPaieRDC_Setup_1.0.26.exe",
-  "releaseNotes": "Release v1.0.26",
-  "fileName": "MelodyPaieRDC_Setup_1.0.26.exe"
+  "sha256": "",
+  "version": "1.0.27",
+  "releaseNotes": "Corrige l ecart bulletin apres MAJ: active automatiquement le salaire de reference aout, conserve la retenue salaire d aout, primes/sanctions/prets. Regenerer les bulletins septembre apres install.",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.27/MelodyPaieRDC_Setup_1.0.27.exe",
+  "publishedAt": "2026-09-24",
+  "fileName": "MelodyPaieRDC_Setup_1.0.27.exe"
 }
