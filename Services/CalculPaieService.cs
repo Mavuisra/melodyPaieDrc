@@ -617,12 +617,17 @@ public class CalculPaieService
                     .FirstOrDefault(b => b.EmployeId == employeId && b.PeriodePaieId == periodeRef.Id);
                 if (bulletinRef != null)
                 {
+                    var aucuneSaisieVariablesMois = saisie == null
+                        && RoundPaie(retenuePrets) == 0m
+                        && totalSanctions == 0m
+                        && autresRetenuesSaisies == 0m;
                     var varsMois = new PaieMoisReferenceHelper.VariablesMois(
                         acomptesSaisis,
                         RoundPaie(retenuePrets),
                         totalSanctions,
                         autresRetenuesSaisies);
-                    PaieMoisReferenceHelper.AppliquerSurBulletin(bulletin, bulletinRef, varsMois);
+                    PaieMoisReferenceHelper.AppliquerSurBulletin(
+                        bulletin, bulletinRef, varsMois, aucuneSaisieVariablesMois);
                 }
             }
         }

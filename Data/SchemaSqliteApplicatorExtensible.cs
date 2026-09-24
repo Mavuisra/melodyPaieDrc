@@ -18,6 +18,7 @@ public static class SchemaSqliteApplicatorExtensible
         MettreAJourLibellesRubriquesParDefaut(db);
         ActiverSalaireNetEtCompletionPresenceParDefaut(db);
         ActiverSanctionsRetardEtRubriqueTransport(db);
+        ActiverMoisReferencePaieAout2026(db);
     }
 
     private static void CreerTablesExtensibles(DbContext db)
@@ -251,6 +252,41 @@ public static class SchemaSqliteApplicatorExtensible
                 SELECT 1 FROM ""RubriquesBulletin"" r
                 WHERE r.""PolitiquePaieId"" = p.""Id"" AND r.""Code"" = 'TRANSPORT_ABSENCES'
             )");
+    }
+
+    /// <summary>
+    /// Active le report du salaire validé d'août 2026 (retenue salaire permanente incluse)
+    /// sur les mois suivants, pour toutes les politiques existantes.
+    /// </summary>
+    private static void ActiverMoisReferencePaieAout2026(DbContext db)
+    {
+        var conn = Ouvrir(db);
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='table' AND name='ParametresPolitiquePaie'";
+            if (cmd.ExecuteScalar() is not string)
+                return;
+        }
+
+        void Upsert(string cle, string valeur)
+        {
+            Executer(conn, $@"
+                UPDATE ""ParametresPolitiquePaie""
+                SET ""Valeur"" = '{valeur}'
+                WHERE ""Cle"" = '{cle}'");
+            Executer(conn, $@"
+                INSERT INTO ""ParametresPolitiquePaie"" (""PolitiquePaieId"", ""Cle"", ""Valeur"")
+                SELECT p.""Id"", '{cle}', '{valeur}'
+                FROM ""PolitiquesPaie"" p
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM ""ParametresPolitiquePaie"" x
+                    WHERE x.""PolitiquePaieId"" = p.""Id"" AND x.""Cle"" = '{cle}'
+                )");
+        }
+
+        Upsert(ParametrePolitiquePaie.Cles.UtiliserMoisReferencePaie, "true");
+        Upsert(ParametrePolitiquePaie.Cles.AnneeReferencePaie, "2026");
+        Upsert(ParametrePolitiquePaie.Cles.MoisReferencePaie, "8");
     }
 
     /// <summary>Renomme les libellés par défaut sans écraser une personnalisation utilisateur.</summary>
