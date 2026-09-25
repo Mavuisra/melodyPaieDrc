@@ -1,8 +1,8 @@
-{
-  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.27/MelodyPaieRDC_Setup_1.0.27.exe",
-  "fileName": "MelodyPaieRDC_Setup_1.0.27.exe",
-  "releaseNotes": "Release v1.0.27",
-  "sha256": "786CF1AF4ED8718A7BABCE75ABA5FBF6AC1727CBE8AAD72AC526C5B5C2E0D80B",
-  "version": "1.0.27",
-  "publishedAt": "2026-09-24"
+﻿{
+    "sha256":  "",
+    "version":  "1.0.28",
+    "releaseNotes":  "Ne clone plus les dettes/quinzaines/retards d aout. Les modifs du mois (sept) restent celles du mois. Retenue salaire aout conservee. Regenerer bulletins apres install.",
+    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.28/MelodyPaieRDC_Setup_1.0.28.exe",
+    "publishedAt":  "2026-09-25",
+    "fileName":  "MelodyPaieRDC_Setup_1.0.28.exe"
 }
