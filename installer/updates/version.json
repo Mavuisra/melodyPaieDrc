@@ -1,8 +1,8 @@
 {
-    "sha256":  "",
-    "version":  "1.0.29",
-    "releaseNotes":  "Apres install: ouvrir septembre et regenerer les bulletins. Aout = reference (retenue salaire conservee). Ne clone plus quinzaines/dettes/retards d aout. Les modifs du mois restent celles du mois. INPP=0.",
-    "downloadUrl":  "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.29/MelodyPaieRDC_Setup_1.0.29.exe",
-    "publishedAt":  "2026-09-25",
-    "fileName":  "MelodyPaieRDC_Setup_1.0.29.exe"
+  "sha256": "49D32801606C1DC738B125A9F26A733C5A65519E05CAA62D6474875FCC79216B",
+  "releaseNotes": "Release v1.0.29",
+  "downloadUrl": "https://github.com/Mavuisra/melodyPaieDrc/releases/download/v1.0.29/MelodyPaieRDC_Setup_1.0.29.exe",
+  "publishedAt": "2026-09-25",
+  "version": "1.0.29",
+  "fileName": "MelodyPaieRDC_Setup_1.0.29.exe"
 }
