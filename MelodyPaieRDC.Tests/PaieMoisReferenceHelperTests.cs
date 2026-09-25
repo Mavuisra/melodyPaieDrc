@@ -6,39 +6,26 @@ namespace MelodyPaieRDC.Tests;
 public class PaieMoisReferenceHelperTests
 {
     [Fact]
-    public void CalculerNet_sans_saisie_mois_egal_net_reference()
+    public void CalculerNet_sans_saisie_mois_remet_dettes_aout()
     {
+        // Net août 900 après quinzaine 100 → sans dette mois = 1000
         var varsRef = new PaieMoisReferenceHelper.VariablesMois(100, 0, 0, 26.13m);
         var net = PaieMoisReferenceHelper.CalculerNet(
             900m,
             varsRef,
-            varsRef, // clone : mêmes Q/P/S
-            retenuesAdditionnellesMois: 0m);
-        Assert.Equal(900m, net);
-    }
-
-    [Fact]
-    public void CalculerNet_restaure_quinzaine_si_mois_sans_acompte()
-    {
-        var varsRef = new PaieMoisReferenceHelper.VariablesMois(100, 0, 0, 0);
-        var net = PaieMoisReferenceHelper.CalculerNet(
-            400m,
-            varsRef,
             new PaieMoisReferenceHelper.VariablesMois(0, 0, 0, 0));
-        Assert.Equal(500m, net);
+        Assert.Equal(1000m, net);
     }
 
     [Fact]
-    public void AppliquerSurBulletin_conserve_retenue_salaire_reference()
+    public void AppliquerSurBulletin_ne_clone_pas_quinzaine_ni_sanctions_aout()
     {
         var reference = new BulletinPaie
         {
             TotalGainImposable = 1000m,
             TotalGainNonImposable = 50m,
-            BaseIpr = 600m,
             MontantIprNet = 60m,
             CotisationCnssOuvrier = 30m,
-            CotisationInpp = 18m,
             NetAPayer = 900m,
             NetAPayerDeviseLocale = 900m,
             Details = new List<BulletinDetail>
@@ -47,31 +34,31 @@ public class PaieMoisReferenceHelperTests
                 new() { Libelle = "IPR", Retenue = 60m },
                 new() { Libelle = "CNSS ouvrier", Retenue = 30m },
                 new() { Libelle = "Acomptes salaire", Retenue = 100m },
+                new() { Libelle = "Sanctions / retards", Retenue = 13.40m },
                 new() { Libelle = "Ajustements retenues", Retenue = 26.13m },
             }
         };
         var bulletin = new BulletinPaie { Details = new List<BulletinDetail>() };
 
-        // Pas de saisie mois → clone complet
         PaieMoisReferenceHelper.AppliquerSurBulletin(
             bulletin,
             reference,
             new PaieMoisReferenceHelper.VariablesMois(0, 0, 0, 0),
             aucuneSaisieVariablesMois: true);
 
-        Assert.Equal(900m, bulletin.NetAPayer);
-        Assert.Equal(0m, bulletin.CotisationInpp);
+        // 900 + 100 + 13.40 = 1013.40 (dettes aout rendues, pas reclones)
+        Assert.Equal(1013.40m, bulletin.NetAPayer);
         Assert.Contains(bulletin.Details, d => d.Libelle == "Ajustements retenues" && d.Retenue == 26.13m);
-        Assert.Contains(bulletin.Details, d => d.Libelle == "Acomptes salaire" && d.Retenue == 100m);
+        Assert.DoesNotContain(bulletin.Details, d => d.Libelle == "Acomptes salaire");
+        Assert.DoesNotContain(bulletin.Details, d => d.Libelle.Contains("Sanctions", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
-    public void AppliquerSurBulletin_overlay_quinzaine_garde_retenue_aout()
+    public void AppliquerSurBulletin_applique_variables_du_mois_seulement()
     {
         var reference = new BulletinPaie
         {
             TotalGainImposable = 1000m,
-            TotalGainNonImposable = 0m,
             MontantIprNet = 60m,
             CotisationCnssOuvrier = 30m,
             NetAPayer = 900m,

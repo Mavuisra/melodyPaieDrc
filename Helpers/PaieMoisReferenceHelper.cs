@@ -6,10 +6,10 @@ using MelodyPaieRDC.Models;
 namespace MelodyPaieRDC.Helpers;
 
 /// <summary>
-/// Salaire de référence (août validé) reporté sur les mois suivants.
-/// - Gains, primes, impôts CNSS/IPR, transport absences et <b>retenue salaire</b> (ajustements)
-///   du mois de référence sont toujours conservés.
-/// - Quinzaine / prêt / sanction : ceux du mois courant s'ils sont saisis, sinon ceux de la référence.
+/// Salaire de référence (août) pour les mois suivants :
+/// - copie gains / primes / IPR / CNSS + <b>retenue salaire permanente</b> d'août ;
+/// - <b>ne clone jamais</b> quinzaine, prêt, sanction/retard d'août ;
+/// - applique uniquement les variables du mois courant.
 /// </summary>
 public static class PaieMoisReferenceHelper
 {
@@ -38,13 +38,13 @@ public static class PaieMoisReferenceHelper
     }
 
     /// <summary>
-    /// Net = NetRéf + (Q+P+S)Réf − (Q+P+S)Mois − retenues_additionnelles_mois.
-    /// La retenue salaire du mois de référence reste « cuite » dans NetRéf (jamais retirée).
+    /// Net = NetRéf + (Q+P+S)Réf − (Q+P+S+retenues_add)Mois.
+    /// On remet les dettes d'août pour repartir du salaire plein, puis on applique celles du mois.
     /// </summary>
     public static decimal CalculerNet(
         decimal netReference,
         VariablesMois varsReference,
-        VariablesMois varsMoisEffectives,
+        VariablesMois varsMois,
         decimal retenuesAdditionnellesMois = 0m)
     {
         var salairePlein = netReference
@@ -52,17 +52,13 @@ public static class PaieMoisReferenceHelper
             + varsReference.Pret
             + varsReference.Sanction;
         var net = salairePlein
-            - varsMoisEffectives.Quinzaine
-            - varsMoisEffectives.Pret
-            - varsMoisEffectives.Sanction
+            - varsMois.Quinzaine
+            - varsMois.Pret
+            - varsMois.Sanction
             - retenuesAdditionnellesMois;
         return net < 0 ? 0 : decimal.Round(net, 2, MidpointRounding.AwayFromZero);
     }
 
-    /// <summary>
-    /// Si aucune variable du mois n'est saisie → clone complet (même net, même retenue salaire).
-    /// Sinon → overlay quinzaine/prêt/sanction, retenue salaire de référence toujours affichée.
-    /// </summary>
     public static void AppliquerSurBulletin(
         BulletinPaie bulletin,
         BulletinPaie reference,
@@ -73,17 +69,16 @@ public static class PaieMoisReferenceHelper
         ArgumentNullException.ThrowIfNull(reference);
 
         var varsRef = ExtraireVariables(reference.Details ?? Enumerable.Empty<BulletinDetail>());
-        var varsEffectives = aucuneSaisieVariablesMois
-            ? varsRef
+        // Jamais cloner Q/P/S d'août : si pas de saisie mois → 0 (modifs du mois restent vides / à saisir)
+        var varsMois = aucuneSaisieVariablesMois
+            ? new VariablesMois(0, 0, 0, 0)
             : new VariablesMois(
                 varsMoisSaisies.Quinzaine,
                 varsMoisSaisies.Pret,
                 varsMoisSaisies.Sanction,
                 0m);
-
-        // Retenue salaire d'août = permanente. AutresRetenues du mois = additionnelle seulement.
         var retenuesAdd = aucuneSaisieVariablesMois ? 0m : varsMoisSaisies.Retenue;
-        var net = CalculerNet(reference.NetAPayer, varsRef, varsEffectives, retenuesAdd);
+        var net = CalculerNet(reference.NetAPayer, varsRef, varsMois, retenuesAdd);
 
         bulletin.TotalGainImposable = reference.TotalGainImposable;
         bulletin.TotalGainNonImposable = reference.TotalGainNonImposable;
@@ -101,12 +96,12 @@ public static class PaieMoisReferenceHelper
         foreach (var d in reference.Details ?? Enumerable.Empty<BulletinDetail>())
         {
             var cat = Classer(d.Libelle);
-            // Remplacés ci-dessous (sauf retenue salaire permanente)
+            // Ne jamais reporter quinzaine / prêt / sanction d'août
             if (cat is "quinzaine" or "pret" or "sanction")
                 continue;
             if (string.Equals(d.Libelle, "INPP", StringComparison.OrdinalIgnoreCase))
                 continue;
-            // "retenue" (ajustements / retenue salaire) : TOUJOURS garder celle de la référence
+            // Retenue salaire (ajustements) d'août : permanente
             details.Add(new BulletinDetail
             {
                 Libelle = d.Libelle,
@@ -130,10 +125,9 @@ public static class PaieMoisReferenceHelper
             });
         }
 
-        AddRetenue("Acomptes salaire", varsEffectives.Quinzaine);
-        AddRetenue("Prêts / avances", varsEffectives.Pret);
-        AddRetenue("Sanctions / retards", varsEffectives.Sanction);
-        // Retenue salaire mois courant en plus de celle d'août (si saisie)
+        AddRetenue("Acomptes salaire", varsMois.Quinzaine);
+        AddRetenue("Prêts / avances", varsMois.Pret);
+        AddRetenue("Sanctions / retards", varsMois.Sanction);
         if (retenuesAdd > 0)
             AddRetenue("Ajustements retenues (mois)", retenuesAdd);
 
